@@ -1,115 +1,53 @@
-/*
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import "react-native-reanimated";
-
-import { useColorScheme } from "@/hooks/use-color-scheme";
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
-}
-*/
-
-// app/_layout.tsx
-
-import { Slot } from "expo-router";
-import { onAuthStateChanged } from "firebase/auth";
-import { ref, set } from "firebase/database";
+import { Redirect, Slot, usePathname } from "expo-router";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { auth, db } from "../firebaseConfig"; // ← adjust path if needed (../firebase or ./firebase)
+import { ActivityIndicator, View } from "react-native";
+import { auth } from "../firebaseConfig";
 
 export default function RootLayout() {
-  const [status, setStatus] = useState("Checking Firebase connection...");
-  const [userInfo, setUserInfo] = useState("Auth: checking...");
-
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const pathname = usePathname();
   useEffect(() => {
-    // 1. Check if auth initializes
-    if (!auth) {
-      setStatus("ERROR: auth did not initialize");
-      return;
-    }
-
-    // 2. Listen to auth state (quick connectivity check)
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserInfo(`Logged in — UID: ${user.uid.slice(0, 8)}...`);
-      } else {
-        setUserInfo("Not logged in (normal — no one signed in yet)");
-      }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setInitializing(false);
     });
 
-    // 3. Try a tiny write to prove DB connection (will fail on permission → that's OK)
-    const testDb = async () => {
-      try {
-        const testRef = ref(db, "connection-test/expo");
-        await set(testRef, {
-          message: "Expo → Firebase connected!",
-          checkedAt: new Date().toISOString(),
-        });
-        setStatus("Firebase Realtime DB → Write succeeded (rules allow it?)");
-      } catch (err) {
-        setStatus(
-          `DB connection error (expected if rules locked):\n${err.message}`,
-        );
-      }
-    };
-
-    testDb();
-
-    return () => unsubscribeAuth();
+    return unsubscribe;
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Firebase Connectivity Check</Text>
-      <Text style={styles.status}>{status}</Text>
-      <Text style={styles.user}>{userInfo}</Text>
-      <Text style={styles.note}>
-        If you see a permission-denied error → connection works, but rules block
-        write (normal & good)
-      </Text>
+  if (initializing) {
+    console.log("RootLayout: initializing auth state...");
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
-      <Slot />
-    </View>
+  console.log(
+    "RootLayout: user=",
+    user,
+    "pathname=",
+    pathname,
+    "initializing=",
+    initializing,
   );
-}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
-  status: {
-    fontSize: 16,
-    textAlign: "center",
-    marginVertical: 10,
-    color: "#0066cc",
-  },
-  user: { fontSize: 16, marginVertical: 8, fontWeight: "500" },
-  note: { fontSize: 14, color: "#666", textAlign: "center", marginTop: 20 },
-});
+  // Redirect logic with minimal branching so that a slot can render
+  // in most cases.  Logs help track why we redirected.
+  if (!user) {
+    const authPaths = ["/signin", "/signup", "/forgot-password"];
+    if (!authPaths.includes(pathname)) {
+      console.log("RootLayout: no user, redirecting to /signin");
+      return <Redirect href="/signin" />;
+    }
+  } else {
+    if (pathname === "/") {
+      console.log("RootLayout: user exists and on root, redirecting to /home");
+      return <Redirect href="/home" />;
+    }
+  }
+  return <Slot />;
+}
