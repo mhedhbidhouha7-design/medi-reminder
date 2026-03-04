@@ -1,21 +1,44 @@
 // app/(app)/profile/index.tsx
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
-import { router } from "expo-router";
 import { signOut } from "firebase/auth";
-import { Alert, Button, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { auth } from "../../../firebaseConfig"; // adjust path
 
 export default function ProfileScreen() {
   console.log("Rendering ProfileScreen");
   const { colors } = useTheme();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.replace("/signin");
-    } catch (error: any) {
-      Alert.alert("Erreur", error.message);
-    }
+    Alert.alert("Déconnexion", "Êtes-vous sûr de vouloir vous déconnecter ?", [
+      {
+        text: "Annuler",
+        style: "cancel",
+      },
+      {
+        text: "Se déconnecter",
+        style: "destructive",
+        onPress: async () => {
+          setLoggingOut(true);
+          try {
+            await signOut(auth);
+          } catch (error) {
+            Alert.alert("Erreur", "Impossible de se déconnecter");
+          } finally {
+            setLoggingOut(false);
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -36,9 +59,17 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      <View style={{ marginTop: 40 }}>
-        <Button title="Se déconnecter" onPress={handleLogout} color="red" />
-      </View>
+      <TouchableOpacity
+        style={[styles.logoutButton, { backgroundColor: colors.card }]}
+        onPress={handleLogout}
+        disabled={loggingOut}
+      >
+        {loggingOut ? (
+          <ActivityIndicator size="small" color="#ef4444" />
+        ) : (
+          <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -65,5 +96,17 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 18,
     fontWeight: "500",
+  },
+  logoutButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });

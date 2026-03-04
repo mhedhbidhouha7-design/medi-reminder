@@ -1,4 +1,4 @@
-import { Redirect, Slot, usePathname } from "expo-router";
+import { Slot, usePathname, useRouter } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -7,7 +7,10 @@ import { auth } from "../firebaseConfig";
 export default function RootLayout() {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+
   const pathname = usePathname();
+  const router = useRouter();
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -17,8 +20,23 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (initializing) return;
+
+    const authPaths = ["/signin", "/signup", "/forgot-password"];
+
+    if (!user && !authPaths.includes(pathname)) {
+      console.log("No user → replace to /signin");
+      router.replace("/signin");
+    }
+
+    if (user && pathname === "/") {
+      console.log("User exists → replace to /home");
+      router.replace("/home");
+    }
+  }, [user, pathname, initializing]);
+
   if (initializing) {
-    console.log("RootLayout: initializing auth state...");
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -26,28 +44,5 @@ export default function RootLayout() {
     );
   }
 
-  console.log(
-    "RootLayout: user=",
-    user,
-    "pathname=",
-    pathname,
-    "initializing=",
-    initializing,
-  );
-
-  // Redirect logic with minimal branching so that a slot can render
-  // in most cases.  Logs help track why we redirected.
-  if (!user) {
-    const authPaths = ["/signin", "/signup", "/forgot-password"];
-    if (!authPaths.includes(pathname)) {
-      console.log("RootLayout: no user, redirecting to /signin");
-      return <Redirect href="/signin" />;
-    }
-  } else {
-    if (pathname === "/") {
-      console.log("RootLayout: user exists and on root, redirecting to /home");
-      return <Redirect href="/home" />;
-    }
-  }
   return <Slot />;
 }
