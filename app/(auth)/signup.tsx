@@ -1,7 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { ref, set } from "firebase/database";
 import { useState } from "react";
 import {
   Alert,
@@ -16,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth, db } from "../../firebaseConfig";
+import { signUpUser } from "../../controllers/authController";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -48,29 +46,7 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password,
-      );
-
-      const user = userCredential.user;
-
-      // Update profile with display name
-      await updateProfile(user, { displayName: name.trim() });
-
-      // Store additional user data in Realtime db
-      await set(ref(db, "users/" + user.uid), {
-        uid: user.uid,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim() || null,
-        createdAt: new Date().toISOString(),
-        role: "patient",
-        profileComplete: false,
-      });
-
+      await signUpUser(email, password, name, phone);
       router.replace("/home");
     } catch (error: any) {
       let errorMessage = "Une erreur est survenue lors de l'inscription";

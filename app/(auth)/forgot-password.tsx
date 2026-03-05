@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
-import { sendPasswordResetEmail } from "firebase/auth";
 import { useState } from "react";
 import {
   Alert,
@@ -15,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../../firebaseConfig";
+import { resetPassword } from "../../controllers/authController";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -30,7 +29,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      await resetPassword(email);
       setSent(true);
     } catch (error: any) {
       Alert.alert("Erreur", error.message);

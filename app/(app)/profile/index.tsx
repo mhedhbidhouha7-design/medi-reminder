@@ -1,7 +1,6 @@
 // app/(app)/profile/index.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
-import { signOut } from "firebase/auth";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -11,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../../../firebaseConfig"; // adjust path
+import { logoutUser } from "../../../controllers/authController";
 
 export default function ProfileScreen() {
   console.log("Rendering ProfileScreen");
@@ -28,10 +27,14 @@ export default function ProfileScreen() {
         text: "Se déconnecter",
         style: "destructive",
         onPress: async () => {
+          console.log("User confirmed logout, starting logout process");
           setLoggingOut(true);
           try {
-            await signOut(auth);
+            console.log("Calling logoutUser from profile screen");
+            await logoutUser();
+            console.log("logoutUser completed, navigation should happen now");
           } catch (error) {
+            console.error("Error during logout in profile screen:", error);
             Alert.alert("Erreur", "Impossible de se déconnecter");
           } finally {
             setLoggingOut(false);

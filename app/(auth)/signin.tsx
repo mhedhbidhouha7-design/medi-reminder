@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -16,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../../firebaseConfig";
+import { signInUser } from "../../controllers/authController";
 
 export default function Login() {
   console.log("Rendering Signin screen");
@@ -41,9 +40,8 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      // navigate using the public path without group parentheses
-      router.replace("/home"); // Redirect to home after successful login
+      await signInUser(email, password);
+      router.replace("/home");
     } catch (error: any) {
       Alert.alert("Login failed", error.message);
     } finally {
