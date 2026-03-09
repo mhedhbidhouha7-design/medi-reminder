@@ -5,4 +5,9 @@ export interface User {
   name?: string;
   phone?: string;
   createdAt: Date;
+  password: string;
+  dateOfBirth: string;
+  gender: string;
+  address: string;
+  profileImageUrl: string;
 }

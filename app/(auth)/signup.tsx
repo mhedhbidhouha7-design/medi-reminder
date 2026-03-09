@@ -1,10 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -19,15 +25,107 @@ import { signUpUser } from "../../controllers/authController";
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [gender, setGender] = useState("");
+  const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [showGenderModal, setShowGenderModal] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const genderOptions = ["Homme", "Femme"];
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission refusée",
+        "Nous avons besoin d'accéder à votre galerie pour ajouter une photo.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
+
+  const calculateAge = (birthDate: Date): number => {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDifference < 0 ||
+      (monthDifference === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  };
+
+  const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+    if (selectedDate) {
+      const age = calculateAge(selectedDate);
+      if (age < 18) {
+        Alert.alert("Erreur", "Vous devez avoir au moins 18 ans");
+        return;
+      }
+      setDateOfBirth(selectedDate);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   const handleSignup = async () => {
-    if (!name || !email || !password) {
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !dateOfBirth ||
+      !gender ||
+      !phone ||
+      !confirmPassword ||
+      !profileImage
+    ) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    const age = calculateAge(dateOfBirth);
+    if (age < 18) {
+      Alert.alert(
+        "Erreur",
+        "Vous devez avoir au moins 18 ans pour créer un compte",
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
       return;
     }
 
@@ -44,9 +142,27 @@ export default function Signup() {
       return;
     }
 
+    const phoneRegex = /^[2459][0-9]{7}$/;
+    if (!phoneRegex.test(phone)) {
+      Alert.alert(
+        "Erreur",
+        "Le numéro doit contenir 8 chiffres et commencer par 2, 4, 5 ou 9",
+      );
+      return;
+    }
+
     setLoading(true);
     try {
-      await signUpUser(email, password, name, phone);
+      await signUpUser(
+        email,
+        password,
+        name,
+        phone,
+        (dateOfBirth?.toISOString() || "") as string,
+        gender,
+        address,
+        profileImage,
+      );
       router.replace("/home");
     } catch (error: any) {
       let errorMessage = "Une erreur est survenue lors de l'inscription";
@@ -66,169 +182,225 @@ export default function Signup() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <LinearGradient colors={["#00bfa5", "#009688"]} style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardView}
       >
-        {/* Left Side - Branding (visible on larger screens or as header) */}
-        <View style={styles.brandSection}>
-          <View style={styles.brandContent}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="heart" size={32} color="#fff" />
-            </View>
-            <Text style={styles.brandTitle}>MediCare</Text>
-            <Text style={styles.brandSubtitle}>
-              Votre santé, notre priorité
-            </Text>
-
-            <View style={styles.featuresContainer}>
-              <View style={styles.featureItem}>
-                <View style={styles.featureIcon}>
-                  <Ionicons name="pulse" size={20} color="#00bfa5" />
-                </View>
-                <View>
-                  <Text style={styles.featureTitle}>Suivi intelligent</Text>
-                  <Text style={styles.featureDesc}>
-                    Gérez vos médicaments et rendez-vous en toute simplicité
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIcon}>
-                  <Ionicons name="shield-checkmark" size={20} color="#00bfa5" />
-                </View>
-                <View>
-                  <Text style={styles.featureTitle}>Sécurité maximale</Text>
-                  <Text style={styles.featureDesc}>
-                    Vos données de santé sont protégées et confidentielles
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.imageContainer}>
-              <Image
-                source={{
-                  uri: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=300&fit=crop",
-                }}
-                style={styles.doctorImage}
-                resizeMode="cover"
-              />
-              <Text style={styles.imageCaption}>
-                Application sécurisée pour la gestion de votre santé
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Right Side - Signup Form */}
-        <View style={styles.formSection}>
-          <View style={styles.formContainer}>
-            <Text style={styles.welcomeTitle}>Créer un compte</Text>
-            <Text style={styles.welcomeSubtitle}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.card}>
+            <Text style={styles.title}>Créer un compte</Text>
+            <Text style={styles.subtitle}>
               Inscrivez-vous pour accéder à votre espace personnel
             </Text>
 
+            {/* Profile Image Picker */}
+            <TouchableOpacity
+              style={styles.imagePickerContainer}
+              onPress={pickImage}
+            >
+              {profileImage ? (
+                <View style={styles.imageWrapper}>
+                  <Image
+                    source={{ uri: profileImage }}
+                    style={styles.profileImage}
+                  />
+                  <View style={styles.editIconContainer}>
+                    <Ionicons name="camera" size={16} color="#fff" />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Ionicons name="camera-outline" size={32} color="#94a3b8" />
+                  <Text style={styles.imagePlaceholderText}>Photo *</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
             {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nom complet</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="person-outline"
-                  size={20}
-                  color="#94a3b8"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  placeholder="Jean Dupont"
-                  value={name}
-                  onChangeText={setName}
-                  style={styles.input}
-                  placeholderTextColor="#94a3b8"
-                />
-              </View>
+            <View style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={20} color="#94a3b8" />
+              <TextInput
+                placeholder="Nom complet *"
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                placeholderTextColor="#94a3b8"
+              />
             </View>
 
             {/* Email Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="mail-outline"
-                  size={20}
-                  color="#94a3b8"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  placeholder="exemple@email.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={styles.input}
-                  placeholderTextColor="#94a3b8"
-                />
-              </View>
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color="#94a3b8" />
+              <TextInput
+                placeholder="Email *"
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+                placeholderTextColor="#94a3b8"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
             </View>
 
-            {/* Phone Input (Optional) */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Téléphone (optionnel)</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="call-outline"
-                  size={20}
-                  color="#94a3b8"
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  placeholder="+33 6 12 34 56 78"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                  placeholderTextColor="#94a3b8"
-                />
+            {/* Phone Input */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="call-outline" size={20} color="#94a3b8" />
+              <TextInput
+                placeholder="Téléphone *"
+                value={phone}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9]/g, "");
+                  setPhone(cleaned);
+                }}
+                style={styles.input}
+                placeholderTextColor="#94a3b8"
+                keyboardType="phone-pad"
+                maxLength={8}
+              />
+            </View>
+
+            {/* Date of Birth Picker */}
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#94a3b8" />
+              <Text
+                style={[styles.input, !dateOfBirth && { color: "#94a3b8" }]}
+              >
+                {dateOfBirth ? formatDate(dateOfBirth) : "Date de naissance *"}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={dateOfBirth || new Date(2000, 0, 1)}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={onDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(1900, 0, 1)}
+              />
+            )}
+
+            {/* Gender Selector */}
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={() => setShowGenderModal(true)}
+            >
+              <Ionicons name="male-female-outline" size={20} color="#94a3b8" />
+              <Text style={[styles.input, !gender && { color: "#94a3b8" }]}>
+                {gender || "Genre *"}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            {/* Gender Modal */}
+            <Modal
+              visible={showGenderModal}
+              transparent={true}
+              animationType="slide"
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Sélectionner le genre</Text>
+                  {genderOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={styles.modalOption}
+                      onPress={() => {
+                        setGender(option);
+                        setShowGenderModal(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          gender === option && styles.modalOptionTextSelected,
+                        ]}
+                      >
+                        {option}
+                      </Text>
+                      {gender === option && (
+                        <Ionicons name="checkmark" size={20} color="#00bfa5" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity
+                    style={styles.modalCancel}
+                    onPress={() => setShowGenderModal(false)}
+                  >
+                    <Text style={styles.modalCancelText}>Annuler</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+            </Modal>
+
+            {/* Address Input */}
+            <View style={[styles.inputContainer, styles.addressInput]}>
+              <Ionicons
+                name="location-outline"
+                size={20}
+                color="#94a3b8"
+                style={styles.addressIcon}
+              />
+              <TextInput
+                placeholder="Adresse"
+                value={address}
+                onChangeText={setAddress}
+                style={[styles.input, styles.addressTextInput]}
+                placeholderTextColor="#94a3b8"
+                multiline
+                numberOfLines={2}
+              />
             </View>
 
             {/* Password Input */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Mot de passe</Text>
-              </View>
-              <View style={styles.inputContainer}>
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" />
+              <TextInput
+                placeholder="Mot de passe *"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                style={styles.input}
+                placeholderTextColor="#94a3b8"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
-                  name="lock-closed-outline"
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color="#94a3b8"
-                  style={styles.inputIcon}
                 />
-                <TextInput
-                  placeholder="Votre mot de passe"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  style={styles.input}
-                  placeholderTextColor="#94a3b8"
+              </TouchableOpacity>
+            </View>
+
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" />
+              <TextInput
+                placeholder="Confirmer le mot de passe *"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                style={styles.input}
+                placeholderTextColor="#94a3b8"
+              />
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#94a3b8"
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={showPassword ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color="#94a3b8"
-                  />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.passwordHint}>Minimum 6 caractères</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Terms Checkbox */}
@@ -247,174 +419,120 @@ export default function Signup() {
                 )}
               </View>
               <Text style={styles.termsText}>
-                Jaccepte les{" "}
-                <Text style={styles.termsLink}>Conditions dutilisation</Text> et
-                la{" "}
+                J&apos;accepte les{" "}
                 <Text style={styles.termsLink}>
-                  Politique de confidentialité
+                  Conditions d&apos;utilisation
                 </Text>
               </Text>
             </TouchableOpacity>
 
             {/* Signup Button */}
             <TouchableOpacity
-              style={[
-                styles.signupButton,
-                loading && styles.signupButtonDisabled,
-              ]}
+              style={[styles.button, loading && { opacity: 0.7 }]}
               onPress={handleSignup}
               disabled={loading}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Text style={styles.signupButtonText}>
+              <Text style={styles.buttonText}>
                 {loading ? "Création en cours..." : "S'inscrire"}
               </Text>
             </TouchableOpacity>
 
             {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Déjà un compte ? </Text>
+            <View style={styles.signinRow}>
+              <Text style={styles.signinText}>Déjà un compte ?</Text>
               <Link href="/signin" asChild>
                 <Pressable>
-                  <Text style={styles.loginLink}>Se connecter</Text>
+                  <Text style={styles.link}> Se connecter</Text>
                 </Pressable>
               </Link>
             </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    flexDirection: Platform.OS === "web" ? "row" : "column",
+    paddingVertical: 20,
   },
-  // Brand Section Styles
-  brandSection: {
-    backgroundColor: "#00bfa5",
-    flex: Platform.OS === "web" ? 1 : undefined,
-    padding: 32,
-    justifyContent: "center",
-  },
-  brandContent: {
-    maxWidth: 480,
-    alignSelf: "center",
-  },
-  logoContainer: {
-    width: 56,
-    height: 56,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  brandTitle: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 8,
-  },
-  brandSubtitle: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.9)",
-    marginBottom: 40,
-  },
-  featuresContainer: {
-    gap: 20,
-    marginBottom: 32,
-  },
-  featureItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 16,
-  },
-  featureIcon: {
-    width: 44,
-    height: 44,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
-    marginBottom: 4,
-  },
-  featureDesc: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    lineHeight: 20,
-  },
-  imageContainer: {
-    marginTop: "auto",
-  },
-  doctorImage: {
-    width: "100%",
-    height: 200,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  imageCaption: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.8)",
-    textAlign: "center",
-  },
-  // Form Section Styles
-  formSection: {
-    flex: Platform.OS === "web" ? 1 : undefined,
-    backgroundColor: "#fafafa",
-    justifyContent: "center",
-    padding: 24,
-  },
-  formContainer: {
-    maxWidth: 420,
-    width: "100%",
-    alignSelf: "center",
+  card: {
     backgroundColor: "#fff",
+    marginHorizontal: 16,
     borderRadius: 24,
-    padding: 32,
+    padding: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 3,
+    elevation: 8,
+    marginTop: 10,
+    marginBottom: 20,
   },
-  welcomeTitle: {
-    fontSize: 28,
+  title: {
+    fontSize: 24,
     fontWeight: "bold",
     color: "#1e293b",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  welcomeSubtitle: {
-    fontSize: 14,
+  subtitle: {
+    fontSize: 13,
     color: "#64748b",
     textAlign: "center",
-    marginBottom: 32,
-  },
-  inputGroup: {
     marginBottom: 20,
   },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-    marginBottom: 8,
+  imagePickerContainer: {
+    alignSelf: "center",
+    marginBottom: 20,
   },
-  labelRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  imageWrapper: {
+    position: "relative",
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: "#00bfa5",
+  },
+  editIconContainer: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#00bfa5",
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  imagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#f8fafc",
+    borderWidth: 2,
+    borderColor: "#e2e8f0",
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imagePlaceholderText: {
+    fontSize: 12,
+    color: "#94a3b8",
+    marginTop: 4,
   },
   inputContainer: {
     flexDirection: "row",
@@ -423,88 +541,136 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
     borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 52,
-  },
-  inputIcon: {
-    marginRight: 12,
+    paddingHorizontal: 14,
+    height: 48,
+    marginBottom: 12,
+    gap: 10,
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: "#1e293b",
+    paddingVertical: 0,
+  },
+  addressInput: {
+    height: 70,
+    alignItems: "flex-start",
+    paddingTop: 12,
+  },
+  addressIcon: {
+    marginTop: 4,
+  },
+  addressTextInput: {
     height: "100%",
-  },
-  eyeIcon: {
-    padding: 4,
-  },
-  passwordHint: {
-    fontSize: 12,
-    color: "#94a3b8",
-    marginTop: 6,
-    marginLeft: 4,
+    textAlignVertical: "top",
+    paddingTop: 2,
   },
   termsContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 16,
+    gap: 10,
+    marginTop: 4,
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     borderWidth: 2,
     borderColor: "#00bfa5",
-    borderRadius: 6,
+    borderRadius: 5,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 2,
+    marginTop: 1,
   },
   checkboxChecked: {
     backgroundColor: "#00bfa5",
   },
   termsText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     color: "#64748b",
-    lineHeight: 20,
+    lineHeight: 18,
   },
   termsLink: {
     color: "#00bfa5",
     fontWeight: "500",
   },
-  signupButton: {
+  button: {
     backgroundColor: "#00bfa5",
-    height: 52,
+    height: 48,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#00bfa5",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 10,
+    elevation: 5,
+    marginTop: 4,
   },
-  signupButtonDisabled: {
-    opacity: 0.7,
-  },
-  signupButtonText: {
+  buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
   },
-  loginContainer: {
+  signinRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 24,
+    marginTop: 16,
+    paddingBottom: 8,
   },
-  loginText: {
-    fontSize: 14,
+  signinText: {
     color: "#64748b",
+    fontSize: 13,
   },
-  loginLink: {
-    fontSize: 14,
+  link: {
     color: "#00bfa5",
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: Platform.OS === "ios" ? 36 : 20,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#1e293b",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  modalOptionText: {
+    fontSize: 15,
+    color: "#475569",
+  },
+  modalOptionTextSelected: {
+    color: "#00bfa5",
+    fontWeight: "600",
+  },
+  modalCancel: {
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 15,
+    color: "#64748b",
     fontWeight: "600",
   },
 });
