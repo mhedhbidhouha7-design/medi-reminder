@@ -1,8 +1,13 @@
+import { auth, db } from "@/firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { onValue, ref, update } from "firebase/database";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,31 +17,35 @@ import {
   View,
 } from "react-native";
 
-// Sample user data
-const SAMPLE_USER = {
-  name: "Jean Dupont",
-  email: "jean.dupont@email.com",
-  phone: "55 123 456",
-  dateOfBirth: "15/05/1985",
-  gender: "Homme",
-  address: "123 Rue de la Santé, Tunis",
-  createdAt: "2024-03-10T10:00:00Z",
-};
+// Cloudinary configuration - same as signup
+const CLOUDINARY_CLOUD_NAME = "dlz1lih1j";
+const CLOUDINARY_UPLOAD_PRESET = "medireminder";
+const CLOUDINARY_FOLDER = "profile_images";
+
+interface UserData {
+  name: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  gender: string;
+  address: string;
+  profileImageUrl: string;
+  createdAt: string;
+}
 
 export default function Profile() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState(SAMPLE_USER.name);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Edit states
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
 
-  // Editable personal info
-  const [personalInfo, setPersonalInfo] = useState({
-    name: SAMPLE_USER.name,
-    email: SAMPLE_USER.email,
-    phone: SAMPLE_USER.phone,
-    dateOfBirth: SAMPLE_USER.dateOfBirth,
-    gender: SAMPLE_USER.gender,
-    address: SAMPLE_USER.address,
-  });
+  // Form states
+  const [editedName, setEditedName] = useState("");
+  const [personalInfo, setPersonalInfo] = useState<Partial<UserData>>({});
 
   // Notification settings
   const [notifications, setNotifications] = useState({
@@ -47,7 +56,183 @@ export default function Profile() {
     sms: false,
   });
 
+  // Fetch user data from Firebase
+  useEffect(() => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    const userRef = ref(db, `users/${userId}`);
+
+    const unsubscribe = onValue(
+      userRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val() as UserData;
+          setUserData(data);
+          setEditedName(data.name);
+          setPersonalInfo({
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            dateOfBirth: data.dateOfBirth,
+            gender: data.gender,
+            address: data.address,
+          });
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching user data:", error);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Upload image to Cloudinary
+  const uploadToCloudinary = async (localUri: string): Promise<string> => {
+    try {
+      const formData = new FormData();
+
+      const filename = localUri.split("/").pop() || "image.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : "image/jpeg";
+
+      // @ts-ignore - React Native FormData format
+      formData.append("file", {
+        uri: localUri,
+        name: filename,
+        type: type,
+      });
+
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      formData.append("folder", CLOUDINARY_FOLDER);
+
+      const timestamp = Date.now();
+      formData.append("public_id", `user_${timestamp}`);
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Upload failed");
+      }
+
+      return data.secure_url;
+    } catch (error: any) {
+      console.error("Cloudinary upload error:", error);
+      throw new Error(error.message || "Erreur lors de l'upload de l'image");
+    }
+  };
+
+  // Pick and upload new profile image
+  const handleChangeProfileImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission refusée",
+        "Nous avons besoin d'accéder à votre galerie pour changer la photo.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const localUri = result.assets[0].uri;
+      setUploadingImage(true);
+
+      try {
+        const cloudinaryUrl = await uploadToCloudinary(localUri);
+
+        // Update in Firebase immediately
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          await update(ref(db, `users/${userId}`), {
+            profileImageUrl: cloudinaryUrl,
+          });
+          Alert.alert("Succès", "Photo de profil mise à jour");
+        }
+      } catch (error: any) {
+        Alert.alert("Erreur", error.message);
+      } finally {
+        setUploadingImage(false);
+      }
+    }
+  };
+
+  // Save profile name
+  const handleSaveProfile = async () => {
+    if (!editedName.trim()) {
+      Alert.alert("Erreur", "Le nom ne peut pas être vide");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        await update(ref(db, `users/${userId}`), {
+          name: editedName.trim(),
+        });
+        setIsEditingProfile(false);
+        Alert.alert("Succès", "Profil mis à jour avec succès");
+      }
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de mettre à jour le profil");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Save personal info
+  const handleSavePersonalInfo = async () => {
+    setUpdating(true);
+    try {
+      const userId = auth.currentUser?.uid;
+      if (userId && personalInfo) {
+        await update(ref(db, `users/${userId}`), {
+          name: personalInfo.name,
+          phone: personalInfo.phone,
+          dateOfBirth: personalInfo.dateOfBirth,
+          gender: personalInfo.gender,
+          address: personalInfo.address,
+        });
+        setIsEditingInfo(false);
+        Alert.alert("Succès", "Informations personnelles mises à jour");
+      }
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de mettre à jour les informations");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const toggleNotification = (key: keyof typeof notifications) => {
+    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const formatCreationDate = (isoString: string): string => {
+    if (!isoString) return "Date inconnue";
     const date = new Date(isoString);
     return date.toLocaleDateString("fr-FR", {
       day: "numeric",
@@ -57,6 +242,7 @@ export default function Profile() {
   };
 
   const getInitials = (name: string): string => {
+    if (!name) return "?";
     return name
       .split(" ")
       .map((n) => n[0])
@@ -65,19 +251,21 @@ export default function Profile() {
       .slice(0, 2);
   };
 
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    Alert.alert("Succès", "Profil mis à jour avec succès");
-  };
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#00bfa5" />
+      </View>
+    );
+  }
 
-  const handleSavePersonalInfo = () => {
-    setIsEditingInfo(false);
-    Alert.alert("Succès", "Informations personnelles mises à jour");
-  };
-
-  const toggleNotification = (key: keyof typeof notifications) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  if (!userData) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text>Utilisateur non trouvé</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -108,35 +296,56 @@ export default function Profile() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.profileHeader}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {getInitials(personalInfo.name)}
-                </Text>
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={handleChangeProfileImage}
+              disabled={uploadingImage}
+            >
+              {userData.profileImageUrl ? (
+                <Image
+                  source={{ uri: userData.profileImageUrl }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>
+                    {getInitials(userData.name)}
+                  </Text>
+                </View>
+              )}
+              {uploadingImage && (
+                <View style={styles.uploadingOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+              <View style={styles.cameraIconContainer}>
+                <Ionicons name="camera" size={16} color="#fff" />
               </View>
-            </View>
+            </TouchableOpacity>
+
             <View style={styles.profileInfo}>
-              {isEditing ? (
+              {isEditingProfile ? (
                 <TextInput
                   style={styles.nameInput}
                   value={editedName}
                   onChangeText={setEditedName}
                   autoFocus
+                  placeholder="Votre nom"
                 />
               ) : (
-                <Text style={styles.profileName}>{personalInfo.name}</Text>
+                <Text style={styles.profileName}>{userData.name}</Text>
               )}
-              <Text style={styles.profileEmail}>{personalInfo.email}</Text>
+              <Text style={styles.profileEmail}>{userData.email}</Text>
               <Text style={styles.profileDate}>
-                Compte créé le {formatCreationDate(SAMPLE_USER.createdAt)}
+                Compte créé le {formatCreationDate(userData.createdAt)}
               </Text>
             </View>
           </View>
 
-          {!isEditing ? (
+          {!isEditingProfile ? (
             <TouchableOpacity
               style={styles.editButton}
-              onPress={() => setIsEditing(true)}
+              onPress={() => setIsEditingProfile(true)}
             >
               <Ionicons name="create-outline" size={18} color="#00bfa5" />
               <Text style={styles.editButtonText}>Modifier</Text>
@@ -146,8 +355,8 @@ export default function Profile() {
               <TouchableOpacity
                 style={[styles.actionButton, styles.cancelButton]}
                 onPress={() => {
-                  setIsEditing(false);
-                  setEditedName(personalInfo.name);
+                  setIsEditingProfile(false);
+                  setEditedName(userData.name);
                 }}
               >
                 <Text style={styles.cancelButtonText}>Annuler</Text>
@@ -155,8 +364,11 @@ export default function Profile() {
               <TouchableOpacity
                 style={[styles.actionButton, styles.saveButton]}
                 onPress={handleSaveProfile}
+                disabled={updating}
               >
-                <Text style={styles.saveButtonText}>Enregistrer</Text>
+                <Text style={styles.saveButtonText}>
+                  {updating ? "..." : "Enregistrer"}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -183,12 +395,12 @@ export default function Profile() {
                   onPress={() => {
                     setIsEditingInfo(false);
                     setPersonalInfo({
-                      name: SAMPLE_USER.name,
-                      email: SAMPLE_USER.email,
-                      phone: SAMPLE_USER.phone,
-                      dateOfBirth: SAMPLE_USER.dateOfBirth,
-                      gender: SAMPLE_USER.gender,
-                      address: SAMPLE_USER.address,
+                      name: userData.name,
+                      email: userData.email,
+                      phone: userData.phone,
+                      dateOfBirth: userData.dateOfBirth,
+                      gender: userData.gender,
+                      address: userData.address,
                     });
                   }}
                 >
@@ -197,8 +409,11 @@ export default function Profile() {
                 <TouchableOpacity
                   style={styles.smallSaveButton}
                   onPress={handleSavePersonalInfo}
+                  disabled={updating}
                 >
-                  <Text style={styles.smallSaveText}>OK</Text>
+                  <Text style={styles.smallSaveText}>
+                    {updating ? "..." : "OK"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -229,12 +444,8 @@ export default function Profile() {
                 <TextInput
                   style={styles.input}
                   value={personalInfo.email}
-                  onChangeText={(text) =>
-                    setPersonalInfo({ ...personalInfo, email: text })
-                  }
-                  editable={isEditingInfo}
+                  editable={false} // Email cannot be changed
                   placeholderTextColor="#94a3b8"
-                  keyboardType="email-address"
                 />
               </View>
             </View>
@@ -250,16 +461,13 @@ export default function Profile() {
                 />
                 <TextInput
                   style={styles.input}
-                  value={
-                    isEditingInfo
-                      ? personalInfo.phone
-                      : `+33 ${personalInfo.phone}`
-                  }
+                  value={personalInfo.phone}
                   onChangeText={(text) =>
                     setPersonalInfo({ ...personalInfo, phone: text })
                   }
                   editable={isEditingInfo}
                   placeholderTextColor="#94a3b8"
+                  keyboardType="phone-pad"
                 />
               </View>
             </View>
@@ -440,6 +648,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8fafc",
   },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   // Header
   header: {
@@ -497,9 +709,14 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#00bfa5",
-    justifyContent: "center",
-    alignItems: "center",
+    position: "relative",
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "#00bfa5",
   },
   avatarPlaceholder: {
     width: 80,
@@ -513,6 +730,26 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     color: "#fff",
+  },
+  uploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cameraIconContainer: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#00bfa5",
+    borderRadius: 12,
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   profileInfo: {
     flex: 1,
