@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -21,6 +22,10 @@ import {
   View,
 } from "react-native";
 import { signUpUser } from "../../controllers/authController";
+
+const CLOUDINARY_CLOUD_NAME = "dlz1lih1j";
+const CLOUDINARY_UPLOAD_PRESET = "medireminder";
+const CLOUDINARY_FOLDER = "profile_images";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -38,8 +43,58 @@ export default function Signup() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const genderOptions = ["Homme", "Femme"];
+
+  // Upload image to Cloudinary
+  const uploadToCloudinary = async (localUri: string): Promise<string> => {
+    try {
+      const formData = new FormData();
+
+      const filename = localUri.split("/").pop() || "image.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : "image/jpeg";
+
+      // @ts-ignore - React Native FormData format
+      formData.append("file", {
+        uri: localUri,
+        name: filename,
+        type: type,
+      });
+
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      formData.append("folder", CLOUDINARY_FOLDER);
+
+      const timestamp = Date.now();
+      formData.append("public_id", `user_${timestamp}`);
+
+      console.log("Uploading to Cloudinary...");
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Upload failed");
+      }
+
+      console.log("Upload successful:", data.secure_url);
+      return data.secure_url;
+    } catch (error: any) {
+      console.error("Cloudinary upload error:", error);
+      throw new Error(error.message || "Erreur lors de l'upload de l'image");
+    }
+  };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -58,8 +113,20 @@ export default function Signup() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      const localUri = result.assets[0].uri;
+      setProfileImage(localUri);
+
+      setUploadingImage(true);
+      try {
+        const cloudinaryUrl = await uploadToCloudinary(localUri);
+        setProfileImage(cloudinaryUrl);
+      } catch (error: any) {
+        Alert.alert("Erreur d'upload", error.message);
+        setProfileImage(null);
+      } finally {
+        setUploadingImage(false);
+      }
     }
   };
 
@@ -67,14 +134,12 @@ export default function Signup() {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDifference = today.getMonth() - birthDate.getMonth();
-
     if (
       monthDifference < 0 ||
       (monthDifference === 0 && today.getDate() < birthDate.getDate())
     ) {
       age--;
     }
-
     return age;
   };
 
@@ -115,6 +180,22 @@ export default function Signup() {
       return;
     }
 
+    if (uploadingImage) {
+      Alert.alert("Patientez", "L'image est en cours d'upload...");
+      return;
+    }
+
+    if (
+      profileImage.startsWith("file://") ||
+      profileImage.startsWith("content://")
+    ) {
+      Alert.alert(
+        "Erreur",
+        "L'image n'a pas été uploadée correctement. Veuillez réessayer.",
+      );
+      return;
+    }
+
     const age = calculateAge(dateOfBirth);
     if (age < 18) {
       Alert.alert(
@@ -123,12 +204,10 @@ export default function Signup() {
       );
       return;
     }
-
     if (password !== confirmPassword) {
       Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
       return;
     }
-
     if (password.length < 6) {
       Alert.alert(
         "Erreur",
@@ -136,12 +215,10 @@ export default function Signup() {
       );
       return;
     }
-
     if (!agreeToTerms) {
       Alert.alert("Erreur", "Veuillez accepter les conditions d'utilisation");
       return;
     }
-
     const phoneRegex = /^[2459][0-9]{7}$/;
     if (!phoneRegex.test(phone)) {
       Alert.alert(
@@ -161,12 +238,11 @@ export default function Signup() {
         (dateOfBirth?.toISOString() || "") as string,
         gender,
         address,
-        profileImage,
+        profileImage, // Cloudinary URL
       );
       router.replace("/home");
     } catch (error: any) {
       let errorMessage = "Une erreur est survenue lors de l'inscription";
-
       if (error.code === "auth/email-already-in-use") {
         errorMessage = "Cette adresse email est déjà utilisée";
       } else if (error.code === "auth/invalid-email") {
@@ -174,7 +250,6 @@ export default function Signup() {
       } else if (error.code === "auth/weak-password") {
         errorMessage = "Le mot de passe est trop faible";
       }
-
       Alert.alert("Inscription échouée", errorMessage);
     } finally {
       setLoading(false);
@@ -202,6 +277,7 @@ export default function Signup() {
             <TouchableOpacity
               style={styles.imagePickerContainer}
               onPress={pickImage}
+              disabled={uploadingImage}
             >
               {profileImage ? (
                 <View style={styles.imageWrapper}>
@@ -209,14 +285,29 @@ export default function Signup() {
                     source={{ uri: profileImage }}
                     style={styles.profileImage}
                   />
+                  {uploadingImage && (
+                    <View style={styles.uploadingOverlay}>
+                      <ActivityIndicator color="#fff" />
+                    </View>
+                  )}
                   <View style={styles.editIconContainer}>
                     <Ionicons name="camera" size={16} color="#fff" />
                   </View>
                 </View>
               ) : (
                 <View style={styles.imagePlaceholder}>
-                  <Ionicons name="camera-outline" size={32} color="#94a3b8" />
-                  <Text style={styles.imagePlaceholderText}>Photo *</Text>
+                  {uploadingImage ? (
+                    <ActivityIndicator color="#94a3b8" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="camera-outline"
+                        size={32}
+                        color="#94a3b8"
+                      />
+                      <Text style={styles.imagePlaceholderText}>Photo *</Text>
+                    </>
+                  )}
                 </View>
               )}
             </TouchableOpacity>
@@ -277,7 +368,6 @@ export default function Signup() {
               </Text>
               <Ionicons name="chevron-down" size={20} color="#94a3b8" />
             </TouchableOpacity>
-
             {showDatePicker && (
               <DateTimePicker
                 value={dateOfBirth || new Date(2000, 0, 1)}
@@ -419,22 +509,27 @@ export default function Signup() {
                 )}
               </View>
               <Text style={styles.termsText}>
-                J&apos;accepte les{" "}
-                <Text style={styles.termsLink}>
-                  Conditions d&apos;utilisation
-                </Text>
+                Jaccepte les{" "}
+                <Text style={styles.termsLink}>Conditions dutilisation</Text>
               </Text>
             </TouchableOpacity>
 
             {/* Signup Button */}
             <TouchableOpacity
-              style={[styles.button, loading && { opacity: 0.7 }]}
+              style={[
+                styles.button,
+                (loading || uploadingImage) && { opacity: 0.7 },
+              ]}
               onPress={handleSignup}
-              disabled={loading}
+              disabled={loading || uploadingImage}
               activeOpacity={0.85}
             >
               <Text style={styles.buttonText}>
-                {loading ? "Création en cours..." : "S'inscrire"}
+                {loading
+                  ? "Création en cours..."
+                  : uploadingImage
+                    ? "Upload en cours..."
+                    : "S'inscrire"}
               </Text>
             </TouchableOpacity>
 
@@ -504,6 +599,13 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 3,
     borderColor: "#00bfa5",
+  },
+  uploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
   },
   editIconContainer: {
     position: "absolute",
