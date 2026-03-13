@@ -1,6 +1,9 @@
+import { listenToMedications, toggleMedicationDose } from "@/controllers/medicationController";
+import { auth } from "@/firebaseConfig";
+import { Medication } from "@/models/interfaces";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -18,41 +21,24 @@ const { width } = Dimensions.get("window");
 
 export default function Home() {
   const navigation = useNavigation();
+  const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-width)).current;
 
-  // Sample data
-  const adherenceRate = 80;
-
-  const [medications, setMedications] = useState([
-    {
-      id: 1,
-      name: "Doliprane",
-      dosage: "1000mg",
-      time: "08:00",
-      taken: true,
-      type: "pill",
-    },
-    {
-      id: 2,
-      name: "Amoxicilline",
-      dosage: "500mg",
-      time: "12:00",
-      taken: false,
-      type: "capsule",
-    },
-    {
-      id: 3,
-      name: "Vitamine D",
-      dosage: "2000 UI",
-      time: "20:00",
-      taken: false,
-      type: "drop",
-    },
-  ]);
+  // Real-time data state
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adherenceRate, setAdherenceRate] = useState(0);
+  const [stats, setStats] = useState({
+    totalToday: 0,
+    takenToday: 0,
+    missedToday: 0,
+    remainingToday: 0,
+    nextMedTime: "",
+  });
 
   const nextAppointment = {
     doctor: "Dr. Ahmed Ben Salah",
@@ -70,17 +56,34 @@ export default function Home() {
       active: true,
     },
     { icon: "medical-outline", label: "Médicaments", route: "medications" },
-    { icon: "calendar-outline", label: "Rendez-vous", route: "appointments" },
-    { icon: "sparkles-outline", label: "Analyse IA", route: "ai-assistant" },
-    {
-      icon: "document-text-outline",
-      label: "Résumé de santé",
-      route: "health-summary",
-    },
-    { icon: "people-outline", label: "Proches", route: "family" },
+    { icon: "calendar-outline", label: "Rendez-vous", route: "rendezvous" },
+    { icon: "sparkles-outline", label: "Analyse IA", route: "IA" },
+    { icon: "person-outline", label: "Profil", route: "profile" },
   ];
 
+  const userId = auth.currentUser?.uid;
+
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = listenToMedications(userId, (fetchedMeds) => {
+      const now = new Date();
+      const todayStr = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+      // Filter meds that are active TODAY based on date range
+      const activeMeds = fetchedMeds.filter((med) => {
+        if (!med.startDate || !med.endDate) return true;
+        return todayStr >= med.startDate && todayStr <= med.endDate;
+      });
+
+      setMedications(activeMeds);
+      calculateStats(activeMeds);
+      setLoading(false);
+    });
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -93,13 +96,89 @@ export default function Home() {
         tension: 40,
         useNativeDriver: true,
       }),
-      Animated.timing(progressAnim, {
-        toValue: adherenceRate,
-        duration: 1500,
-        useNativeDriver: false,
-      }),
     ]).start();
-  }, []);
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  const calculateStats = (activeMeds: Medication[]) => {
+    let totalExpected = 0;
+    let totalTaken = 0;
+    let totalMissed = 0;
+    let remainingToday = 0;
+    let nextTime = "";
+
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const currentTimeMinutes = currentHour * 60 + currentMin;
+
+    activeMeds.forEach(med => {
+      if (!med.startDate || !med.endDate) return;
+
+      const start = new Date(med.startDate);
+      const today = new Date(todayStr);
+
+      let currentLoopDate = new Date(start.getTime());
+      while (currentLoopDate <= today) {
+        const loopDateStr = currentLoopDate.toISOString().split("T")[0];
+        const isToday = loopDateStr === todayStr;
+        const logs = med.takenLogs?.[loopDateStr] || {};
+
+        med.schedules.forEach((schedule, idx) => {
+          const isTaken = !!logs[idx];
+          const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
+
+          if (loopDateStr < todayStr) {
+            // Past days: everything that wasn't taken is missed
+            totalExpected++;
+            if (isTaken) totalTaken++;
+            else totalMissed++;
+          } else if (isToday) {
+            // Today
+            totalExpected++;
+            if (isTaken) {
+              totalTaken++;
+            } else if (currentTimeMinutes > scheduleTimeMinutes) {
+              // Missed today
+              totalMissed++;
+            } else {
+              remainingToday++;
+              if (!nextTime || scheduleTimeMinutes < parseTimeToMinutes(nextTime)) {
+                nextTime = schedule.time;
+              }
+            }
+          }
+        });
+
+        // Advance to next day
+        currentLoopDate.setDate(currentLoopDate.getDate() + 1);
+      }
+    });
+
+    const rate = totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
+    setAdherenceRate(rate);
+    setStats({
+      totalToday: totalExpected,
+      takenToday: totalTaken,
+      missedToday: totalMissed,
+      remainingToday: remainingToday,
+      nextMedTime: nextTime,
+    });
+
+    Animated.timing(progressAnim, {
+      toValue: rate,
+      duration: 1000,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const parseTimeToMinutes = (timeStr: string) => {
+    const match = timeStr.match(/(\d{1,2})[:h](\d{0,2})/);
+    if (!match) return 9999;
+    return parseInt(match[1]) * 60 + parseInt(match[2] || "0");
+  };
 
   const toggleMenu = () => {
     if (menuVisible) {
@@ -137,10 +216,18 @@ export default function Home() {
     return "#ef4444";
   };
 
-  const toggleMedication = (id: number) => {
-    setMedications((prev) =>
-      prev.map((med) => (med.id === id ? { ...med, taken: !med.taken } : med)),
-    );
+  const toggleMedication = async (medId: string, scheduleIndex: number) => {
+    if (!userId) return;
+    const med = medications.find(m => m.id === medId);
+    if (!med) return;
+
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    try {
+      await toggleMedicationDose(userId, med, scheduleIndex, todayStr);
+    } catch (error) {
+      console.error("Error toggling medication:", error);
+    }
   };
 
   const handleLogout = () => {
@@ -159,6 +246,9 @@ export default function Home() {
         <View style={styles.headerCenter}>
           <Text style={styles.greetingText}>Bonjour,</Text>
           <Text style={styles.userName}>Jean Dupont</Text>
+          <Text style={styles.currentDateDisplay}>
+            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </Text>
         </View>
 
         <TouchableOpacity style={styles.notificationButton}>
@@ -218,7 +308,8 @@ export default function Home() {
                 </View>
 
                 <Text style={styles.adherenceMessage}>
-                  You took 80% of your medications today. Excellent travail !
+                  {stats.takenToday} prises, {stats.missedToday > 0 ? `${stats.missedToday} manquées, ` : ""}{stats.remainingToday} à venir sur {stats.totalToday} aujourd&apos;hui.
+                  {adherenceRate >= 80 ? "\nExcellent travail !" : "\nN'oubliez pas vos soins !"}
                 </Text>
               </View>
             </LinearGradient>
@@ -238,11 +329,13 @@ export default function Home() {
                 >
                   <Ionicons name="medical" size={24} color="#00bfa5" />
                 </View>
-                <Text style={styles.dashboardValue}>3</Text>
+                <Text style={styles.dashboardValue}>{stats.totalToday}</Text>
                 <Text style={styles.dashboardLabel}>
-                  Médicaments{"\n"}aujourd&apos;hui
+                  Doses totales{"\n"}depuis le début
                 </Text>
-                <Text style={styles.dashboardSubtext}>Prochain: 12:00</Text>
+                <Text style={styles.dashboardSubtext}>
+                  {stats.nextMedTime ? `Prochain: ${stats.nextMedTime}` : "Terminé !"}
+                </Text>
               </TouchableOpacity>
 
               {/* Appointments Overview Card */}
@@ -270,62 +363,113 @@ export default function Home() {
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitleLarge}>Médicaments du jour</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/medications")}>
                 <Text style={styles.seeAllText}>Voir tout</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.medicationsList}>
               {medications.map((med) => (
-                <View
-                  key={med.id}
-                  style={[
-                    styles.medicationCard,
-                    med.taken && styles.medicationCardTaken,
-                  ]}
-                >
-                  <View style={styles.medicationIconContainer}>
-                    <Ionicons
-                      name={getIconName(med.type) as any}
-                      size={24}
-                      color={med.taken ? "#94a3b8" : "#00bfa5"}
-                    />
-                  </View>
-                  <View style={styles.medicationInfo}>
-                    <Text
+                med.schedules.map((schedule, idx) => {
+                  const now = new Date();
+                  const todayStr = now.toISOString().split("T")[0];
+                  const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+                  const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
+
+                  const logs = med.takenLogs?.[todayStr] || {};
+                  const isTaken = !!logs[idx];
+                  const isMissed = !isTaken && currentTimeMinutes > scheduleTimeMinutes;
+
+                  return (
+                    <View
+                      key={`${med.id}-${idx}`}
                       style={[
-                        styles.medicationName,
-                        med.taken && styles.medicationNameTaken,
+                        styles.medicationCard,
+                        isTaken && styles.medicationCardTaken,
+                        isMissed && styles.medicationCardMissed,
                       ]}
                     >
-                      {med.name}
-                    </Text>
-                    <Text style={styles.medicationDosage}>{med.dosage}</Text>
-                    <View style={styles.medicationTimeContainer}>
-                      <Ionicons name="time-outline" size={12} color="#64748b" />
-                      <Text style={styles.medicationTime}>{med.time}</Text>
+                      <View style={styles.medicationIconContainer}>
+                        <Ionicons
+                          name="medical-outline"
+                          size={24}
+                          color={isTaken ? "#94a3b8" : isMissed ? "#ef4444" : "#00bfa5"}
+                        />
+                      </View>
+                      <View style={styles.medicationInfo}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text
+                            style={[
+                              styles.medicationName,
+                              isTaken && styles.medicationNameTaken,
+                              isMissed && { color: "#ef4444" }
+                            ]}
+                          >
+                            {med.name}
+                          </Text>
+                          {isMissed && (
+                            <View style={styles.missedBadge}>
+                              <Text style={styles.missedBadgeText}>Manqué</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.medicationDosage}>{schedule.dose}</Text>
+                        {med.startDate && med.endDate && (
+                          <Text style={styles.medicationDateRange}>
+                            {med.startDate}
+                          </Text>
+                        )}
+                        <View style={styles.medicationTimeContainer}>
+                          <Ionicons
+                            name="time-outline"
+                            size={12}
+                            color={isMissed ? "#ef4444" : "#64748b"}
+                          />
+                          <Text style={[
+                            styles.medicationTime,
+                            isMissed && { color: "#ef4444" }
+                          ]}>{schedule.time}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={[
+                          styles.checkButton,
+                          isTaken && styles.checkButtonTaken,
+                          isMissed && { backgroundColor: "#fee2e2" }
+                        ]}
+                        onPress={() => toggleMedication(med.id, idx)}
+                      >
+                        <Ionicons
+                          name={isTaken ? "checkmark-circle" : "ellipse-outline"}
+                          size={28}
+                          color={isTaken ? "#00bfa5" : isMissed ? "#ef4444" : "#cbd5e1"}
+                        />
+                      </TouchableOpacity>
                     </View>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      styles.checkButton,
-                      med.taken && styles.checkButtonTaken,
-                    ]}
-                    onPress={() => toggleMedication(med.id)}
-                  >
-                    <Ionicons
-                      name={med.taken ? "checkmark-circle" : "ellipse-outline"}
-                      size={28}
-                      color={med.taken ? "#00bfa5" : "#cbd5e1"}
-                    />
-                  </TouchableOpacity>
-                </View>
+                  );
+                })
               ))}
             </View>
 
-            <View style={styles.nextMedAlert}>
-              <Ionicons name="information-circle" size={16} color="#00bfa5" />
-              <Text style={styles.nextMedText}>Next medication in 2 hours</Text>
+            <View style={[
+              styles.nextMedAlert,
+              stats.missedToday > 0 && { backgroundColor: "#fee2e2" }
+            ]}>
+              <Ionicons
+                name={stats.missedToday > 0 ? "alert-circle" : "information-circle"}
+                size={16}
+                color={stats.missedToday > 0 ? "#ef4444" : "#00bfa5"}
+              />
+              <Text style={[
+                styles.nextMedText,
+                stats.missedToday > 0 && { color: "#ef4444" }
+              ]}>
+                {stats.missedToday > 0
+                  ? `Attention : ${stats.missedToday} doses manquées !`
+                  : stats.remainingToday > 0
+                    ? `${stats.remainingToday} doses restantes pour aujourd'hui`
+                    : "Toutes les doses sont prises !"}
+              </Text>
             </View>
           </View>
 
@@ -423,7 +567,12 @@ export default function Home() {
                   ]}
                   onPress={() => {
                     toggleMenu();
-                    // navigation.navigate(item.route);
+                    if (item.route) {
+                      // Remove formatting if it's just 'index'
+                      const path = item.route === "index" ? "/home" : `/${item.route}`;
+                      // Use Expo router to push
+                      router.push(path as any);
+                    }
                   }}
                 >
                   <Ionicons
@@ -481,8 +630,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: 20,
     backgroundColor: "#f8fafc",
+  },
+  headerCenter: {
+    flex: 1,
+    marginLeft: 16,
   },
   menuButton: {
     width: 48,
@@ -497,10 +650,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  headerCenter: {
-    flex: 1,
-    alignItems: "center",
-  },
   greetingText: {
     fontSize: 14,
     color: "#64748b",
@@ -510,6 +659,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#1e293b",
+  },
+  currentDateDisplay: {
+    fontSize: 14,
+    color: "#64748b",
+    textTransform: "capitalize",
+    fontWeight: "500",
+    marginTop: 4,
   },
   notificationButton: {
     width: 48,
@@ -692,6 +848,22 @@ const styles = StyleSheet.create({
     borderLeftColor: "#cbd5e1",
     opacity: 0.7,
   },
+  medicationCardMissed: {
+    borderLeftColor: "#ef4444",
+    backgroundColor: "#fff5f5",
+  },
+  missedBadge: {
+    backgroundColor: "#ef4444",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  missedBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
   medicationIconContainer: {
     width: 48,
     height: 48,
@@ -717,6 +889,11 @@ const styles = StyleSheet.create({
   medicationDosage: {
     fontSize: 13,
     color: "#64748b",
+    marginBottom: 2,
+  },
+  medicationDateRange: {
+    fontSize: 11,
+    color: "#94a3b8",
     marginBottom: 6,
   },
   medicationTimeContainer: {

@@ -3,11 +3,10 @@ import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useRef } from "react";
 import {
-  Alert,
   Animated,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 
@@ -17,70 +16,82 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
   const tabWidth = 80;
   const spacing = 16;
 
-  useEffect(() => {
-    Animated.spring(translateX, {
-      toValue: state.index * (tabWidth + spacing),
-      useNativeDriver: true,
-      friction: 8,
-      tension: 50,
-    }).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.index]);
+  // DEBUG: Log all route names so we can see what Expo Router generates
+  console.log('TAB ROUTES:', state.routes.map((r: any) => r.name));
 
-  // Tab configuration with proper index mapping
-  const getTabConfig = (index: number) => {
-    const configs = [
-      {
-        icon: "home" as const,
-        iconOutline: "home-outline" as const,
-        label: "Accueil",
-        color: "#00bfa5",
-      }, // index 0 = home
-      {
-        icon: "sparkles" as const,
-        iconOutline: "sparkles-outline" as const,
-        label: "IA",
-        color: "#ec4899",
-      }, // index 1 = ia (disabled)
-      {
-        icon: "person" as const,
-        iconOutline: "person-outline" as const,
-        label: "Profil",
-        color: "#f59e0b",
-      }, // index 2 = profile
-    ];
-    return configs[index];
+  // Whitelist approach: only show tabs whose route names match known tabs
+  // This is more reliable than href:null or tabBarButton which don't propagate to custom tabBars
+  const visibleRoutes = state.routes.filter((route: any) => {
+    const name = route.name.toLowerCase();
+    return name.includes('home') || name.includes('ia') || name.includes('profile');
+  });
+
+  const getVisualIndex = (routeKey: string) => {
+    return visibleRoutes.findIndex((r: any) => r.key === routeKey);
+  };
+
+  const currentRoute = state.routes[state.index];
+  const visualActiveIndex = getVisualIndex(currentRoute.key);
+
+  useEffect(() => {
+    if (visualActiveIndex !== -1) {
+      Animated.spring(translateX, {
+        toValue: visualActiveIndex * (tabWidth + spacing),
+        useNativeDriver: true,
+        friction: 8,
+        tension: 50,
+      }).start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visualActiveIndex]);
+
+  // Tab configuration derived from route name
+  const getTabConfig = (routeName: string) => {
+    const route = routeName.toLowerCase();
+
+    if (route.includes("home")) {
+      return { icon: "home" as const, iconOutline: "home-outline" as const, label: "Accueil", color: "#00bfa5" };
+    }
+    if (route.includes("ia")) {
+      return { icon: "sparkles" as const, iconOutline: "sparkles-outline" as const, label: "IA", color: "#ec4899" };
+    }
+    if (route.includes("profile")) {
+      return { icon: "person" as const, iconOutline: "person-outline" as const, label: "Profil", color: "#f59e0b" };
+    }
+
+    // Default fallback
+    return { icon: "ellipse" as const, iconOutline: "ellipse-outline" as const, label: "Tab", color: "#64748b" };
   };
 
   return (
     <View style={styles.tabBarContainer}>
       <View style={styles.tabBar}>
         {/* Animated active indicator */}
-        <Animated.View
-          style={[
-            styles.indicator,
-            {
-              transform: [{ translateX }],
-              backgroundColor: getTabConfig(state.index).color,
-            },
-          ]}
-        />
+        {visualActiveIndex !== -1 && (
+          <Animated.View
+            style={[
+              styles.indicator,
+              {
+                transform: [{ translateX }],
+                backgroundColor: getTabConfig(currentRoute.name).color,
+              },
+            ]}
+          />
+        )}
 
-        {state.routes.map((route: any, index: number) => {
-          const isFocused = state.index === index;
-          const config = getTabConfig(index);
+        {visibleRoutes.map((route: any) => {
+          const isFocused = currentRoute.key === route.key;
+          const config = getTabConfig(route.name);
 
           const onPress = () => {
-            // Prevent navigation to IA tab (not implemented yet)
-            if (route.name === "ia") {
-              Alert.alert(
-                "Bientôt disponible",
-                "Cette fonctionnalité sera bientôt disponible",
-              );
-              return;
-            }
-            if (!isFocused) {
-              navigation.navigate(route.name);
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate({ name: route.name, merge: true });
             }
           };
 
@@ -128,27 +139,36 @@ export default function ProtectedLayout() {
         headerShown: false,
       }}
     >
-      {/* Home - index 0 */}
       <Tabs.Screen
         name="home"
         options={{
           title: "Accueil",
         }}
       />
-      {/* Profile - index 2 */}
+
+      {/* 
+        Windows/Expo sometimes normalizes this to 'ia' even if the folder is 'IA' 
+        We use 'IA' (or whatever matches your filesystem exactly) and it works
+        We don't append /index because we want Expo to match the route directly 
+      */}
       <Tabs.Screen
-        name="profile/index.tsx"
+        name="IA"
+        options={{
+          title: "IA",
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
         options={{
           title: "Profil",
         }}
       />
 
-      {/* IA Assistant - index 1 (disabled) */}
+      {/* Hidden Screens */}
       <Tabs.Screen
-        name="medications/index"
+        name="medications"
         options={{
-          title: "IA",
-          href: null, // Prevents direct navigation
+          tabBarButton: () => null,
         }}
       />
     </Tabs>

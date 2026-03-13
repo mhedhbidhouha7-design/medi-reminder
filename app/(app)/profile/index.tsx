@@ -276,16 +276,44 @@ export default function Profile() {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="person" size={24} color="#fff" />
+        <View style={styles.headerContentWrapper}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="person" size={24} color="#fff" />
+            </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.headerTitle}>Mon Profil</Text>
+              <Text style={styles.headerSubtitle}>
+                Gérez vos informations personnelles et médicales
+              </Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.headerTitle}>Mon Profil</Text>
-            <Text style={styles.headerSubtitle}>
-              Gérez vos informations personnelles et médicales
-            </Text>
-          </View>
+
+          <TouchableOpacity
+            style={styles.headerLogoutButton}
+            onPress={() => {
+              Alert.alert(
+                "Déconnexion",
+                "Êtes-vous sûr de vouloir vous déconnecter ?",
+                [
+                  { text: "Annuler", style: "cancel" },
+                  {
+                    text: "Se déconnecter",
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        await auth.signOut();
+                      } catch (error) {
+                        Alert.alert("Erreur", "Impossible de vous déconnecter");
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <Ionicons name="log-out-outline" size={22} color="#ef4444" />
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -377,9 +405,9 @@ export default function Profile() {
         {/* Personal Information Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
               <Ionicons name="person-outline" size={22} color="#00bfa5" />
-              <Text style={styles.sectionTitle}>Informations personnelles</Text>
+              <Text style={styles.sectionTitle} numberOfLines={1}>Informations perso.</Text>
             </View>
             {!isEditingInfo ? (
               <TouchableOpacity
@@ -545,9 +573,9 @@ export default function Profile() {
 
         {/* Notification Settings */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
             <Ionicons name="notifications-outline" size={22} color="#00bfa5" />
-            <Text style={styles.sectionTitle}>Paramètres de notifications</Text>
+            <Text style={styles.sectionTitle} numberOfLines={1}>Paramètres de notifications</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
             Notifications de médicaments, Notifications de rendez-vous, Alertes
@@ -636,6 +664,8 @@ export default function Profile() {
           </View>
         </View>
 
+
+
         {/* Bottom spacing for floating tab bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -659,10 +689,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+  headerContentWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    flexShrink: 1, // ensure the title section handles shrink
+    marginRight: 10,
+  },
+  headerLogoutButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(239, 68, 68, 0.1)", // Light red transparent background
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerIcon: {
     width: 48,
@@ -837,22 +882,29 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
+    gap: 8,
   },
-  sectionHeader: {
+  sectionTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#00bfa5",
+    flexShrink: 1,
   },
   sectionSubtitle: {
     fontSize: 13,
     color: "#94a3b8",
     marginBottom: 16,
     marginLeft: 32,
+    flexShrink: 1,
+    flexWrap: "wrap",
+    width: "100%",
+    paddingRight: 40, // Prevent overlapping with outer borders
   },
 
   // Pen Button
@@ -866,7 +918,8 @@ const styles = StyleSheet.create({
   },
   modifyActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
   },
   smallCancelButton: {
     paddingVertical: 6,
@@ -932,8 +985,7 @@ const styles = StyleSheet.create({
 
   // Notifications
   notificationsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 12,
   },
   notificationCard: {
@@ -943,8 +995,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
     borderRadius: 16,
     padding: 16,
-    flex: 1,
-    minWidth: "45%",
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   fullWidth: {
     minWidth: "100%",
