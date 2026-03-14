@@ -1,10 +1,18 @@
-import { listenToMedications, toggleMedicationDose } from "@/controllers/medicationController";
+import {
+  listenToAppointments,
+  toggleAppointmentDone,
+} from "@/controllers/appointmentController";
+import {
+  listenToMedications,
+  toggleMedicationDose,
+} from "@/controllers/medicationController";
 import { auth } from "@/firebaseConfig";
-import { Medication } from "@/models/interfaces";
+import { Appointment, Medication } from "@/models/interfaces";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+
 import {
   Animated,
   Dimensions,
@@ -28,8 +36,8 @@ export default function Home() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-width)).current;
 
-  // Real-time data state
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [adherenceRate, setAdherenceRate] = useState(0);
   const [stats, setStats] = useState({
@@ -40,14 +48,6 @@ export default function Home() {
     nextMedTime: "",
   });
 
-  const nextAppointment = {
-    doctor: "Dr. Ahmed Ben Salah",
-    specialty: "Cardiologie appointment",
-    date: "March 15",
-    time: "10:30 AM",
-    color: "#8b5cf6",
-  };
-
   const menuItems = [
     {
       icon: "grid-outline",
@@ -55,10 +55,30 @@ export default function Home() {
       route: "index",
       active: true,
     },
-    { icon: "medical-outline", label: "Médicaments", route: "medications" },
-    { icon: "calendar-outline", label: "Rendez-vous", route: "rendezvous" },
-    { icon: "sparkles-outline", label: "Analyse IA", route: "IA" },
-    { icon: "person-outline", label: "Profil", route: "profile" },
+    {
+      icon: "medical-outline",
+      label: "Médicaments",
+      route: "medications",
+      active: false,
+    },
+    {
+      icon: "calendar-outline",
+      label: "Rendez-vous",
+      route: "rdv",
+      active: false,
+    },
+    {
+      icon: "sparkles-outline",
+      label: "Analyse IA",
+      route: "IA",
+      active: false,
+    },
+    {
+      icon: "person-outline",
+      label: "Profil",
+      route: "profile",
+      active: false,
+    },
   ];
 
   const userId = auth.currentUser?.uid;
@@ -71,17 +91,18 @@ export default function Home() {
 
     const unsubscribe = listenToMedications(userId, (fetchedMeds) => {
       const now = new Date();
-      const todayStr = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
-
-      // Filter meds that are active TODAY based on date range
+      const todayStr = now.toISOString().split("T")[0];
       const activeMeds = fetchedMeds.filter((med) => {
         if (!med.startDate || !med.endDate) return true;
         return todayStr >= med.startDate && todayStr <= med.endDate;
       });
-
       setMedications(activeMeds);
       calculateStats(activeMeds);
       setLoading(false);
+    });
+
+    const unsubAppt = listenToAppointments(userId, (fetched) => {
+      setAppointments(fetched);
     });
 
     Animated.parallel([
@@ -98,7 +119,10 @@ export default function Home() {
       }),
     ]).start();
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      unsubAppt();
+    };
   }, [userId]);
 
   const calculateStats = (activeMeds: Medication[]) => {
@@ -109,18 +133,15 @@ export default function Home() {
     let nextTime = "";
 
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
-    const currentHour = now.getHours();
-    const currentMin = now.getMinutes();
-    const currentTimeMinutes = currentHour * 60 + currentMin;
+    const todayStr = now.toISOString().split("T")[0];
+    const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
 
-    activeMeds.forEach(med => {
+    activeMeds.forEach((med) => {
       if (!med.startDate || !med.endDate) return;
-
       const start = new Date(med.startDate);
       const today = new Date(todayStr);
-
       let currentLoopDate = new Date(start.getTime());
+
       while (currentLoopDate <= today) {
         const loopDateStr = currentLoopDate.toISOString().split("T")[0];
         const isToday = loopDateStr === todayStr;
@@ -131,42 +152,40 @@ export default function Home() {
           const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
 
           if (loopDateStr < todayStr) {
-            // Past days: everything that wasn't taken is missed
             totalExpected++;
             if (isTaken) totalTaken++;
             else totalMissed++;
           } else if (isToday) {
-            // Today
             totalExpected++;
             if (isTaken) {
               totalTaken++;
             } else if (currentTimeMinutes > scheduleTimeMinutes) {
-              // Missed today
               totalMissed++;
             } else {
               remainingToday++;
-              if (!nextTime || scheduleTimeMinutes < parseTimeToMinutes(nextTime)) {
+              if (
+                !nextTime ||
+                scheduleTimeMinutes < parseTimeToMinutes(nextTime)
+              ) {
                 nextTime = schedule.time;
               }
             }
           }
         });
-
-        // Advance to next day
         currentLoopDate.setDate(currentLoopDate.getDate() + 1);
       }
     });
 
-    const rate = totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
+    const rate =
+      totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
     setAdherenceRate(rate);
     setStats({
       totalToday: totalExpected,
       takenToday: totalTaken,
       missedToday: totalMissed,
-      remainingToday: remainingToday,
+      remainingToday,
       nextMedTime: nextTime,
     });
-
     Animated.timing(progressAnim, {
       toValue: rate,
       duration: 1000,
@@ -197,19 +216,6 @@ export default function Home() {
     }
   };
 
-  const getIconName = (type: string) => {
-    switch (type) {
-      case "pill":
-        return "tablet-portrait-outline";
-      case "capsule":
-        return "ellipse-outline";
-      case "drop":
-        return "water-outline";
-      default:
-        return "medical-outline";
-    }
-  };
-
   const getAdherenceColor = (rate: number) => {
     if (rate >= 80) return "#00bfa5";
     if (rate >= 60) return "#f59e0b";
@@ -218,11 +224,9 @@ export default function Home() {
 
   const toggleMedication = async (medId: string, scheduleIndex: number) => {
     if (!userId) return;
-    const med = medications.find(m => m.id === medId);
+    const med = medications.find((m) => m.id === medId);
     if (!med) return;
-
     const todayStr = new Date().toISOString().split("T")[0];
-
     try {
       await toggleMedicationDose(userId, med, scheduleIndex, todayStr);
     } catch (error) {
@@ -230,27 +234,58 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
-    toggleMenu();
-    // Add logout logic here
-  };
+  const handleLogout = () => toggleMenu();
+
+  // ── Calculs RDV avec date ET heure ──────────────────────────────────
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+
+  // RDV du jour (date = aujourd'hui) non cochés, triés par heure
+  const todayRdv = appointments
+    .filter((a) => !a.done && a.date === todayStr)
+    .sort((a, b) => {
+      const tA = new Date(`${a.date}T${a.time}`).getTime();
+      const tB = new Date(`${b.date}T${b.time}`).getTime();
+      return tA - tB;
+    });
+
+  // Compte RDV du jour non cochés (pour dashboard)
+  const todayRdvCount = todayRdv.length;
+
+  // Prochain RDV = le plus proche non coché avec date+heure >= maintenant
+  const next =
+    appointments
+      .filter((a) => !a.done && new Date(`${a.date}T${a.time}`) >= now)
+      .sort((a, b) => {
+        const tA = new Date(`${a.date}T${a.time}`).getTime();
+        const tB = new Date(`${b.date}T${b.time}`).getTime();
+        return tA - tB;
+      })[0] ?? null;
+
+  // RDV du jour passés (même jour mais heure dépassée) — pour alerte
+  const missedTodayRdv = appointments.filter(
+    (a) =>
+      !a.done && a.date === todayStr && new Date(`${a.date}T${a.time}`) < now,
+  );
 
   return (
     <View style={styles.container}>
-      {/* Header with Menu Button */}
+      {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
           <Ionicons name="menu-outline" size={28} color="#1e293b" />
         </TouchableOpacity>
-
         <View style={styles.headerCenter}>
           <Text style={styles.greetingText}>Bonjour,</Text>
           <Text style={styles.userName}>Jean Dupont</Text>
           <Text style={styles.currentDateDisplay}>
-            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {new Date().toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
           </Text>
         </View>
-
         <TouchableOpacity style={styles.notificationButton}>
           <View style={styles.notificationBadge} />
           <Ionicons name="notifications-outline" size={24} color="#1e293b" />
@@ -267,7 +302,7 @@ export default function Home() {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* 1. Treatment Adherence Card */}
+          {/* ── 1. Adhérence ── */}
           <View style={styles.adherenceCard}>
             <LinearGradient
               colors={["#00bfa5", "#009688"]}
@@ -283,13 +318,11 @@ export default function Home() {
                   Adhérence au traitement
                 </Text>
               </View>
-
               <View style={styles.adherenceContent}>
                 <View style={styles.percentageContainer}>
                   <Text style={styles.percentageText}>{adherenceRate}%</Text>
                   <Text style={styles.adherenceLabel}>Cette semaine</Text>
                 </View>
-
                 <View style={styles.progressBarContainer}>
                   <View style={styles.progressBarBackground}>
                     <Animated.View
@@ -306,21 +339,30 @@ export default function Home() {
                     />
                   </View>
                 </View>
-
                 <Text style={styles.adherenceMessage}>
-                  {stats.takenToday} prises, {stats.missedToday > 0 ? `${stats.missedToday} manquées, ` : ""}{stats.remainingToday} à venir sur {stats.totalToday} aujourd&apos;hui.
-                  {adherenceRate >= 80 ? "\nExcellent travail !" : "\nN'oubliez pas vos soins !"}
+                  {stats.takenToday} prises,{" "}
+                  {stats.missedToday > 0
+                    ? `${stats.missedToday} manquées, `
+                    : ""}
+                  {stats.remainingToday} à venir sur {stats.totalToday}{" "}
+                  aujourd&apos;hui.
+                  {adherenceRate >= 80
+                    ? "\nExcellent travail !"
+                    : "\nN'oubliez pas vos soins !"}
                 </Text>
               </View>
             </LinearGradient>
           </View>
 
-          {/* 2. Dashboard Section */}
+          {/* ── 2. Dashboard ── */}
           <View style={styles.dashboardSection}>
             <Text style={styles.sectionTitleLarge}>Tableau de bord</Text>
             <View style={styles.dashboardGrid}>
-              {/* Medications Overview Card */}
-              <TouchableOpacity style={styles.dashboardCard}>
+              {/* Card Médicaments */}
+              <TouchableOpacity
+                style={styles.dashboardCard}
+                onPress={() => router.push("/medications")}
+              >
                 <View
                   style={[
                     styles.dashboardIconContainer,
@@ -334,12 +376,17 @@ export default function Home() {
                   Doses totales{"\n"}depuis le début
                 </Text>
                 <Text style={styles.dashboardSubtext}>
-                  {stats.nextMedTime ? `Prochain: ${stats.nextMedTime}` : "Terminé !"}
+                  {stats.nextMedTime
+                    ? `Prochain: ${stats.nextMedTime}`
+                    : "Terminé !"}
                 </Text>
               </TouchableOpacity>
 
-              {/* Appointments Overview Card */}
-              <TouchableOpacity style={styles.dashboardCard}>
+              {/* Card RDV — nombre RDV du jour restants non cochés */}
+              <TouchableOpacity
+                style={styles.dashboardCard}
+                onPress={() => router.push("/rdv")}
+              >
                 <View
                   style={[
                     styles.dashboardIconContainer,
@@ -348,18 +395,22 @@ export default function Home() {
                 >
                   <Ionicons name="calendar" size={24} color="#8b5cf6" />
                 </View>
-                <Text style={styles.dashboardValue}>1</Text>
+                <Text style={styles.dashboardValue}>{todayRdvCount}</Text>
                 <Text style={styles.dashboardLabel}>
-                  Rendez-vous{"\n"}à venir
+                  Rendez-vous d&apos;{"\n"}aujourd&apos;hui
                 </Text>
-                <Text style={styles.dashboardSubtext}>
-                  Aujourd&apos;hui 14:30
+                <Text style={[styles.dashboardSubtext, { color: "#8b5cf6" }]}>
+                  {next
+                    ? next.date === todayStr
+                      ? `Prochain : ${next.time}`
+                      : `Prochain : ${new Date(next.date + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`
+                    : "Aucun à venir"}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* 3. Today's Medications Section */}
+          {/* ── 3. Médicaments du jour ── */}
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitleLarge}>Médicaments du jour</Text>
@@ -367,18 +418,18 @@ export default function Home() {
                 <Text style={styles.seeAllText}>Voir tout</Text>
               </TouchableOpacity>
             </View>
-
             <View style={styles.medicationsList}>
-              {medications.map((med) => (
+              {medications.map((med) =>
                 med.schedules.map((schedule, idx) => {
-                  const now = new Date();
-                  const todayStr = now.toISOString().split("T")[0];
-                  const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+                  const nowLocal = new Date();
+                  const todayStrLocal = nowLocal.toISOString().split("T")[0];
+                  const currentTimeMinutes =
+                    nowLocal.getHours() * 60 + nowLocal.getMinutes();
                   const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
-
-                  const logs = med.takenLogs?.[todayStr] || {};
+                  const logs = med.takenLogs?.[todayStrLocal] || {};
                   const isTaken = !!logs[idx];
-                  const isMissed = !isTaken && currentTimeMinutes > scheduleTimeMinutes;
+                  const isMissed =
+                    !isTaken && currentTimeMinutes > scheduleTimeMinutes;
 
                   return (
                     <View
@@ -393,16 +444,28 @@ export default function Home() {
                         <Ionicons
                           name="medical-outline"
                           size={24}
-                          color={isTaken ? "#94a3b8" : isMissed ? "#ef4444" : "#00bfa5"}
+                          color={
+                            isTaken
+                              ? "#94a3b8"
+                              : isMissed
+                                ? "#ef4444"
+                                : "#00bfa5"
+                          }
                         />
                       </View>
                       <View style={styles.medicationInfo}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
                           <Text
                             style={[
                               styles.medicationName,
                               isTaken && styles.medicationNameTaken,
-                              isMissed && { color: "#ef4444" }
+                              isMissed && { color: "#ef4444" },
                             ]}
                           >
                             {med.name}
@@ -413,7 +476,9 @@ export default function Home() {
                             </View>
                           )}
                         </View>
-                        <Text style={styles.medicationDosage}>{schedule.dose}</Text>
+                        <Text style={styles.medicationDosage}>
+                          {schedule.dose}
+                        </Text>
                         {med.startDate && med.endDate && (
                           <Text style={styles.medicationDateRange}>
                             {med.startDate}
@@ -425,45 +490,62 @@ export default function Home() {
                             size={12}
                             color={isMissed ? "#ef4444" : "#64748b"}
                           />
-                          <Text style={[
-                            styles.medicationTime,
-                            isMissed && { color: "#ef4444" }
-                          ]}>{schedule.time}</Text>
+                          <Text
+                            style={[
+                              styles.medicationTime,
+                              isMissed && { color: "#ef4444" },
+                            ]}
+                          >
+                            {schedule.time}
+                          </Text>
                         </View>
                       </View>
                       <TouchableOpacity
                         style={[
                           styles.checkButton,
                           isTaken && styles.checkButtonTaken,
-                          isMissed && { backgroundColor: "#fee2e2" }
+                          isMissed && { backgroundColor: "#fee2e2" },
                         ]}
                         onPress={() => toggleMedication(med.id, idx)}
                       >
                         <Ionicons
-                          name={isTaken ? "checkmark-circle" : "ellipse-outline"}
+                          name={
+                            isTaken ? "checkmark-circle" : "ellipse-outline"
+                          }
                           size={28}
-                          color={isTaken ? "#00bfa5" : isMissed ? "#ef4444" : "#cbd5e1"}
+                          color={
+                            isTaken
+                              ? "#00bfa5"
+                              : isMissed
+                                ? "#ef4444"
+                                : "#cbd5e1"
+                          }
                         />
                       </TouchableOpacity>
                     </View>
                   );
-                })
-              ))}
+                }),
+              )}
             </View>
-
-            <View style={[
-              styles.nextMedAlert,
-              stats.missedToday > 0 && { backgroundColor: "#fee2e2" }
-            ]}>
+            <View
+              style={[
+                styles.nextMedAlert,
+                stats.missedToday > 0 && { backgroundColor: "#fee2e2" },
+              ]}
+            >
               <Ionicons
-                name={stats.missedToday > 0 ? "alert-circle" : "information-circle"}
+                name={
+                  stats.missedToday > 0 ? "alert-circle" : "information-circle"
+                }
                 size={16}
                 color={stats.missedToday > 0 ? "#ef4444" : "#00bfa5"}
               />
-              <Text style={[
-                styles.nextMedText,
-                stats.missedToday > 0 && { color: "#ef4444" }
-              ]}>
+              <Text
+                style={[
+                  styles.nextMedText,
+                  stats.missedToday > 0 && { color: "#ef4444" },
+                ]}
+              >
                 {stats.missedToday > 0
                   ? `Attention : ${stats.missedToday} doses manquées !`
                   : stats.remainingToday > 0
@@ -473,47 +555,132 @@ export default function Home() {
             </View>
           </View>
 
-          {/* 4. Upcoming Appointments Section */}
-          <View style={styles.appointmentSection}>
-            <Text style={styles.sectionTitleLarge}>Prochain rendez-vous</Text>
-
-            <TouchableOpacity style={styles.appointmentCardLarge}>
-              <LinearGradient
-                colors={[nextAppointment.color, nextAppointment.color + "DD"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.appointmentGradientLarge}
-              >
-                <View style={styles.appointmentIconContainerLarge}>
-                  <Ionicons name="calendar" size={32} color="#fff" />
-                </View>
-                <Text style={styles.appointmentDoctor}>
-                  {nextAppointment.doctor}
+          {/* ── 3b. RDV du jour ── toujours affiché ── */}
+          <View style={styles.medicationsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitleLarge}>RDV du jour</Text>
+              <TouchableOpacity onPress={() => router.push("/rdv")}>
+                <Text style={[styles.seeAllText, { color: "#8b5cf6" }]}>
+                  Voir tout
                 </Text>
-                <Text style={styles.appointmentSpecialty}>
-                  {nextAppointment.specialty}
-                </Text>
+              </TouchableOpacity>
+            </View>
 
-                <View style={styles.appointmentDateContainer}>
-                  <Ionicons
-                    name="time-outline"
-                    size={16}
-                    color="rgba(255,255,255,0.9)"
-                  />
-                  <Text style={styles.appointmentDateText}>
-                    {nextAppointment.date} - {nextAppointment.time}
+            <View style={styles.medicationsList}>
+              {todayRdv.length > 0 ? (
+                todayRdv.map((appt) => {
+                  const apptTime = new Date(`${appt.date}T${appt.time}`);
+                  const isPast = apptTime < now;
+                  return (
+                    <View
+                      key={appt.id}
+                      style={[
+                        styles.medicationCard,
+                        { borderLeftColor: isPast ? "#f59e0b" : "#8b5cf6" },
+                        isPast && { backgroundColor: "#fffbeb" },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.medicationIconContainer,
+                          { backgroundColor: isPast ? "#fef3c7" : "#ede9fe" },
+                        ]}
+                      >
+                        <Ionicons
+                          name="calendar-outline"
+                          size={24}
+                          color={isPast ? "#f59e0b" : "#8b5cf6"}
+                        />
+                      </View>
+                      <View style={styles.medicationInfo}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Text style={styles.medicationName}>
+                            {appt.title}
+                          </Text>
+                          {isPast && (
+                            <View
+                              style={[
+                                styles.missedBadge,
+                                { backgroundColor: "#f59e0b" },
+                              ]}
+                            >
+                              <Text style={styles.missedBadgeText}>
+                                En attente
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        {!!appt.doctor && (
+                          <Text style={styles.medicationDosage}>
+                            {appt.doctor}
+                          </Text>
+                        )}
+                        {!!appt.location && (
+                          <Text
+                            style={styles.medicationDateRange}
+                            numberOfLines={1}
+                          >
+                            {appt.location}
+                          </Text>
+                        )}
+                        <View style={styles.medicationTimeContainer}>
+                          <Ionicons
+                            name="time-outline"
+                            size={12}
+                            color={isPast ? "#f59e0b" : "#64748b"}
+                          />
+                          <Text
+                            style={[
+                              styles.medicationTime,
+                              isPast && { color: "#f59e0b" },
+                            ]}
+                          >
+                            {appt.time}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={[
+                          styles.checkButton,
+                          isPast && { backgroundColor: "#fef3c7" },
+                        ]}
+                        onPress={async () => {
+                          if (!userId) return;
+                          await toggleAppointmentDone(userId, appt);
+                        }}
+                      >
+                        <Ionicons
+                          name="ellipse-outline"
+                          size={28}
+                          color={isPast ? "#f59e0b" : "#8b5cf6"}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
+              ) : (
+                /* État vide — violet comme les médicaments sont en vert */
+                <View style={styles.rdvEmptyAlert}>
+                  <Ionicons name="checkmark-circle" size={16} color="#8b5cf6" />
+                  <Text style={styles.rdvEmptyText}>
+                    Tous les RDV du jour sont terminés !
                   </Text>
                 </View>
-              </LinearGradient>
-            </TouchableOpacity>
+              )}
+            </View>
           </View>
 
-          {/* Bottom Spacing for Tab Bar */}
           <View style={{ height: 100 }} />
         </Animated.View>
       </ScrollView>
 
-      {/* MediCare Style Menu Modal */}
+      {/* ── Menu Sidebar ── */}
       <Modal
         animationType="none"
         transparent={true}
@@ -525,7 +692,6 @@ export default function Home() {
           <Animated.View
             style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}
           >
-            {/* App Logo Header */}
             <View style={styles.menuHeader}>
               <View style={styles.logoContainer}>
                 <View style={styles.logoIcon}>
@@ -537,8 +703,6 @@ export default function Home() {
                 </View>
               </View>
             </View>
-
-            {/* User Info Card */}
             <View style={styles.userCard}>
               <View style={styles.userAvatar}>
                 <Text style={styles.userAvatarText}>JD</Text>
@@ -548,15 +712,11 @@ export default function Home() {
                 <Text style={styles.userCardEmail}>jean.dupont@email.com</Text>
               </View>
             </View>
-
-            {/* Language Selector */}
             <TouchableOpacity style={styles.languageSelector}>
               <Ionicons name="globe-outline" size={20} color="#64748b" />
               <Text style={styles.languageText}>FR Français</Text>
               <Ionicons name="chevron-down" size={16} color="#94a3b8" />
             </TouchableOpacity>
-
-            {/* Menu Items */}
             <View style={styles.menuList}>
               {menuItems.map((item, index) => (
                 <TouchableOpacity
@@ -568,9 +728,8 @@ export default function Home() {
                   onPress={() => {
                     toggleMenu();
                     if (item.route) {
-                      // Remove formatting if it's just 'index'
-                      const path = item.route === "index" ? "/home" : `/${item.route}`;
-                      // Use Expo router to push
+                      const path =
+                        item.route === "index" ? "/home" : `/${item.route}`;
                       router.push(path as any);
                     }
                   }}
@@ -591,8 +750,6 @@ export default function Home() {
                 </TouchableOpacity>
               ))}
             </View>
-
-            {/* Logout */}
             <View style={styles.logoutSection}>
               <TouchableOpacity
                 style={styles.logoutButton}
@@ -610,20 +767,9 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  // Container
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-
-  // Modern Header
+  container: { flex: 1, backgroundColor: "#f8fafc" },
+  scrollContent: { flexGrow: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 8 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -633,10 +779,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: "#f8fafc",
   },
-  headerCenter: {
-    flex: 1,
-    marginLeft: 16,
-  },
+  headerCenter: { flex: 1, marginLeft: 16 },
   menuButton: {
     width: 48,
     height: 48,
@@ -650,16 +793,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  greetingText: {
-    fontSize: 14,
-    color: "#64748b",
-    marginBottom: 2,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1e293b",
-  },
+  greetingText: { fontSize: 14, color: "#64748b", marginBottom: 2 },
+  userName: { fontSize: 20, fontWeight: "bold", color: "#1e293b" },
   currentDateDisplay: {
     fontSize: 14,
     color: "#64748b",
@@ -689,8 +824,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#ef4444",
   },
-
-  // 1. Treatment Adherence Card
   adherenceCard: {
     marginBottom: 24,
     borderRadius: 24,
@@ -701,9 +834,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
-  adherenceGradient: {
-    padding: 24,
-  },
+  adherenceGradient: { padding: 24 },
   adherenceHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -718,63 +849,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 12,
   },
-  adherenceTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  adherenceContent: {
-    alignItems: "center",
-  },
-  percentageContainer: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  percentageText: {
-    fontSize: 48,
-    fontWeight: "bold",
-    color: "#fff",
-  },
+  adherenceTitle: { fontSize: 18, fontWeight: "bold", color: "#fff" },
+  adherenceContent: { alignItems: "center" },
+  percentageContainer: { alignItems: "center", marginBottom: 16 },
+  percentageText: { fontSize: 48, fontWeight: "bold", color: "#fff" },
   adherenceLabel: {
     fontSize: 14,
     color: "rgba(255,255,255,0.8)",
     marginTop: 4,
   },
-  progressBarContainer: {
-    width: "100%",
-    marginBottom: 16,
-  },
+  progressBarContainer: { width: "100%", marginBottom: 16 },
   progressBarBackground: {
     height: 12,
     backgroundColor: "rgba(255,255,255,0.3)",
     borderRadius: 6,
     overflow: "hidden",
   },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 6,
-  },
+  progressBarFill: { height: "100%", borderRadius: 6 },
   adherenceMessage: {
     fontSize: 14,
     color: "rgba(255,255,255,0.95)",
     textAlign: "center",
     lineHeight: 20,
   },
-
-  // 2. Dashboard Section
-  dashboardSection: {
-    marginBottom: 24,
-  },
+  dashboardSection: { marginBottom: 24 },
   sectionTitleLarge: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#1e293b",
     marginBottom: 16,
   },
-  dashboardGrid: {
-    flexDirection: "row",
-    gap: 12,
-  },
+  dashboardGrid: { flexDirection: "row", gap: 12 },
   dashboardCard: {
     flex: 1,
     backgroundColor: "#fff",
@@ -806,30 +911,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 8,
   },
-  dashboardSubtext: {
-    fontSize: 12,
-    color: "#00bfa5",
-    fontWeight: "600",
-  },
-
-  // 3. Today's Medications Section
-  medicationsSection: {
-    marginBottom: 24,
-  },
+  dashboardSubtext: { fontSize: 12, color: "#00bfa5", fontWeight: "600" },
+  medicationsSection: { marginBottom: 24 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
   },
-  seeAllText: {
-    fontSize: 14,
-    color: "#00bfa5",
-    fontWeight: "600",
-  },
-  medicationsList: {
-    gap: 12,
-  },
+  seeAllText: { fontSize: 14, color: "#00bfa5", fontWeight: "600" },
+  medicationsList: { gap: 12 },
   medicationCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -844,10 +935,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: "#00bfa5",
   },
-  medicationCardTaken: {
-    borderLeftColor: "#cbd5e1",
-    opacity: 0.7,
-  },
+  medicationCardTaken: { borderLeftColor: "#cbd5e1", opacity: 0.7 },
   medicationCardMissed: {
     borderLeftColor: "#ef4444",
     backgroundColor: "#fff5f5",
@@ -873,39 +961,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 14,
   },
-  medicationInfo: {
-    flex: 1,
-  },
+  medicationInfo: { flex: 1 },
   medicationName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#1e293b",
     marginBottom: 4,
   },
-  medicationNameTaken: {
-    color: "#94a3b8",
-    textDecorationLine: "line-through",
-  },
-  medicationDosage: {
-    fontSize: 13,
-    color: "#64748b",
-    marginBottom: 2,
-  },
-  medicationDateRange: {
-    fontSize: 11,
-    color: "#94a3b8",
-    marginBottom: 6,
-  },
+  medicationNameTaken: { color: "#94a3b8", textDecorationLine: "line-through" },
+  medicationDosage: { fontSize: 13, color: "#64748b", marginBottom: 2 },
+  medicationDateRange: { fontSize: 11, color: "#94a3b8", marginBottom: 6 },
   medicationTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  medicationTime: {
-    fontSize: 12,
-    color: "#64748b",
-    fontWeight: "500",
-  },
+  medicationTime: { fontSize: 12, color: "#64748b", fontWeight: "500" },
   checkButton: {
     width: 44,
     height: 44,
@@ -914,9 +985,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  checkButtonTaken: {
-    backgroundColor: "#e0f2f1",
-  },
+  checkButtonTaken: { backgroundColor: "#e0f2f1" },
   nextMedAlert: {
     flexDirection: "row",
     alignItems: "center",
@@ -927,16 +996,18 @@ const styles = StyleSheet.create({
     marginTop: 12,
     gap: 8,
   },
-  nextMedText: {
-    fontSize: 13,
-    color: "#00bfa5",
-    fontWeight: "500",
+  nextMedText: { fontSize: 13, color: "#00bfa5", fontWeight: "500" },
+  rdvEmptyAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ede9fe",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
   },
-
-  // 4. Upcoming Appointments Section
-  appointmentSection: {
-    marginBottom: 24,
-  },
+  rdvEmptyText: { fontSize: 13, color: "#8b5cf6", fontWeight: "500" },
+  appointmentSection: { marginBottom: 24 },
   appointmentCardLarge: {
     borderRadius: 20,
     overflow: "hidden",
@@ -946,10 +1017,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  appointmentGradientLarge: {
-    padding: 20,
-    alignItems: "center",
-  },
+  appointmentGradientLarge: { padding: 20, alignItems: "center" },
   appointmentIconContainerLarge: {
     width: 56,
     height: 56,
@@ -975,20 +1043,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  appointmentDateText: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-  },
-
-  // MediCare Style Menu
-  modalOverlay: {
-    flex: 1,
-    flexDirection: "row",
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
+  appointmentDateText: { fontSize: 14, color: "rgba(255,255,255,0.9)" },
+  modalOverlay: { flex: 1, flexDirection: "row" },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" },
   sidebar: {
     position: "absolute",
     left: 0,
@@ -1008,11 +1065,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: "#fff",
   },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+  logoContainer: { flexDirection: "row", alignItems: "center", gap: 12 },
   logoIcon: {
     width: 48,
     height: 48,
@@ -1021,15 +1074,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  logoTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1e293b",
-  },
-  logoSubtitle: {
-    fontSize: 13,
-    color: "#94a3b8",
-  },
+  logoTitle: { fontSize: 20, fontWeight: "bold", color: "#1e293b" },
+  logoSubtitle: { fontSize: 13, color: "#94a3b8" },
   userCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1047,24 +1093,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  userAvatarText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  userInfo: {
-    flex: 1,
-  },
+  userAvatarText: { fontSize: 18, fontWeight: "bold", color: "#fff" },
+  userInfo: { flex: 1 },
   userCardName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#1e293b",
     marginBottom: 2,
   },
-  userCardEmail: {
-    fontSize: 13,
-    color: "#64748b",
-  },
+  userCardEmail: { fontSize: 13, color: "#64748b" },
   languageSelector: {
     flexDirection: "row",
     alignItems: "center",
@@ -1085,11 +1122,7 @@ const styles = StyleSheet.create({
     color: "#1e293b",
     textAlign: "center",
   },
-  menuList: {
-    marginTop: 20,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
+  menuList: { marginTop: 20, paddingHorizontal: 16, gap: 8 },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -1106,15 +1139,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  menuItemText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#64748b",
-  },
-  menuItemTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
+  menuItemText: { fontSize: 15, fontWeight: "500", color: "#64748b" },
+  menuItemTextActive: { color: "#fff", fontWeight: "600" },
   logoutSection: {
     position: "absolute",
     bottom: 0,
@@ -1132,9 +1158,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 16,
   },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#64748b",
-  },
+  logoutText: { fontSize: 15, fontWeight: "500", color: "#64748b" },
 });

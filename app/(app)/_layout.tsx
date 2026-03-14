@@ -2,12 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useRef } from "react";
-import {
-  Animated,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { auth } from "../../firebaseConfig";
 
 // Floating Tab Bar Component
@@ -17,13 +12,18 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
   const spacing = 16;
 
   // DEBUG: Log all route names so we can see what Expo Router generates
-  console.log('TAB ROUTES:', state.routes.map((r: any) => r.name));
+  console.log(
+    "TAB ROUTES:",
+    state.routes.map((r: any) => r.name),
+  );
 
   // Whitelist approach: only show tabs whose route names match known tabs
   // This is more reliable than href:null or tabBarButton which don't propagate to custom tabBars
   const visibleRoutes = state.routes.filter((route: any) => {
     const name = route.name.toLowerCase();
-    return name.includes('home') || name.includes('ia') || name.includes('profile');
+    return (
+      name.includes("home") || name.includes("ia") || name.includes("profile")
+    );
   });
 
   const getVisualIndex = (routeKey: string) => {
@@ -50,17 +50,37 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
     const route = routeName.toLowerCase();
 
     if (route.includes("home")) {
-      return { icon: "home" as const, iconOutline: "home-outline" as const, label: "Accueil", color: "#00bfa5" };
+      return {
+        icon: "home" as const,
+        iconOutline: "home-outline" as const,
+        label: "Accueil",
+        color: "#00bfa5",
+      };
     }
     if (route.includes("ia")) {
-      return { icon: "sparkles" as const, iconOutline: "sparkles-outline" as const, label: "IA", color: "#ec4899" };
+      return {
+        icon: "sparkles" as const,
+        iconOutline: "sparkles-outline" as const,
+        label: "IA",
+        color: "#ec4899",
+      };
     }
     if (route.includes("profile")) {
-      return { icon: "person" as const, iconOutline: "person-outline" as const, label: "Profil", color: "#f59e0b" };
+      return {
+        icon: "person" as const,
+        iconOutline: "person-outline" as const,
+        label: "Profil",
+        color: "#f59e0b",
+      };
     }
 
     // Default fallback
-    return { icon: "ellipse" as const, iconOutline: "ellipse-outline" as const, label: "Tab", color: "#64748b" };
+    return {
+      icon: "ellipse" as const,
+      iconOutline: "ellipse-outline" as const,
+      label: "Tab",
+      color: "#64748b",
+    };
   };
 
   return (
@@ -85,7 +105,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
 
           const onPress = () => {
             const event = navigation.emit({
-              type: 'tabPress',
+              type: "tabPress",
               target: route.key,
               canPreventDefault: true,
             });
@@ -167,6 +187,12 @@ export default function ProtectedLayout() {
       {/* Hidden Screens */}
       <Tabs.Screen
         name="medications"
+        options={{
+          tabBarButton: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="rdv"
         options={{
           tabBarButton: () => null,
         }}
