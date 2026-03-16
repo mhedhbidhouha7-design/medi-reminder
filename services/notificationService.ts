@@ -197,8 +197,9 @@ export const testNotifications = async () => {
 
 /**
  * Schedules reminders for an appointment (assignment).
+ * - 2 days before.
  * - 1 day before.
- * - 2 hours before.
+ * - 5 hours before.
  * - At appointment time (with sound).
  */
 export const scheduleAppointmentReminders = async (appointment: Appointment) => {
@@ -212,42 +213,58 @@ export const scheduleAppointmentReminders = async (appointment: Appointment) => 
 
   if (apptTime <= today) return;
 
-  // 1. One day before
+  // 1. Two days before
+  const twoDaysBefore = new Date(apptTime.getTime() - 2 * 24 * 60 * 60 * 1000);
+  if (twoDaysBefore > today) {
+    const content: any = {
+      title: '📅 Devoir/RDV dans 2 jours',
+      body: `Rappel : ${title} est dans 2 jours (le ${date} à ${time}).`,
+      data: { apptId: id, type: 'appointment_2d' },
+    };
+    if (Platform.OS === 'android') content.channelId = 'default';
+
+    await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: { type: 'date', date: twoDaysBefore } as any,
+    });
+  }
+
+  // 2. One day before
   const oneDayBefore = new Date(apptTime.getTime() - 24 * 60 * 60 * 1000);
   if (oneDayBefore > today) {
     const content: any = {
-      title: 'Rendez-vous demain',
-      body: `Vous avez un rendez-vous : ${title} demain à ${time}.`,
+      title: '⚠️ Devoir/RDV demain',
+      body: `Rappel : ${title} est demain à ${time}.`,
       data: { apptId: id, type: 'appointment_1d' },
     };
     if (Platform.OS === 'android') content.channelId = 'default';
 
     await Notifications.scheduleNotificationAsync({
       content,
-      trigger: oneDayBefore as any,
+      trigger: { type: 'date', date: oneDayBefore } as any,
     });
   }
 
-  // 2. Two hours before
-  const twoHoursBefore = new Date(apptTime.getTime() - 2 * 60 * 60 * 1000);
-  if (twoHoursBefore > today) {
+  // 3. Five hours before
+  const fiveHoursBefore = new Date(apptTime.getTime() - 1 * 60 * 1000);
+  if (fiveHoursBefore > today) {
     const content: any = {
-      title: 'Rendez-vous bientôt',
-      body: `Votre rendez-vous ${title} est dans 2 heures.`,
-      data: { apptId: id, type: 'appointment_2h' },
+      title: '⏰ Devoir/RDV aujourd\'hui',
+      body: `Votre assignment ${title} est dans 5 heures.`,
+      data: { apptId: id, type: 'appointment_5h' },
     };
     if (Platform.OS === 'android') content.channelId = 'default';
 
     await Notifications.scheduleNotificationAsync({
       content,
-      trigger: twoHoursBefore as any,
+      trigger: { type: 'date', date: fiveHoursBefore } as any,
     });
   }
 
-  // 3. Exact time (Sonne)
+  // 4. Exact time (Sonne)
   const contentNow: any = {
-    title: 'C\'est l\'heure du rendez-vous',
-    body: `Il est temps pour votre rendez-vous : ${title}.`,
+    title: '🚀 C\'est l\'heure !',
+    body: `Il est temps pour votre RDV chez le : ${title}.`,
     data: { apptId: id, type: 'appointment_now' },
     sound: true,
   };
@@ -255,7 +272,7 @@ export const scheduleAppointmentReminders = async (appointment: Appointment) => 
 
   await Notifications.scheduleNotificationAsync({
     content: contentNow,
-    trigger: apptTime as any,
+    trigger: { type: 'date', date: apptTime } as any,
   });
 };
 
