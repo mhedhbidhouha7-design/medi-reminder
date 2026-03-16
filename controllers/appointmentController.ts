@@ -42,21 +42,29 @@ export const listenToAppointments = (
 };
 
 /**
- * Ajoute un nouveau rendez-vous dans Firebase.
+ * Ajoute un nouveau rendez-vous dans Firebase et planifie les notifications.
  */
+import { scheduleAppointmentReminders } from "../services/notificationService";
+
 export const addAppointment = async (
   userId: string,
   data: Omit<Appointment, "id">,
 ) => {
   const apptRef = ref(db, `users/${userId}/appointments`);
-  await push(apptRef, {
+  const newApptRef = await push(apptRef, {
     ...data,
     createdAt: new Date().toISOString(),
+  });
+
+  // Schedule notifications for the new appointment
+  await scheduleAppointmentReminders({
+    id: newApptRef.key!,
+    ...data,
   });
 };
 
 /**
- * Supprime un rendez-vous complètement.
+ * Supprime un rendez-vous complètement et annule ses rappels.
  */
 export const deleteAppointment = async (userId: string, apptId: string) => {
   const apptRef = ref(db, `users/${userId}/appointments/${apptId}`);

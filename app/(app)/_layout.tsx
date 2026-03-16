@@ -1,9 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useRef } from "react";
-import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Animated, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { auth } from "../../firebaseConfig";
+
+// Configure notification handler for LOCAL notifications only
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 // Floating Tab Bar Component
 function FloatingTabBar({ state, descriptors, navigation }: any) {
@@ -18,7 +29,6 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
   );
 
   // Whitelist approach: only show tabs whose route names match known tabs
-  // This is more reliable than href:null or tabBarButton which don't propagate to custom tabBars
   const visibleRoutes = state.routes.filter((route: any) => {
     const name = route.name.toLowerCase();
     return (
@@ -143,6 +153,44 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
 export default function ProtectedLayout() {
   const router = useRouter();
 
+  // Setup LOCAL notifications only (works in Expo Go)
+  useEffect(() => {
+    async function setupNotifications() {
+      try {
+        // Request notification permissions
+        const { status } = await Notifications.requestPermissionsAsync();
+
+        if (status !== "granted") {
+          console.log("Notification permission denied");
+          return;
+        }
+
+        console.log("Notification permission granted for local notifications");
+
+        // Setup Android notification channel (local notifications only)
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("default", {
+            name: "default",
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: "#FF231F7C",
+          });
+          console.log("Android notification channel created");
+        }
+
+        // NOTE: We do NOT call getExpoPushTokenAsync() here
+        // because that requires remote notifications which are
+        // not supported in Expo Go SDK 53+
+
+      } catch (error) {
+        console.log("Notification setup error:", error);
+      }
+    }
+
+    setupNotifications();
+  }, []);
+
+  // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -184,7 +232,7 @@ export default function ProtectedLayout() {
         }}
       />
 
-      {/* Hidden Screens */}
+      {/* Hidden Screens - no tab bar button */}
       <Tabs.Screen
         name="medications"
         options={{

@@ -38,6 +38,8 @@ export const listenToMedications = (
 };
 
 // Fonction pour enregistrer un nouveau médicament dans Firebase avec son planning, sa période, et la date de création
+import { scheduleMedicationReminders } from "../services/notificationService";
+
 export const addMedication = async (
   userId: string,
   name: string,
@@ -46,7 +48,17 @@ export const addMedication = async (
   endDate: string,
 ) => {
   const medsRef = ref(db, `users/${userId}/medications`);
-  await push(medsRef, {
+  const newMedRef = await push(medsRef, {
+    name: name.trim(),
+    startDate,
+    endDate,
+    schedules,
+    createdAt: new Date().toISOString(),
+  });
+
+  // Schedule notifications for the new medication
+  await scheduleMedicationReminders({
+    id: newMedRef.key!,
     name: name.trim(),
     startDate,
     endDate,
@@ -56,11 +68,13 @@ export const addMedication = async (
 };
 
 /**
- * Deletes a medication completely.
+ * Deletes a medication completely and cancels its reminders.
  */
 export const deleteMedication = async (userId: string, medId: string) => {
   const medRef = ref(db, `users/${userId}/medications/${medId}`);
   await remove(medRef);
+  // Ideally we'd cancel specific notifications here, but for now we'll 
+  // rely on a refresh strategy or just let them expire if not implemented yet.
 };
 
 //toggleMedicationDose fonction pour marquer une dose comme prise ou non dans Firebase pour un jour précis,

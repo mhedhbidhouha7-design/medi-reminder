@@ -8,6 +8,7 @@ import {
 } from "@/controllers/medicationController";
 import { auth } from "@/firebaseConfig";
 import { Appointment, Medication } from "@/models/interfaces";
+import { cancelAllNotifications, scheduleMedicationReminders, scheduleAppointmentReminders, testNotifications } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
@@ -35,6 +36,7 @@ export default function Home() {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-width)).current;
+  const hasScheduledNotifs = useRef(false);
 
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -89,7 +91,7 @@ export default function Home() {
       return;
     }
 
-    const unsubscribe = listenToMedications(userId, (fetchedMeds) => {
+    const unsubscribe = listenToMedications(userId, async (fetchedMeds) => {
       const now = new Date();
       const todayStr = now.toISOString().split("T")[0];
       const activeMeds = fetchedMeds.filter((med) => {
@@ -99,10 +101,38 @@ export default function Home() {
       setMedications(activeMeds);
       calculateStats(activeMeds);
       setLoading(false);
+
+      // Only schedule notifications on FIRST load (app startup)
+      // addMedication already handles scheduling for newly added meds
+      if (!hasScheduledNotifs.current) {
+        hasScheduledNotifs.current = true;
+        await cancelAllNotifications();
+        for (const med of activeMeds) {
+          try {
+            await scheduleMedicationReminders(med);
+          } catch (e) {
+            console.log('Error scheduling med notification:', e);
+          }
+        }
+        console.log(`[INIT] Scheduled notifications for ${activeMeds.length} medications`);
+      }
     });
 
-    const unsubAppt = listenToAppointments(userId, (fetched) => {
+    const unsubAppt = listenToAppointments(userId, async (fetched) => {
       setAppointments(fetched);
+
+      // Appointment reminders are also only scheduled on first load
+      if (hasScheduledNotifs.current) {
+        for (const appt of fetched) {
+          if (!appt.done) {
+            try {
+              await scheduleAppointmentReminders(appt);
+            } catch (e) {
+              console.log('Error scheduling appt notification:', e);
+            }
+          }
+        }
+      }
     });
 
     Animated.parallel([
@@ -675,6 +705,30 @@ export default function Home() {
               )}
             </View>
           </View>
+
+          {/* ── Test Notifications Button (dev only) ── */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#ec4899",
+              paddingVertical: 14,
+              paddingHorizontal: 24,
+              borderRadius: 16,
+              alignItems: "center",
+              marginTop: 16,
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+            }}
+            onPress={async () => {
+              await testNotifications();
+              alert("3 notifications programmées !\n\n⏰ dans 5s\n⚠️ dans 10s\n💊 dans 15s (avec son)");
+            }}
+          >
+            <Ionicons name="notifications" size={20} color="#fff" />
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+              Tester les notifications
+            </Text>
+          </TouchableOpacity>
 
           <View style={{ height: 100 }} />
         </Animated.View>
