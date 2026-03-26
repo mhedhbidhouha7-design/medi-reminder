@@ -1,15 +1,17 @@
 // app/(app)/rdv/index.tsx
+import { Colors } from "@/constants/theme";
 import {
   addAppointment,
-  deleteAppointment,
-  listenToAppointments,
   completeAppointment,
+  deleteAppointment,
   listenToAppointmentHistory,
+  listenToAppointments,
   updateAppointmentInsteadOfCreating,
 } from "@/controllers/appointmentController";
-import { combineDateAndTime, separateHistoryAndTodo, validateDateTime as validateAppointmentDate } from "@/utils/dateHelpers";
 import { auth } from "@/firebaseConfig";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { Appointment, AppointmentHistoryEntry } from "@/models/interfaces";
+import { combineDateAndTime, separateHistoryAndTodo, validateDateTime as validateAppointmentDate } from "@/utils/dateHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -78,6 +80,8 @@ const DEFAULT_FORM: FormData = {
 };
 
 export default function AppointmentsScreen() {
+  const { theme, isDark } = useAppTheme();
+  const themeColors = Colors[theme];
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
@@ -321,6 +325,7 @@ export default function AppointmentsScreen() {
           styles.appointmentCard,
           completed && styles.appointmentCardCompleted,
           isPast && styles.appointmentCardPast,
+          { backgroundColor: isPast ? undefined : themeColors.card, borderColor: isPast ? themeColors.tint : themeColors.tabIconDefault },
         ]}
       >
         {/* Icône gauche */}
@@ -330,9 +335,9 @@ export default function AppointmentsScreen() {
               styles.typeIconContainer,
               {
                 backgroundColor: completed
-                  ? "#f1f5f9"
+                  ? themeColors.tabIconDefault
                   : isPast
-                    ? "#fef3c7"
+                    ? themeColors.tint
                     : typeInfo.color + "15",
               },
             ]}
@@ -347,7 +352,7 @@ export default function AppointmentsScreen() {
               }
               size={24}
               color={
-                completed ? "#94a3b8" : isPast ? "#f59e0b" : typeInfo.color
+                completed ? themeColors.icon : isPast ? themeColors.tint : typeInfo.color
               }
             />
           </View>
@@ -366,8 +371,8 @@ export default function AppointmentsScreen() {
             <Text
               style={[
                 styles.appointmentType,
-                completed && { color: "#94a3b8" },
-                isPast && { color: "#92400e" },
+                completed && { color: themeColors.tabIconDefault },
+                isPast && { color: themeColors.tint },
               ]}
             >
               {appt.title}
@@ -383,24 +388,24 @@ export default function AppointmentsScreen() {
             <Ionicons
               name="calendar-outline"
               size={14}
-              color={isPast ? "#f59e0b" : "#64748b"}
+              color={isPast ? themeColors.tint : themeColors.icon}
             />
-            <Text style={[styles.metaText, isPast && { color: "#f59e0b" }]}>
+            <Text style={[styles.metaText, isPast && { color: themeColors.tint }]}> 
               {displayDate(appt.date)}
             </Text>
             <View style={styles.dot} />
             <Ionicons
               name="time-outline"
               size={14}
-              color={isPast ? "#f59e0b" : "#64748b"}
+              color={isPast ? themeColors.tint : themeColors.icon}
             />
-            <Text style={[styles.metaText, isPast && { color: "#f59e0b" }]}>
+            <Text style={[styles.metaText, isPast && { color: themeColors.tint }]}> 
               {appt.time}
             </Text>
             {completed && appt.doneAt && (
-              <>
+                <>
                 <View style={styles.dot} />
-                <Text style={{ fontSize: 13, color: "#00bfa5", fontWeight: "600" }}>
+                <Text style={{ fontSize: 13, color: themeColors.primary, fontWeight: "600" }}>
                   Terminé à {new Date(appt.doneAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </>
@@ -409,13 +414,13 @@ export default function AppointmentsScreen() {
 
           {!!appt.doctor && (
             <View style={styles.appointmentMeta}>
-              <Ionicons name="person-outline" size={14} color="#64748b" />
+              <Ionicons name="person-outline" size={14} color={themeColors.icon} />
               <Text style={styles.metaText}>{appt.doctor}</Text>
             </View>
           )}
           {!!appt.location && (
             <View style={styles.appointmentMeta}>
-              <Ionicons name="location-outline" size={14} color="#64748b" />
+              <Ionicons name="location-outline" size={14} color={themeColors.icon} />
               <Text style={styles.metaText} numberOfLines={1}>
                 {appt.location}
               </Text>
@@ -428,13 +433,13 @@ export default function AppointmentsScreen() {
           {!completed && (
             <>
               <TouchableOpacity
-                style={styles.actionBtn}
+                style={[styles.actionBtn, { backgroundColor: themeColors.background }]}
                 onPress={() => openEditModal(appt)}
               >
-                <Ionicons name="create-outline" size={20} color="#64748b" />
+                <Ionicons name="create-outline" size={20} color={themeColors.icon} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.actionBtn}
+                style={[styles.actionBtn, { backgroundColor: themeColors.background }]}
                 onPress={() => handleDelete(appt.id, appt.title)}
               >
                 <Ionicons name="trash-outline" size={20} color="#ef4444" />
@@ -442,6 +447,7 @@ export default function AppointmentsScreen() {
               <TouchableOpacity
                 style={[
                   styles.actionBtn,
+                  { backgroundColor: themeColors.background },
                   isPast ? styles.checkBtnPast : styles.checkBtn,
                 ]}
                 onPress={() => toggleCompleted(appt)}
@@ -449,7 +455,7 @@ export default function AppointmentsScreen() {
                 <Ionicons
                   name="checkmark"
                   size={20}
-                  color={isPast ? "#f59e0b" : "#00bfa5"}
+                  color={isPast ? themeColors.tint : themeColors.primary}
                 />
               </TouchableOpacity>
             </>
@@ -460,16 +466,16 @@ export default function AppointmentsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}> 
       {/* ── Header ── */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: isDark ? '#0f172a' : themeColors.background }] }>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Rendez-vous</Text>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>Rendez-vous</Text>
         </View>
 
         <TouchableOpacity style={styles.addButtonHeader} onPress={openAddModal}>
           <LinearGradient
-            colors={["#8b5cf6", "#7c3aed"]}
+            colors={[themeColors.primary, themeColors.tint]}
             style={styles.addButtonHeaderGradient}
           >
             <Ionicons name="add" size={24} color="#fff" />
@@ -479,18 +485,34 @@ export default function AppointmentsScreen() {
 
       <View style={styles.tabsContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "pending" && styles.activeTab]}
+          style={[
+            styles.tab,
+            activeTab === "pending" && styles.activeTab,
+            { backgroundColor: activeTab === "pending" ? themeColors.primary : themeColors.card },
+          ]}
           onPress={() => setActiveTab("pending")}
         >
-          <Text style={[styles.tabText, activeTab === "pending" && styles.activeTabText]}>
+          <Text style={[
+            styles.tabText,
+            activeTab === "pending" && styles.activeTabText,
+            { color: activeTab === "pending" ? themeColors.background : themeColors.icon },
+          ]}>
             À faire
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "history" && styles.activeTab]}
+          style={[
+            styles.tab,
+            activeTab === "history" && styles.activeTab,
+            { backgroundColor: activeTab === "history" ? themeColors.primary : themeColors.card },
+          ]}
           onPress={() => setActiveTab("history")}
         >
-          <Text style={[styles.tabText, activeTab === "history" && styles.activeTabText]}>
+          <Text style={[
+            styles.tabText,
+            activeTab === "history" && styles.activeTabText,
+            { color: activeTab === "history" ? themeColors.background : themeColors.icon },
+          ]}>
             Historique
           </Text>
         </TouchableOpacity>
@@ -503,7 +525,7 @@ export default function AppointmentsScreen() {
             onPress={() => setShowDatePicker(true)}
           >
             <TouchableOpacity onPress={() => changeDate(-1)} style={styles.arrowButton}>
-              <Ionicons name="chevron-back" size={20} color="#8b5cf6" />
+              <Ionicons name="chevron-back" size={20} color={themeColors.primary} />
             </TouchableOpacity>
             <View style={styles.dateInfo}>
               <Text style={styles.currentDateSubtitle}>
@@ -512,7 +534,7 @@ export default function AppointmentsScreen() {
               </Text>
             </View>
             <TouchableOpacity onPress={() => changeDate(1)} style={styles.arrowButton}>
-              <Ionicons name="chevron-forward" size={20} color="#8b5cf6" />
+              <Ionicons name="chevron-forward" size={20} color={themeColors.primary} />
             </TouchableOpacity>
           </TouchableOpacity>
         </View>
@@ -542,44 +564,44 @@ export default function AppointmentsScreen() {
             <>
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.sectionIconContainer}>
-                    <Ionicons name="today" size={18} color="#8b5cf6" />
-                  </View>
-                  <Text style={[styles.sectionTitle, { color: "#8b5cf6" }]}>Aujourd{'\''}hui</Text>
-                  <View style={[styles.badge, { backgroundColor: "#ede9fe" }]}>
-                    <Text style={[styles.badgeText, { color: "#8b5cf6" }]}>{todayAppointments.length}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.appointmentsList}>
-                  {todayAppointments.length > 0 ? (
-                    todayAppointments.map((appt) => renderAppointmentCard(appt))
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <View style={styles.emptyIconContainer}>
-                        <Ionicons name="calendar-outline" size={48} color="#cbd5e1" />
-                      </View>
-                      <Text style={styles.emptyTitle}>Vous êtes à jour</Text>
-                      <Text style={styles.emptySubtitle}>Aucun rendez-vous prévu aujourd{'\''}hui</Text>
+                    <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
+                      <Ionicons name="today" size={18} color={themeColors.primary} />
                     </View>
-                  )}
-                </View>
+                    <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>Aujourd'hui</Text>
+                    <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
+                      <Text style={[styles.badgeText, { color: themeColors.primary }]}>{todayAppointments.length}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }]}> 
+                    {todayAppointments.length > 0 ? (
+                      todayAppointments.map((appt) => renderAppointmentCard(appt))
+                    ) : (
+                      <View style={styles.emptyState}>
+                        <View style={[styles.emptyIconContainer, { backgroundColor: themeColors.card }] }>
+                          <Ionicons name="calendar-outline" size={48} color={themeColors.tabIconDefault} />
+                        </View>
+                        <Text style={[styles.emptyTitle, { color: themeColors.text }]}>Vous êtes à jour</Text>
+                        <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>Aucun rendez-vous prévu aujourd'hui</Text>
+                      </View>
+                    )}
+                  </View>
               </View>
 
               {upcomingAppointments.length > 0 && (
                 <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <View style={styles.sectionIconContainer}>
-                      <Ionicons name="calendar" size={18} color="#8b5cf6" />
-                    </View>
-                    <Text style={styles.sectionTitle}>À venir</Text>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{upcomingAppointments.length}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.appointmentsList}>
-                    {upcomingAppointments.map((appt) => renderAppointmentCard(appt))}
-                  </View>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
+                          <Ionicons name="calendar" size={18} color={themeColors.primary} />
+                        </View>
+                        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>À venir</Text>
+                        <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
+                          <Text style={[styles.badgeText, { color: themeColors.text }]}>{upcomingAppointments.length}</Text>
+                        </View>
+                      </View>
+                      <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }]}>
+                        {upcomingAppointments.map((appt) => renderAppointmentCard(appt))}
+                      </View>
                 </View>
               )}
             </>
@@ -589,17 +611,17 @@ export default function AppointmentsScreen() {
           {activeTab === "history" && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIconContainer, { backgroundColor: "#f1f5f9" }]}>
-                  <Ionicons name="checkmark-circle" size={18} color="#94a3b8" />
+                <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}> 
+                  <Ionicons name="checkmark-circle" size={18} color={themeColors.tabIconDefault} />
                 </View>
-                <Text style={[styles.sectionTitle, { color: "#94a3b8" }]}>Rendez-vous terminés ou passés</Text>
+                <Text style={[styles.sectionTitle, { color: themeColors.tabIconDefault }]}>Rendez-vous terminés ou passés</Text>
               </View>
-              <View style={styles.appointmentsList}>
+              <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }] }>
                 {historyAppointments.length > 0 ? (
                   historyAppointments.map((appt) => renderAppointmentCard(appt, appt.done))
                 ) : (
                   <View style={styles.emptyState}>
-                    <Text style={styles.emptySubtitle}>Aucun historique le {displayDate(selectedDateStr)}</Text>
+                    <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>Aucun historique le {displayDate(selectedDateStr)}</Text>
                   </View>
                 )}
               </View>
@@ -622,8 +644,8 @@ export default function AppointmentsScreen() {
             style={styles.modalBackdrop}
             onPress={() => setModalVisible(false)}
           />
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.tabIconDefault }]}>
               <View>
                 <Text style={styles.modalTitle}>
                   {editingAppt ? "Modifier" : "Nouveau rendez-vous"}
@@ -635,8 +657,8 @@ export default function AppointmentsScreen() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <View style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color="#64748b" />
+                <View style={[styles.closeButton, { backgroundColor: themeColors.card }] }>
+                  <Ionicons name="close" size={24} color={themeColors.icon} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -655,6 +677,7 @@ export default function AppointmentsScreen() {
                     style={[
                       styles.typeOption,
                       formData.type === type.key && styles.typeOptionActive,
+                      { backgroundColor: formData.type === type.key ? themeColors.primary : themeColors.card, borderColor: formData.type === type.key ? themeColors.primary : 'transparent' },
                     ]}
                     onPress={() =>
                       updateForm({ type: type.key, typeName: type.label })
@@ -666,7 +689,7 @@ export default function AppointmentsScreen() {
                         {
                           backgroundColor:
                             formData.type === type.key
-                              ? "#fff"
+                              ? themeColors.background
                               : type.color + "15",
                         },
                       ]}
@@ -675,7 +698,7 @@ export default function AppointmentsScreen() {
                         name={type.icon as any}
                         size={24}
                         color={
-                          formData.type === type.key ? "#8b5cf6" : type.color
+                          formData.type === type.key ? themeColors.background : type.color
                         }
                       />
                     </View>
@@ -683,6 +706,7 @@ export default function AppointmentsScreen() {
                       style={[
                         styles.typeLabel,
                         formData.type === type.key && styles.typeLabelActive,
+                        formData.type === type.key && { color: themeColors.background },
                       ]}
                     >
                       {type.label}
@@ -697,7 +721,7 @@ export default function AppointmentsScreen() {
                 <Ionicons
                   name="document-text-outline"
                   size={20}
-                  color="#94a3b8"
+                  color={themeColors.icon}
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -705,7 +729,7 @@ export default function AppointmentsScreen() {
                   value={formData.typeName}
                   onChangeText={(text) => updateForm({ typeName: text })}
                   placeholder="Ex : Consultation générale"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                 />
               </View>
 
@@ -720,10 +744,10 @@ export default function AppointmentsScreen() {
                     <Ionicons
                       name="calendar-outline"
                       size={20}
-                      color="#94a3b8"
+                      color={themeColors.icon}
                       style={styles.inputIcon}
                     />
-                    <Text style={[styles.input, { color: formData.date ? "#1e293b" : "#94a3b8" }]}>
+                    <Text style={[styles.input, { color: formData.date ? themeColors.text : themeColors.icon }]}>
                       {formData.date ? displayDate(formData.date) : "Sélectionner..."}
                     </Text>
                   </TouchableOpacity>
@@ -745,10 +769,10 @@ export default function AppointmentsScreen() {
                     <Ionicons
                       name="time-outline"
                       size={20}
-                      color="#94a3b8"
+                      color={themeColors.icon}
                       style={styles.inputIcon}
                     />
-                    <Text style={[styles.input, { color: formData.time ? "#1e293b" : "#94a3b8" }]}>
+                    <Text style={[styles.input, { color: formData.time ? themeColors.text : themeColors.icon }]}>
                       {formData.time ? formData.time : "Sélectionner..."}
                     </Text>
                   </TouchableOpacity>
@@ -769,7 +793,7 @@ export default function AppointmentsScreen() {
                 <Ionicons
                   name="person-outline"
                   size={20}
-                  color="#94a3b8"
+                  color={themeColors.icon}
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -777,7 +801,7 @@ export default function AppointmentsScreen() {
                   value={formData.doctor}
                   onChangeText={(text) => updateForm({ doctor: text })}
                   placeholder="Dr. ..."
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                 />
               </View>
 
@@ -787,7 +811,7 @@ export default function AppointmentsScreen() {
                 <Ionicons
                   name="location-outline"
                   size={20}
-                  color="#94a3b8"
+                  color={themeColors.icon}
                   style={styles.inputIcon}
                 />
                 <TextInput
@@ -795,7 +819,7 @@ export default function AppointmentsScreen() {
                   value={formData.location}
                   onChangeText={(text) => updateForm({ location: text })}
                   placeholder="Adresse du cabinet"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                 />
               </View>
 
@@ -807,7 +831,7 @@ export default function AppointmentsScreen() {
                   value={formData.notes}
                   onChangeText={(text) => updateForm({ notes: text })}
                   placeholder="Instructions spéciales..."
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                   multiline
                   numberOfLines={3}
                 />
@@ -836,7 +860,7 @@ export default function AppointmentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: "transparent" },
 
   // Header
   header: {
@@ -846,7 +870,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 16,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
   },
   headerCenter: { flex: 1 },
   headerTitle: {
@@ -865,10 +889,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "transparent",
   },
   activeTab: {
-    backgroundColor: "#8b5cf6",
+    backgroundColor: "transparent",
   },
   tabText: {
     fontSize: 15,
@@ -1008,13 +1032,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: "#ede9fe",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
   },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1e293b", flex: 1 },
   badge: {
-    backgroundColor: "#8b5cf6",
+    backgroundColor: "transparent",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1023,7 +1047,7 @@ const styles = StyleSheet.create({
 
   // Liste conteneur
   appointmentsList: {
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     borderRadius: 24,
     padding: 16,
     shadowColor: "#000",
@@ -1038,16 +1062,16 @@ const styles = StyleSheet.create({
   appointmentCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "transparent",
   },
   appointmentCardCompleted: { opacity: 0.7 },
   appointmentCardPast: {
-    backgroundColor: "#fffbeb",
-    borderColor: "#fde68a",
+    backgroundColor: "transparent",
+    borderColor: "transparent",
   },
 
   // Badge "En attente"
@@ -1105,7 +1129,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 30,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -1125,7 +1149,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   modalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     maxHeight: "92%",
@@ -1141,7 +1165,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: "transparent",
   },
   modalTitle: {
     fontSize: 24,
@@ -1154,7 +1178,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1174,14 +1198,14 @@ const styles = StyleSheet.create({
   },
   typeOption: {
     width: (width - 72) / 3,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
     borderWidth: 2,
     borderColor: "transparent",
   },
-  typeOptionActive: { backgroundColor: "#8b5cf6", borderColor: "#8b5cf6" },
+  typeOptionActive: { backgroundColor: "transparent", borderColor: "transparent" },
   typeIconLarge: {
     width: 48,
     height: 48,
@@ -1195,10 +1219,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "transparent",
     marginBottom: 16,
   },
   inputIcon: { paddingLeft: 16 },

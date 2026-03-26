@@ -1,21 +1,21 @@
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { addProche, updateProche } from "@/controllers/procheController";
+import { auth } from "@/firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
-import { auth } from "@/firebaseConfig";
-import { addProche, updateProche } from "@/controllers/procheController";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from "react-native";
 
 export default function AddProcheScreen() {
   const router = useRouter();
@@ -98,7 +98,7 @@ export default function AddProcheScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.card }]}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -108,50 +108,50 @@ export default function AddProcheScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <View style={[styles.card, { backgroundColor: colors.card }]}> 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Nom complet *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
               value={name}
               onChangeText={setName}
               placeholder="Ex: Marie Martin"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.text + "60"}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Numéro de téléphone *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
               value={phone}
               onChangeText={setPhone}
               placeholder="Ex: 06 12 34 56 78"
               keyboardType="phone-pad"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.text + "60"}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Adresse email *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
               value={email}
               onChangeText={setEmail}
               placeholder="Ex: marie@exemple.com"
               keyboardType="email-address"
               autoCapitalize="none"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.text + "60"}
             />
           </View>
 
           <TouchableOpacity 
-            style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled]} 
+            style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled, { backgroundColor: colors.primary ?? colors.text }]} 
             onPress={handleSave}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.background} />
             ) : (
               <Text style={styles.saveButtonText}>
                 {editingId ? "Enregistrer les modifications" : "Enregistrer le contact"}

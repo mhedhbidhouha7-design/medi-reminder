@@ -1,4 +1,7 @@
+import { Colors } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useState } from "react";
 import {
@@ -12,6 +15,9 @@ import {
 } from "react-native";
 
 export default function IAScreen() {
+    const { theme } = useAppTheme();
+    const themeColors = Colors[theme];
+    const { colors } = useTheme();
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([
         {
@@ -47,23 +53,21 @@ export default function IAScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: themeColors.background }] }>
             {/* Header */}
             <LinearGradient
-                colors={["#ec4899", "#db2777"]}
+                colors={[themeColors.primary, themeColors.tint]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
             >
                 <View style={styles.headerContent}>
                     <View style={styles.headerIconContainer}>
-                        <Ionicons name="sparkles" size={28} color="#fff" />
+                            <Ionicons name="sparkles" size={28} color={themeColors.background} />
                     </View>
                     <View>
-                        <Text style={styles.headerTitle}>Assistant IA</Text>
-                        <Text style={styles.headerSubtitle}>
-                            Votre assistant santé intelligent
-                        </Text>
+                            <Text style={[styles.headerTitle, { color: themeColors.background }]}>Assistant IA</Text>
+                            <Text style={[styles.headerSubtitle, { color: themeColors.background }]}>Votre assistant santé intelligent</Text>
                     </View>
                 </View>
             </LinearGradient>
@@ -80,21 +84,21 @@ export default function IAScreen() {
                         style={[
                             styles.messageBubble,
                             msg.type === "user"
-                                ? styles.userBubble
-                                : styles.botBubble,
+                                ? [styles.userBubble, { backgroundColor: themeColors.primary }]
+                                : [styles.botBubble, { backgroundColor: themeColors.card }],
                         ]}
                     >
                         {msg.type === "bot" && (
-                            <View style={styles.botIcon}>
-                                <Ionicons name="sparkles" size={16} color="#ec4899" />
+                            <View style={[styles.botIcon, { backgroundColor: themeColors.card }]}> 
+                                <Ionicons name="sparkles" size={16} color={themeColors.primary} />
                             </View>
                         )}
                         <Text
                             style={[
                                 styles.messageText,
                                 msg.type === "user"
-                                    ? styles.userText
-                                    : styles.botText,
+                                    ? [styles.userText, { color: themeColors.background }]
+                                    : [styles.botText, { color: themeColors.text }],
                             ]}
                         >
                             {msg.text}
@@ -104,7 +108,7 @@ export default function IAScreen() {
 
                 {/* Suggested Questions */}
                 <View style={styles.suggestionsContainer}>
-                    <Text style={styles.suggestionsTitle}>Suggestions</Text>
+                    <Text style={[styles.suggestionsTitle, { color: themeColors.text }]}>Suggestions</Text>
                     {[
                         "Quels sont les effets secondaires de mes médicaments ?",
                         "Rappelle-moi mes prochains rendez-vous",
@@ -112,15 +116,15 @@ export default function IAScreen() {
                     ].map((suggestion, index) => (
                         <TouchableOpacity
                             key={index}
-                            style={styles.suggestionChip}
+                            style={[styles.suggestionChip, { backgroundColor: themeColors.card, borderColor: themeColors.tint }]}
                             onPress={() => setMessage(suggestion)}
                         >
                             <Ionicons
                                 name="chatbubble-ellipses-outline"
                                 size={16}
-                                color="#ec4899"
+                                color={themeColors.primary}
                             />
-                            <Text style={styles.suggestionText}>{suggestion}</Text>
+                            <Text style={[styles.suggestionText, { color: themeColors.text }]}>{suggestion}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -130,11 +134,11 @@ export default function IAScreen() {
 
             {/* Input */}
             <View style={styles.inputContainer}>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, { backgroundColor: themeColors.card, shadowColor: "#000" }]}> 
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: themeColors.text }]}
                         placeholder="Posez votre question..."
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor={themeColors.icon + "60"}
                         value={message}
                         onChangeText={setMessage}
                         multiline
@@ -143,6 +147,7 @@ export default function IAScreen() {
                         style={[
                             styles.sendButton,
                             !message.trim() && styles.sendButtonDisabled,
+                            { backgroundColor: message.trim() ? themeColors.primary : themeColors.card }
                         ]}
                         onPress={sendMessage}
                         disabled={!message.trim()}
@@ -150,7 +155,7 @@ export default function IAScreen() {
                         <Ionicons
                             name="send"
                             size={20}
-                            color={message.trim() ? "#fff" : "#94a3b8"}
+                            color={message.trim() ? themeColors.background : themeColors.icon + "60"}
                         />
                     </TouchableOpacity>
                 </View>
@@ -162,7 +167,7 @@ export default function IAScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f8fafc",
+        backgroundColor: "transparent",
     },
     header: {
         paddingTop: 60,
@@ -180,18 +185,16 @@ const styles = StyleSheet.create({
         width: 52,
         height: 52,
         borderRadius: 18,
-        backgroundColor: "rgba(255,255,255,0.2)",
+        backgroundColor: "transparent",
         justifyContent: "center",
         alignItems: "center",
     },
     headerTitle: {
         fontSize: 24,
         fontWeight: "bold",
-        color: "#fff",
     },
     headerSubtitle: {
         fontSize: 14,
-        color: "rgba(255,255,255,0.85)",
         marginTop: 2,
     },
     messagesContainer: {
@@ -210,12 +213,12 @@ const styles = StyleSheet.create({
         alignItems: "flex-start",
     },
     userBubble: {
-        backgroundColor: "#ec4899",
+        backgroundColor: "transparent",
         alignSelf: "flex-end",
         borderBottomRightRadius: 6,
     },
     botBubble: {
-        backgroundColor: "#fff",
+        backgroundColor: "transparent",
         alignSelf: "flex-start",
         borderBottomLeftRadius: 6,
         shadowColor: "#000",
@@ -228,7 +231,7 @@ const styles = StyleSheet.create({
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: "#fce7f3",
+        backgroundColor: "transparent",
         justifyContent: "center",
         alignItems: "center",
         marginTop: 2,
@@ -258,12 +261,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        backgroundColor: "#fff",
+        backgroundColor: "transparent",
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: "#fce7f3",
+        borderColor: "transparent",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.03,
@@ -285,7 +288,7 @@ const styles = StyleSheet.create({
     inputWrapper: {
         flexDirection: "row",
         alignItems: "flex-end",
-        backgroundColor: "#fff",
+        backgroundColor: "transparent",
         borderRadius: 24,
         paddingHorizontal: 16,
         paddingVertical: 8,
@@ -307,11 +310,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: "#ec4899",
+        backgroundColor: "transparent",
         justifyContent: "center",
         alignItems: "center",
     },
     sendButtonDisabled: {
-        backgroundColor: "#f1f5f9",
+        backgroundColor: "transparent",
     },
 });

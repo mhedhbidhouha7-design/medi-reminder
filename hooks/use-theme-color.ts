@@ -4,18 +4,26 @@
  */
 
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark
 ) {
-  const theme = useColorScheme() ?? 'light';
-  const colorFromProps = props[theme];
-
-  if (colorFromProps) {
-    return colorFromProps;
-  } else {
-    return Colors[theme][colorName];
+  // Prefer the user-selected app theme from ThemeProvider; fall back to 'light'
+  let themeName: keyof typeof Colors = 'light';
+  try {
+    const appTheme = useAppTheme();
+    themeName = appTheme.theme as keyof typeof Colors;
+  } catch (e) {
+    themeName = 'light';
   }
+
+  // If a component passed explicit light/dark overrides, prefer them for those two modes
+  if (themeName === 'dark' || themeName === 'light') {
+    const colorFromProps = props[themeName];
+    if (colorFromProps) return colorFromProps;
+  }
+
+  return Colors[themeName][colorName];
 }

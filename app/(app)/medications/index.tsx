@@ -1,17 +1,18 @@
+import { Colors } from "@/constants/theme";
 import {
   addMedication,
   deleteMedication,
+  listenToMedicationHistory,
   listenToMedications,
   toggleMedicationDose,
-  listenToMedicationHistory,
   updateMedication,
 } from "@/controllers/medicationController";
 import { auth } from "@/firebaseConfig";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { DosageSchedule, Medication, MedicationHistoryEntry } from "@/models/interfaces";
+import { combineDateAndTime, validateDateTime } from "@/utils/dateHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { combineDateAndTime, validateDateTime } from "@/utils/dateHelpers";
-import { useTheme } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -27,7 +28,8 @@ import {
 } from "react-native";
 
 export default function MedicationsScreen() {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const themeColors = Colors[theme];
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -298,20 +300,20 @@ export default function MedicationsScreen() {
     return (
       <View style={[
         styles.item,
-        { backgroundColor: allTaken ? "#f8fafc" : colors.card },
-        allTaken && { opacity: 0.8, borderColor: "#e2e8f0", borderWidth: 1 }
+        { backgroundColor: themeColors.background },
+        allTaken && { opacity: 0.8, borderColor: themeColors.tabIconDefault, borderWidth: 1 }
       ]}>
         <View style={{ flex: 1, marginBottom: 8 }}>
           <View style={styles.medicationHeader}>
             <View>
               <Text style={[
                 styles.name,
-                { color: allTaken ? "#94a3b8" : colors.text },
+                { color: allTaken ? themeColors.text + "60" : themeColors.text },
                 allTaken && { textDecorationLine: "line-through" }
               ]}>{item.name}</Text>
               {(!!item.startDate || !!durationStr) && (
-                <Text style={styles.durationText}>
-                  <Ionicons name="calendar-outline" size={14} /> {durationStr ? `${durationStr} (${item.startDate} → ${item.endDate})` : item.startDate}
+                <Text style={[styles.durationText, { color: themeColors.text + "60" }] }>
+                  <Ionicons name="calendar-outline" size={14} color={themeColors.text + "60"} /> {durationStr ? `${durationStr} (${item.startDate} → ${item.endDate})` : item.startDate}
                 </Text>
               )}
             </View>
@@ -320,13 +322,13 @@ export default function MedicationsScreen() {
                 onPress={() => openEditModal(item)}
                 style={styles.editButtonHeader}
               >
-                <Ionicons name="create-outline" size={20} color="#64748b" />
+                <Ionicons name="create-outline" size={20} color={themeColors.text + "60"} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleDeleteMedication(item.id, item.name)}
                 style={styles.deleteButtonHeader}
               >
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                <Ionicons name="trash-outline" size={20} color={themeColors.primary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -338,14 +340,15 @@ export default function MedicationsScreen() {
               return (
                 <View
                   key={index}
-                  style={[
+                    style={[
                     styles.scheduleRow,
+                    { backgroundColor: themeColors.background },
                     isTaken && styles.scheduleRowTaken
                   ]}
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={[
-                      { color: colors.text + "80", fontSize: 14 },
+                      { color: themeColors.text + "80", fontSize: 14 },
                       isTaken && { textDecorationLine: "line-through", color: "#94a3b8" }
                     ]}>
                       {schedule.time ? `${schedule.time}` : "Heure non spécifiée"}
@@ -353,7 +356,7 @@ export default function MedicationsScreen() {
                     </Text>
                     <Text
                       style={[
-                        { color: colors.text, fontWeight: "500", fontSize: 15 },
+                        { color: themeColors.text, fontWeight: "500", fontSize: 15 },
                         isTaken && { textDecorationLine: "line-through", color: "#94a3b8" }
                       ]}
                     >
@@ -368,7 +371,7 @@ export default function MedicationsScreen() {
                     <Ionicons
                       name={isTaken ? "checkmark-circle" : "ellipse-outline"}
                       size={32}
-                      color={isTaken ? "#00bfa5" : colors.text + "60"}
+                      color={isTaken ? themeColors.primary : themeColors.text + "60"}
                     />
                   </TouchableOpacity>
                 </View>
@@ -388,35 +391,35 @@ export default function MedicationsScreen() {
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={styles.header}>
+    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
+          <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}> 
             Mes médicaments
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: themeColors.primary, shadowColor: themeColors.primary }]}
           onPress={() => setAddModalVisible(true)}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name="add" size={24} color={themeColors.background} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.tabsContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "pending" && styles.activeTab]}
+          style={[styles.tab, { backgroundColor: activeTab === "pending" ? themeColors.primary : themeColors.background }]}
           onPress={() => setActiveTab("pending")}
         >
-          <Text style={[styles.tabText, activeTab === "pending" && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: activeTab === "pending" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "pending" ? "700" : "600" }]}> 
             À faire
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "history" && styles.activeTab]}
+          style={[styles.tab, { backgroundColor: activeTab === "history" ? themeColors.primary : themeColors.background }]}
           onPress={() => setActiveTab("history")}
         >
-          <Text style={[styles.tabText, activeTab === "history" && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: activeTab === "history" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "history" ? "700" : "600" }]}> 
             Historique
           </Text>
         </TouchableOpacity>
@@ -425,22 +428,22 @@ export default function MedicationsScreen() {
       {activeTab === "history" && (
         <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
           <TouchableOpacity
-            style={styles.dateSelectionContainer}
+            style={[styles.dateSelectionContainer, { backgroundColor: themeColors.background }]}
             onPress={() => setShowHistoryPicker(true)}
           >
             <TouchableOpacity onPress={() => changeDate(-1)} style={styles.arrowButton}>
-              <Ionicons name="chevron-back" size={20} color="#00bfa5" />
+              <Ionicons name="chevron-back" size={20} color={themeColors.primary} />
             </TouchableOpacity>
 
             <View style={styles.dateInfo}>
-              <Text style={styles.currentDateSubtitle}>
+              <Text style={[styles.currentDateSubtitle, { color: themeColors.text }]}> 
                 {isToday(selectedDate) ? "Aujourd'hui, " : ""}
                 {selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
               </Text>
             </View>
 
             <TouchableOpacity onPress={() => changeDate(1)} style={styles.arrowButton}>
-              <Ionicons name="chevron-forward" size={20} color="#00bfa5" />
+              <Ionicons name="chevron-forward" size={20} color={themeColors.primary} />
             </TouchableOpacity>
           </TouchableOpacity>
         </View>
@@ -456,8 +459,8 @@ export default function MedicationsScreen() {
       )}
 
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#00bfa5" />
+          <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={themeColors.primary} />
         </View>
       ) : (
         <FlatList
@@ -467,11 +470,11 @@ export default function MedicationsScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           ListEmptyComponent={
             <View style={{ marginTop: 40, alignItems: "center" }}>
-              <Ionicons name="calendar-outline" size={48} color={colors.text + "20"} />
+              <Ionicons name="calendar-outline" size={48} color={themeColors.text + "20"} />
               <Text
                 style={{
                   textAlign: "center",
-                  color: colors.text + "70",
+                  color: themeColors.text + "70",
                   marginTop: 12,
                   fontSize: 16,
                 }}
@@ -493,7 +496,7 @@ export default function MedicationsScreen() {
         onRequestClose={() => setAddModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.background }] }>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingMedId ? "Modifier le médicament" : "Nouveau médicament"}
@@ -504,7 +507,7 @@ export default function MedicationsScreen() {
                 setNewMedName("");
                 setNewSchedules([{ time: "", dose: "" }]);
               }}>
-                <Ionicons name="close" size={24} color="#64748b" />
+                <Ionicons name="close" size={24} color={themeColors.text + "60"} />
               </TouchableOpacity>
             </View>
 
@@ -516,27 +519,27 @@ export default function MedicationsScreen() {
                 <>
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Nom du médicament</Text>
-                    <TextInput
+                      <TextInput
                       style={styles.input}
                       value={newMedName}
                       onChangeText={setNewMedName}
                       placeholder="Ex: Doliprane 500"
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor={themeColors.text + "60"}
                     />
                   </View>
 
                   <View style={styles.dateRow}>
                     <View style={{ flex: 1, marginRight: 8 }}>
                       <Text style={styles.inputLabel}>Date de début</Text>
-                      <TouchableOpacity
-                        style={styles.datePickerButton}
-                        onPress={() => setShowStartPicker(true)}
-                      >
-                        <Ionicons name="calendar-outline" size={18} color="#00bfa5" />
-                        <Text style={styles.dateInputText}>
-                          {newMedStartDate.toLocaleDateString('fr-FR')}
-                        </Text>
-                      </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={[styles.datePickerButton, { backgroundColor: themeColors.background }]}
+                                    onPress={() => setShowStartPicker(true)}
+                                  >
+                                    <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
+                                    <Text style={[styles.dateInputText, { color: themeColors.text }]}>
+                                      {newMedStartDate.toLocaleDateString('fr-FR')}
+                                    </Text>
+                                  </TouchableOpacity>
                       {showStartPicker && (
                         <DateTimePicker
                           value={newMedStartDate}
@@ -549,11 +552,11 @@ export default function MedicationsScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.inputLabel}>Date de fin</Text>
                       <TouchableOpacity
-                        style={styles.datePickerButton}
+                        style={[styles.datePickerButton, { backgroundColor: themeColors.background }]}
                         onPress={() => setShowEndPicker(true)}
                       >
-                        <Ionicons name="calendar-outline" size={18} color="#ef4444" />
-                        <Text style={styles.dateInputText}>
+                        <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
+                        <Text style={[styles.dateInputText, { color: themeColors.text }]}>
                           {newMedEndDate.toLocaleDateString('fr-FR')}
                         </Text>
                       </TouchableOpacity>
@@ -569,7 +572,7 @@ export default function MedicationsScreen() {
                   </View>
 
                   <View style={styles.durationBanner}>
-                    <Ionicons name="time-outline" size={16} color="#00bfa5" />
+                    <Ionicons name="time-outline" size={16} color={themeColors.primary} />
                     <Text style={styles.durationBannerText}>
                       Durée du traitement : {calculateDuration(newMedStartDate, newMedEndDate)}
                     </Text>
@@ -584,7 +587,7 @@ export default function MedicationsScreen() {
                   </View>
 
                   {newSchedules.map((schedule, index) => (
-                    <View key={index} style={styles.scheduleInputContainer}>
+                    <View key={index} style={[styles.scheduleInputContainer, { backgroundColor: themeColors.background, borderColor: themeColors.tabIconDefault }]}>
                       <View style={styles.scheduleInputRow}>
                         <View style={{ flex: 1, marginRight: 8 }}>
                           <Text style={styles.subLabel}>Heure / Moment</Text>
@@ -593,10 +596,10 @@ export default function MedicationsScreen() {
                               styles.input,
                               {
                                 justifyContent: "center",
-                                borderColor: "#e2e8f0",
+                                borderColor: themeColors.tabIconDefault,
                                 borderWidth: 1,
                                 borderRadius: 14,
-                                backgroundColor: "#f8fafc",
+                                backgroundColor: themeColors.background,
                                 minHeight: 48,
                                 paddingHorizontal: 12
                               }
@@ -604,8 +607,8 @@ export default function MedicationsScreen() {
                             onPress={() => setTimePickerIndex(index)}
                           >
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                              <Ionicons name="time-outline" size={18} color="#94a3b8" />
-                              <Text style={{ color: schedule.time ? "#1e293b" : "#94a3b8", fontSize: 16 }}>
+                              <Ionicons name="time-outline" size={18} color={themeColors.text + "60"} />
+                              <Text style={{ color: schedule.time ? themeColors.text : themeColors.text + "60", fontSize: 16 }}>
                                 {schedule.time || "Sélectionner..."}
                               </Text>
                             </View>
@@ -620,7 +623,7 @@ export default function MedicationsScreen() {
                               updateScheduleField(index, "dose", val)
                             }
                             placeholder="Ex: 2 pilules"
-                            placeholderTextColor="#94a3b8"
+                            placeholderTextColor={themeColors.text + "60"}
                           />
                         </View>
                       </View>
@@ -650,17 +653,17 @@ export default function MedicationsScreen() {
                   )}
 
                   <TouchableOpacity
-                    style={styles.addDoseButton}
+                    style={[styles.addDoseButton, { backgroundColor: themeColors.background, borderColor: themeColors.primary }]}
                     onPress={addScheduleField}
                   >
-                    <Ionicons name="add-circle-outline" size={20} color="#00bfa5" />
-                    <Text style={styles.addDoseButtonText}>
+                    <Ionicons name="add-circle-outline" size={20} color={themeColors.primary} />
+                    <Text style={[styles.addDoseButtonText, { color: themeColors.primary }] }>
                       Ajouter une autre dose (Midi, Soir...)
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.saveButton}
+                    style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
                     onPress={handleAddMedication}
                   >
                     <Text style={styles.saveButtonText}>Enregistrer</Text>
@@ -700,7 +703,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "transparent",
   },
   activeTab: {
     backgroundColor: "#00bfa5",
@@ -714,7 +717,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   addButton: {
-    backgroundColor: "#00bfa5",
+    backgroundColor: "transparent",
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -735,7 +738,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 8,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "transparent",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 20,
@@ -770,7 +773,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: "transparent",
     paddingBottom: 8,
   },
   deleteButtonHeader: {
@@ -794,15 +797,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 10,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "transparent",
   },
   scheduleRowTaken: {
-    backgroundColor: "#f0fdfa",
-    borderColor: "#ccfbf1",
+    backgroundColor: "transparent",
+    borderColor: "transparent",
   },
   actionButton: {
     padding: 4,
@@ -815,7 +818,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -850,7 +853,7 @@ const styles = StyleSheet.create({
   datePickerButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "transparent",
     borderRadius: 10,
     padding: 14,
     height: 50,
@@ -863,12 +866,12 @@ const styles = StyleSheet.create({
   durationBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "transparent",
     padding: 12,
     borderRadius: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#ccfbf1",
+    borderColor: "transparent",
   },
   durationBannerText: {
     marginLeft: 8,
@@ -885,7 +888,7 @@ const styles = StyleSheet.create({
   },
   schedulesSectionLabel: {
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    borderBottomColor: "transparent",
     marginBottom: 12,
   },
   subLabel: {
@@ -895,16 +898,16 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "transparent",
     borderRadius: 10,
     padding: 14,
     fontSize: 15,
     color: "#1e293b",
   },
   scheduleInputContainer: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "transparent",
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -929,10 +932,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f0fdfa",
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#00bfa5",
+    borderColor: "transparent",
     borderRadius: 12,
     padding: 12,
     marginBottom: 24,
@@ -945,7 +948,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   saveButton: {
-    backgroundColor: "#00bfa5",
+    backgroundColor: "transparent",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",

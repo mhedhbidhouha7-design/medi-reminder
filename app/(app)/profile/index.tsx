@@ -1,7 +1,8 @@
+import { Colors } from "@/constants/theme";
 import { auth, db } from "@/firebaseConfig";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import { onValue, ref, update } from "firebase/database";
 import { useEffect, useState } from "react";
 import {
@@ -34,6 +35,8 @@ interface UserData {
 }
 
 export default function Profile() {
+  const { theme, setTheme, isDark } = useAppTheme();
+  const themeColors = Colors[theme];
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -253,44 +256,39 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#00bfa5" />
+      <View style={[styles.container, styles.centered, { backgroundColor: themeColors.background }]}>
+        <ActivityIndicator size="large" color={themeColors.tint} />
       </View>
     );
   }
 
   if (!userData) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Text>Utilisateur non trouvé</Text>
+      <View style={[styles.container, styles.centered, { backgroundColor: themeColors.background }]}>
+        <Text style={{ color: themeColors.text }}>Utilisateur non trouvé</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
-      <LinearGradient
-        colors={["#e0f2f1", "#f8fafc"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
+      <View style={[styles.header, { backgroundColor: themeColors.card }]}>
         <View style={styles.headerContentWrapper}>
           <View style={styles.headerContent}>
-            <View style={styles.headerIcon}>
+            <View style={[styles.headerIcon, { backgroundColor: themeColors.tint }]}>
               <Ionicons name="person" size={24} color="#fff" />
             </View>
             <View style={{ flexShrink: 1 }}>
-              <Text style={styles.headerTitle}>Mon Profil</Text>
-              <Text style={styles.headerSubtitle}>
-                Gérez vos informations personnelles et médicales
+              <Text style={[styles.headerTitle, { color: themeColors.text }]}>Mon Profil</Text>
+              <Text style={[styles.headerSubtitle, { color: themeColors.icon }]}>
+                Paramètres et thèmes
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.headerLogoutButton}
+              <TouchableOpacity
+            style={[styles.headerLogoutButton, { backgroundColor: themeColors.card }]}
             onPress={() => {
               Alert.alert(
                 "Déconnexion",
@@ -312,17 +310,52 @@ export default function Profile() {
               );
             }}
           >
-            <Ionicons name="log-out-outline" size={22} color="#ef4444" />
+              <Ionicons name="log-out-outline" size={22} color="#ef4444" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Theme Selection Section */}
+        <View style={[styles.section, { backgroundColor: themeColors.card }]}>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="color-palette-outline" size={22} color={themeColors.tint} />
+            <Text style={[styles.sectionTitle, { color: themeColors.tint }]}>Thème de l'application</Text>
+          </View>
+          
+          <View style={styles.themeGrid}>
+            {[
+              { id: 'light', label: 'Clair', icon: 'sunny-outline' },
+              { id: 'dark', label: 'Sombre', icon: 'moon-outline' },
+              { id: 'emerald', label: 'Émeraude', icon: 'leaf-outline' },
+              { id: 'royal', label: 'Royal', icon: 'ribbon-outline' },
+            ].map((t) => (
+              <TouchableOpacity
+                key={t.id}
+                style={[
+                  styles.themeButton,
+                  theme === t.id && { borderColor: themeColors.tint, borderWidth: 2 },
+                  { backgroundColor: themeColors.card }
+                ]}
+                onPress={() => setTheme(t.id as any)}
+              >
+                <Ionicons name={t.icon as any} size={20} color={t.id === theme ? themeColors.tint : themeColors.icon} />
+                <Text style={[
+                  styles.themeButtonText, 
+                  { color: t.id === theme ? themeColors.tint : themeColors.text }
+                ]}>
+                  {t.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* Profile Card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.profileHeader}>
             <TouchableOpacity
               style={styles.avatarContainer}
@@ -335,36 +368,37 @@ export default function Profile() {
                   style={styles.profileImage}
                 />
               ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>
+                <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.primary }] }>
+                  <Text style={[styles.avatarText, { color: themeColors.background }]}>
                     {getInitials(userData.name)}
                   </Text>
                 </View>
               )}
               {uploadingImage && (
                 <View style={styles.uploadingOverlay}>
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={themeColors.background} />
                 </View>
               )}
-              <View style={styles.cameraIconContainer}>
-                <Ionicons name="camera" size={16} color="#fff" />
+              <View style={[styles.cameraIconContainer, { backgroundColor: themeColors.primary, borderColor: themeColors.background }]}>
+                <Ionicons name="camera" size={16} color={themeColors.background} />
               </View>
             </TouchableOpacity>
 
             <View style={styles.profileInfo}>
               {isEditingProfile ? (
                 <TextInput
-                  style={styles.nameInput}
+                  style={[styles.nameInput, { color: themeColors.text, borderBottomColor: themeColors.primary }]}
                   value={editedName}
                   onChangeText={setEditedName}
                   autoFocus
                   placeholder="Votre nom"
+                  placeholderTextColor={themeColors.icon}
                 />
               ) : (
-                <Text style={styles.profileName}>{userData.name}</Text>
+                <Text style={[styles.profileName, { color: themeColors.text }]}>{userData.name}</Text>
               )}
-              <Text style={styles.profileEmail}>{userData.email}</Text>
-              <Text style={styles.profileDate}>
+              <Text style={[styles.profileEmail, { color: themeColors.icon }]}>{userData.email}</Text>
+              <Text style={[styles.profileDate, { color: themeColors.icon }]}> 
                 Compte créé le {formatCreationDate(userData.createdAt)}
               </Text>
             </View>
@@ -372,29 +406,29 @@ export default function Profile() {
 
           {!isEditingProfile ? (
             <TouchableOpacity
-              style={styles.editButton}
+              style={[styles.editButton, { backgroundColor: themeColors.card }]}
               onPress={() => setIsEditingProfile(true)}
             >
-              <Ionicons name="create-outline" size={18} color="#00bfa5" />
-              <Text style={styles.editButtonText}>Modifier</Text>
+              <Ionicons name="create-outline" size={18} color={themeColors.primary} />
+              <Text style={[styles.editButtonText, { color: themeColors.primary }]}>Modifier</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.editActions}>
               <TouchableOpacity
-                style={[styles.actionButton, styles.cancelButton]}
+                style={[styles.actionButton, styles.cancelButton, { backgroundColor: themeColors.card }]}
                 onPress={() => {
                   setIsEditingProfile(false);
                   setEditedName(userData.name);
                 }}
               >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
+                <Text style={[styles.cancelButtonText, { color: themeColors.icon }]}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, styles.saveButton]}
+                style={[styles.actionButton, styles.saveButton, { backgroundColor: themeColors.primary }]}
                 onPress={handleSaveProfile}
                 disabled={updating}
               >
-                <Text style={styles.saveButtonText}>
+                <Text style={[styles.saveButtonText, { color: themeColors.background }]}> 
                   {updating ? "..." : "Enregistrer"}
                 </Text>
               </TouchableOpacity>
@@ -403,11 +437,11 @@ export default function Profile() {
         </View>
 
         {/* Personal Information Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: themeColors.card }]}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleContainer}>
-              <Ionicons name="person-outline" size={22} color="#00bfa5" />
-              <Text style={styles.sectionTitle} numberOfLines={1}>Informations perso.</Text>
+              <Ionicons name="person-outline" size={22} color={themeColors.tint} />
+              <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>Informations perso.</Text>
             </View>
             {!isEditingInfo ? (
               <TouchableOpacity
@@ -452,49 +486,49 @@ export default function Profile() {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nom complet</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Nom complet</Text>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: themeColors.text }]}
                   value={personalInfo.name}
                   onChangeText={(text) =>
                     setPersonalInfo({ ...personalInfo, name: text })
                   }
                   editable={isEditingInfo}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: themeColors.text }]}
                   value={personalInfo.email}
                   editable={false} // Email cannot be changed
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Numéro de téléphone</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
                 <Ionicons
                   name="call-outline"
                   size={18}
-                  color="#94a3b8"
+                  color={themeColors.icon}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: themeColors.text }]}
                   value={personalInfo.phone}
                   onChangeText={(text) =>
                     setPersonalInfo({ ...personalInfo, phone: text })
                   }
                   editable={isEditingInfo}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -502,28 +536,28 @@ export default function Profile() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Date de naissance</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
                 <Ionicons
                   name="calendar-outline"
                   size={18}
-                  color="#94a3b8"
+                  color={themeColors.icon}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: themeColors.text }]}
                   value={personalInfo.dateOfBirth}
                   onChangeText={(text) =>
                     setPersonalInfo({ ...personalInfo, dateOfBirth: text })
                   }
                   editable={isEditingInfo}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Genre</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
                 <Ionicons
                   name={
                     personalInfo.gender === "Femme"
@@ -531,38 +565,38 @@ export default function Profile() {
                       : "male-outline"
                   }
                   size={18}
-                  color="#94a3b8"
+                  color={themeColors.icon}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: themeColors.text }]}
                   value={personalInfo.gender}
                   onChangeText={(text) =>
                     setPersonalInfo({ ...personalInfo, gender: text })
                   }
                   editable={isEditingInfo}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Adresse</Text>
-              <View style={[styles.inputContainer, styles.textAreaContainer]}>
+              <View style={[styles.inputContainer, styles.textAreaContainer, { backgroundColor: themeColors.card }]}> 
                 <Ionicons
                   name="location-outline"
                   size={18}
-                  color="#94a3b8"
+                  color={themeColors.icon}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { color: themeColors.text }]}
                   value={personalInfo.address}
                   onChangeText={(text) =>
                     setPersonalInfo({ ...personalInfo, address: text })
                   }
                   editable={isEditingInfo}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={themeColors.icon}
                   multiline
                   numberOfLines={2}
                 />
@@ -572,93 +606,79 @@ export default function Profile() {
         </View>
 
         {/* Notification Settings */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: themeColors.card }]}>
           <View style={styles.sectionTitleContainer}>
-            <Ionicons name="notifications-outline" size={22} color="#00bfa5" />
-            <Text style={styles.sectionTitle} numberOfLines={1}>Paramètres de notifications</Text>
+            <Ionicons name="notifications-outline" size={22} color={themeColors.tint} />
+            <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>Paramètres de notifications</Text>
           </View>
-          <Text style={styles.sectionSubtitle}>
+          <Text style={[styles.sectionSubtitle, { color: themeColors.icon }]}> 
             Notifications de médicaments, Notifications de rendez-vous, Alertes
             santé
           </Text>
 
           <View style={styles.notificationsGrid}>
-            <View style={styles.notificationCard}>
+            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={styles.notificationTitle}>
-                  Notifications de médicaments
-                </Text>
-                <Text style={styles.notificationDesc}>
-                  Rappels pour vos médicaments
-                </Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications de médicaments</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Rappels pour vos médicaments</Text>
               </View>
               <Switch
                 value={notifications.medications}
                 onValueChange={() => toggleNotification("medications")}
-                trackColor={{ false: "#e2e8f0", true: "#00bfa5" }}
-                thumbColor="#fff"
+                trackColor={{ false: themeColors.card, true: themeColors.primary }}
+                thumbColor={themeColors.background}
               />
             </View>
 
-            <View style={styles.notificationCard}>
+            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={styles.notificationTitle}>
-                  Notifications par email
-                </Text>
-                <Text style={styles.notificationDesc}>Recevoir par email</Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications par email</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Recevoir par email</Text>
               </View>
               <Switch
                 value={notifications.email}
                 onValueChange={() => toggleNotification("email")}
-                trackColor={{ false: "#e2e8f0", true: "#00bfa5" }}
-                thumbColor="#fff"
+                trackColor={{ false: themeColors.card, true: themeColors.primary }}
+                thumbColor={themeColors.background}
               />
             </View>
 
-            <View style={styles.notificationCard}>
+            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={styles.notificationTitle}>
-                  Notifications de rendez-vous
-                </Text>
-                <Text style={styles.notificationDesc}>
-                  Rappels de vos rendez-vous
-                </Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications de rendez-vous</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Rappels de vos rendez-vous</Text>
               </View>
               <Switch
                 value={notifications.appointments}
                 onValueChange={() => toggleNotification("appointments")}
-                trackColor={{ false: "#e2e8f0", true: "#00bfa5" }}
-                thumbColor="#fff"
+                trackColor={{ false: themeColors.card, true: themeColors.primary }}
+                thumbColor={themeColors.background}
               />
             </View>
 
-            <View style={styles.notificationCard}>
+            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={styles.notificationTitle}>
-                  Notifications par SMS
-                </Text>
-                <Text style={styles.notificationDesc}>Recevoir par SMS</Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications par SMS</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Recevoir par SMS</Text>
               </View>
               <Switch
                 value={notifications.sms}
                 onValueChange={() => toggleNotification("sms")}
-                trackColor={{ false: "#e2e8f0", true: "#00bfa5" }}
-                thumbColor="#fff"
+                trackColor={{ false: themeColors.card, true: themeColors.primary }}
+                thumbColor={themeColors.background}
               />
             </View>
 
-            <View style={[styles.notificationCard, styles.fullWidth]}>
+            <View style={[styles.notificationCard, styles.fullWidth, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={styles.notificationTitle}>Alertes santé</Text>
-                <Text style={styles.notificationDesc}>
-                  Alertes de santé importantes
-                </Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Alertes santé</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Alertes de santé importantes</Text>
               </View>
               <Switch
                 value={notifications.healthAlerts}
                 onValueChange={() => toggleNotification("healthAlerts")}
-                trackColor={{ false: "#e2e8f0", true: "#00bfa5" }}
-                thumbColor="#fff"
+                trackColor={{ false: themeColors.card, true: themeColors.primary }}
+                thumbColor={themeColors.background}
               />
             </View>
           </View>
@@ -676,7 +696,28 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 15,
+  },
+  themeButton: {
+    flex: 1,
+    minWidth: '45%',
+    height: 60,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  themeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   centered: {
     justifyContent: "center",

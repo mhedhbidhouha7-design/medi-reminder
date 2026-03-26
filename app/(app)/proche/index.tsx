@@ -6,13 +6,13 @@ import { useTheme } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 export default function ProcheScreen() {
@@ -77,27 +77,27 @@ export default function ProcheScreen() {
 
   const renderItem = ({ item }: { item: Proche }) => (
     <View style={[styles.item, { backgroundColor: colors.card }]}>
-      <View style={styles.itemHeader}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="person" size={24} color="#00bfa5" />
+        <View style={styles.itemHeader}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.card }]}> 
+          <Ionicons name="person" size={24} color={colors.primary ?? colors.text} />
         </View>
         <View style={styles.infoContainer}>
           <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
 
           <View style={styles.contactRow}>
-            <Ionicons name="call-outline" size={14} color="#64748b" />
-            <Text style={styles.contactText}>{item.phone}</Text>
+            <Ionicons name="call-outline" size={14} color={colors.text + "60"} />
+            <Text style={[styles.contactText, { color: colors.text + "60" }]}>{item.phone}</Text>
           </View>
 
           <View style={styles.contactRow}>
-            <Ionicons name="mail-outline" size={14} color="#64748b" />
-            <Text style={styles.contactText}>{item.email}</Text>
+            <Ionicons name="mail-outline" size={14} color={colors.text + "60"} />
+            <Text style={[styles.contactText, { color: colors.text + "60" }]}>{item.email}</Text>
           </View>
         </View>
 
         <View style={styles.actionsContainer}>
           <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
-            <Ionicons name="create-outline" size={22} color="#64748b" />
+            <Ionicons name="create-outline" size={22} color={colors.text + "60"} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleDelete(item.id, item.name)} style={styles.actionButton}>
             <Ionicons name="trash-outline" size={22} color="#ef4444" />
@@ -118,14 +118,14 @@ export default function ProcheScreen() {
             Contacts de confiance
           </Text>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-          <Ionicons name="add" size={24} color="#fff" />
+        <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary ?? colors.text, shadowColor: colors.primary ?? colors.text }]} onPress={openAddModal}>
+          <Ionicons name="add" size={24} color={colors.background} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#00bfa5" />
+          <ActivityIndicator size="large" color={colors.primary ?? colors.text} />
         </View>
       ) : (
         <FlatList

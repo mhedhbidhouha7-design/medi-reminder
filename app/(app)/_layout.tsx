@@ -1,3 +1,5 @@
+import { Colors } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import { Tabs, useRouter } from "expo-router";
@@ -18,6 +20,8 @@ Notifications.setNotificationHandler({
 
 // Floating Tab Bar Component
 function FloatingTabBar({ state, descriptors, navigation }: any) {
+  const { theme } = useAppTheme();
+  const themeColors = Colors[theme];
   const translateX = useRef(new Animated.Value(0)).current;
   const tabWidth = 80;
   const spacing = 16;
@@ -64,7 +68,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
         icon: "home" as const,
         iconOutline: "home-outline" as const,
         label: "Accueil",
-        color: "#00bfa5",
+        color: themeColors.primary,
       };
     }
     if (route.includes("ia")) {
@@ -72,7 +76,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
         icon: "sparkles" as const,
         iconOutline: "sparkles-outline" as const,
         label: "IA",
-        color: "#ec4899",
+        color: themeColors.primary,
       };
     }
     if (route.includes("profile")) {
@@ -80,7 +84,7 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
         icon: "person" as const,
         iconOutline: "person-outline" as const,
         label: "Profil",
-        color: "#f59e0b",
+        color: themeColors.primary,
       };
     }
 
@@ -89,13 +93,13 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
       icon: "ellipse" as const,
       iconOutline: "ellipse-outline" as const,
       label: "Tab",
-      color: "#64748b",
+      color: themeColors.icon,
     };
   };
 
   return (
     <View style={styles.tabBarContainer}>
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: themeColors.background }]}> 
         {/* Animated active indicator */}
         {visualActiveIndex !== -1 && (
           <Animated.View
@@ -135,10 +139,10 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
               <Ionicons
                 name={isFocused ? config.icon : config.iconOutline}
                 size={24}
-                color={isFocused ? "#fff" : "#64748b"}
+                color={isFocused ? themeColors.background : themeColors.icon}
               />
               {isFocused && (
-                <Animated.Text style={styles.tabLabel}>
+                <Animated.Text style={[styles.tabLabel, { color: themeColors.background }]}> 
                   {config.label}
                 </Animated.Text>
               )}
@@ -265,7 +269,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     borderRadius: 32,
     paddingHorizontal: 16,
     paddingVertical: 12,

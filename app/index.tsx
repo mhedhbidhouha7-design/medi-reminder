@@ -1,3 +1,5 @@
+import { Colors } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -7,6 +9,8 @@ import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import { auth } from "../firebaseConfig";
 
 export default function SplashScreen() {
+  const { theme } = useAppTheme();
+  const themeColors = Colors[theme];
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
 
@@ -116,7 +120,7 @@ export default function SplashScreen() {
 
   return (
     <LinearGradient
-      colors={["#FFFFFF", "#F0F9FF"]}
+      colors={[themeColors.background, themeColors.primary]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -180,7 +184,7 @@ export default function SplashScreen() {
           <MaterialCommunityIcons
             name="calendar-check"
             size={18}
-            color="#0EA5E9"
+            color={themeColors.tint}
           />
           <Text style={styles.badgeText}>Appointments</Text>
         </Animated.View>

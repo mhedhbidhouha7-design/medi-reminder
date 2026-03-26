@@ -8,22 +8,48 @@ import { Platform } from 'react-native';
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+export type ThemeType = 'light' | 'dark' | 'emerald' | 'royal';
+
 export const Colors = {
   light: {
     text: '#11181C',
     background: '#fff',
+    card: '#f8fafc',
     tint: tintColorLight,
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    primary: '#0a7ea4',
   },
   dark: {
     text: '#ECEDEE',
     background: '#151718',
+    card: '#0f172a',
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    primary: '#0a7ea4',
+  },
+  emerald: {
+    text: '#064e3b',
+    background: '#ecfdf5',
+    card: '#d1fae5',
+    tint: '#059669',
+    icon: '#059669',
+    tabIconDefault: '#059669',
+    tabIconSelected: '#064e3b',
+    primary: '#10b981',
+  },
+  royal: {
+    text: '#1e3a8a',
+    background: '#eff6ff',
+    card: '#dbeafe',
+    tint: '#2563eb',
+    icon: '#2563eb',
+    tabIconDefault: '#2563eb',
+    tabIconSelected: '#1e3a8a',
+    primary: '#3b82f6',
   },
 };
 

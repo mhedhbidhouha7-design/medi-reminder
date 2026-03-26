@@ -7,14 +7,16 @@ import {
   toggleMedicationDose,
 } from "@/controllers/medicationController";
 import { auth, db } from "@/firebaseConfig";
-import { ref, onValue } from "firebase/database";
 import { Appointment, Medication } from "@/models/interfaces";
 import { cancelAllNotifications, scheduleMedicationReminders, testNotifications } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { onValue, ref } from "firebase/database";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { Colors } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import {
   Animated,
   Dimensions,
@@ -30,6 +32,8 @@ import {
 const { width } = Dimensions.get("window");
 
 export default function Home() {
+  const { theme, isDark } = useAppTheme();
+  const themeColors = Colors[theme];
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -257,8 +261,8 @@ export default function Home() {
   };
 
   const getAdherenceColor = (rate: number) => {
-    if (rate >= 80) return "#00bfa5";
-    if (rate >= 60) return "#f59e0b";
+    if (rate >= 80) return themeColors.primary;
+    if (rate >= 60) return themeColors.tint;
     return "#ef4444";
   };
 
@@ -267,16 +271,19 @@ export default function Home() {
   // ── Calculs RDV — supprimés car gérés par useMemo nearestAppointments ──
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}> 
       {/* ── Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
-          <Ionicons name="menu-outline" size={28} color="#1e293b" />
+      <View style={[styles.header, { backgroundColor: isDark ? '#0f172a' : '#e0f2f1' }]}>
+        <TouchableOpacity style={[styles.menuButton, { backgroundColor: themeColors.card }]} onPress={toggleMenu}>
+          <Ionicons name="menu" size={20} color={themeColors.icon} />
         </TouchableOpacity>
+      <View style={[styles.adherenceIconContainer, { backgroundColor: themeColors.background }] }>
+        <Ionicons name="stats-chart" size={28} color={themeColors.primary} />
+      </View>
         <View style={styles.headerCenter}>
-          <Text style={styles.greetingText}>Bonjour,</Text>
-          <Text style={styles.userName}>{userName}</Text>
-          <Text style={styles.currentDateDisplay}>
+          <Text style={[styles.greetingText, { color: themeColors.icon }]}>Bonjour,</Text>
+          <Text style={[styles.userName, { color: themeColors.text }]}>{userName}</Text>
+          <Text style={[styles.currentDateDisplay, { color: themeColors.icon }] }>
             {new Date(todayStr).toLocaleDateString("fr-FR", {
               weekday: "long",
               day: "numeric",
@@ -286,7 +293,7 @@ export default function Home() {
         </View>
         <TouchableOpacity style={styles.notificationButton}>
           <View style={styles.notificationBadge} />
-          <Ionicons name="notifications-outline" size={24} color="#1e293b" />
+          <Ionicons name="notifications-outline" size={24} color={themeColors.icon} />
         </TouchableOpacity>
       </View>
 
@@ -303,15 +310,15 @@ export default function Home() {
           {/* ── 1. Adhérence ── */}
           <View style={styles.adherenceCard}>
             <LinearGradient
-              colors={["#00bfa5", "#009688"]}
+              colors={[themeColors.primary, themeColors.tint]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.adherenceGradient}
             >
               <View style={styles.adherenceHeader}>
                 <View style={styles.adherenceIconContainer}>
-                  <Ionicons name="stats-chart" size={28} color="#00bfa5" />
-                </View>
+                    <Ionicons name="stats-chart" size={28} color={themeColors.primary} />
+                  </View>
                 <Text style={styles.adherenceTitle}>
                   Adhérence au traitement
                 </Text>
@@ -353,22 +360,22 @@ export default function Home() {
           </View>
 
           {/* ── 2. Dashboard ── */}
-          <View style={styles.dashboardSection}>
-            <Text style={styles.sectionTitleLarge}>Tableau de bord</Text>
+            <View style={styles.dashboardSection}>
+            <Text style={[styles.sectionTitleLarge, { color: themeColors.text }]}>Tableau de bord</Text>
             
             {/* Row 1: Médicaments */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#f0fdf4", flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: themeColors.background, flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
                 <Text style={styles.dashboardValue}>{stats.totalToday}</Text>
                 <Text style={styles.dashboardLabel}>Prévues</Text>
-                <Text style={[styles.dashboardSubtext, { color: "#16a34a" }]}>Aujourd'hui</Text>
+                <Text style={[styles.dashboardSubtext, { color: themeColors.primary }]}>Aujourd'hui</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#f0fdfa", flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: themeColors.background, flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
                 <Text style={styles.dashboardValue}>{stats.takenToday}</Text>
                 <Text style={styles.dashboardLabel}>Prises</Text>
-                <Text style={[styles.dashboardSubtext, { color: "#0d9488" }]}>Bravo !</Text>
+                <Text style={[styles.dashboardSubtext, { color: themeColors.tint }]}>Bravo !</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#fef2f2", flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: themeColors.background, flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
                 <Text style={[styles.dashboardValue, { color: "#ef4444" }]}>{stats.missedToday}</Text>
                 <Text style={styles.dashboardLabel}>Manquées</Text>
                 <Text style={[styles.dashboardSubtext, { color: "#ef4444" }]}>À surveiller</Text>
@@ -377,42 +384,42 @@ export default function Home() {
 
             {/* Row 2: Rendez-vous */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#f5f3ff", flex: 1, padding: 12 }]} onPress={() => router.push("/rdv")}>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: themeColors.background, flex: 1, padding: 12 }]} onPress={() => router.push("/rdv")}>
                 <View style={{flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4}}>
-                  <Ionicons name="calendar-outline" size={16} color="#7c3aed" />
+                  <Ionicons name="calendar-outline" size={16} color={themeColors.primary} />
                   <Text style={styles.dashboardValue}>{stats.upcomingAppointments}</Text>
                 </View>
                 <Text style={styles.dashboardLabel}>RDV à venir</Text>
-                <Text style={[styles.dashboardSubtext, { color: "#7c3aed" }]}>Total planifiés</Text>
+                <Text style={[styles.dashboardSubtext, { color: themeColors.primary }]}>Total planifiés</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#fdf4ff", flex: 1, padding: 12 }]} onPress={() => router.push("/rdv")}>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: themeColors.background, flex: 1, padding: 12 }]} onPress={() => router.push("/rdv")}>
                 <View style={{flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4}}>
-                  <Ionicons name="checkmark-circle-outline" size={16} color="#c026d3" />
+                  <Ionicons name="checkmark-circle-outline" size={16} color={themeColors.tint} />
                   <Text style={styles.dashboardValue}>{stats.completedAppointments}</Text>
                 </View>
                 <Text style={styles.dashboardLabel}>RDV terminés</Text>
-                <Text style={[styles.dashboardSubtext, { color: "#c026d3" }]}>Historique</Text>
+                <Text style={[styles.dashboardSubtext, { color: themeColors.tint }]}>Historique</Text>
               </TouchableOpacity>
             </View>
 
             {/* Row 3: Next events */}
             <View style={{ gap: 12 }}>
-               <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 16, borderRadius: 16, borderWidth: 1, borderColor: "#e2e8f0" }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#e0f2f1", justifyContent: "center", alignItems: "center", marginRight: 12 }}>
-                    <Ionicons name="medical" size={20} color="#00bfa5"/>
+               <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: themeColors.background, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: themeColors.tabIconDefault }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: themeColors.tint, justifyContent: "center", alignItems: "center", marginRight: 12 }}>
+                    <Ionicons name="medical" size={20} color={themeColors.background}/>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>Prochain Médicament</Text>
-                    <Text style={{ fontSize: 16, color: "#1e293b", fontWeight: "bold", marginTop: 2 }}>{stats.nextMedTime ? `Aujourd'hui à ${stats.nextMedTime}` : "Aucun pour aujourd'hui"}</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.icon, fontWeight: "600", textTransform: "uppercase" }}>Prochain Médicament</Text>
+                    <Text style={{ fontSize: 16, color: themeColors.text, fontWeight: "bold", marginTop: 2 }}>{stats.nextMedTime ? `Aujourd'hui à ${stats.nextMedTime}` : "Aucun pour aujourd'hui"}</Text>
                   </View>
                </View>
-               <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 16, borderRadius: 16, borderWidth: 1, borderColor: "#e2e8f0" }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#ede9fe", justifyContent: "center", alignItems: "center", marginRight: 12 }}>
-                    <Ionicons name="calendar" size={20} color="#8b5cf6"/>
+               <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: themeColors.background, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: themeColors.tabIconDefault }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: themeColors.tint, justifyContent: "center", alignItems: "center", marginRight: 12 }}>
+                    <Ionicons name="calendar" size={20} color={themeColors.background}/>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>Prochain RDV</Text>
-                    <Text style={{ fontSize: 16, color: "#1e293b", fontWeight: "bold", marginTop: 2 }}>{stats.nextAppointmentTime || "Aucun à venir"}</Text>
+                    <Text style={{ fontSize: 12, color: themeColors.icon, fontWeight: "600", textTransform: "uppercase" }}>Prochain RDV</Text>
+                    <Text style={{ fontSize: 16, color: themeColors.text, fontWeight: "bold", marginTop: 2 }}>{stats.nextAppointmentTime || "Aucun à venir"}</Text>
                   </View>
                </View>
             </View>
@@ -423,7 +430,7 @@ export default function Home() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitleLarge}>Aujourd{"'"}hui</Text>
               <TouchableOpacity onPress={() => router.push("/medications")}>
-                <Text style={styles.seeAllText}>Voir tout</Text>
+                <Text style={[styles.seeAllText, { color: themeColors.primary }]}>Voir tout</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.medicationsList}>
@@ -433,22 +440,23 @@ export default function Home() {
 
                 return (
                   <View
-                    key={`${item.id}-${item.scheduleIndex}`}
-                    style={[
-                      styles.medicationCard,
-                      isMissed && styles.medicationCardMissed,
-                    ]}
-                  >
+                      key={`${item.id}-${item.scheduleIndex}`}
+                      style={[
+                        styles.medicationCard,
+                        isMissed && styles.medicationCardMissed,
+                        { backgroundColor: themeColors.card, borderLeftColor: isMissed ? "#ef4444" : themeColors.primary },
+                      ]}
+                    >
                     <View style={styles.medicationIconContainer}>
                       <Ionicons
                         name="medical-outline"
                         size={24}
-                        color={isMissed ? "#ef4444" : "#00bfa5"}
+                          color={isMissed ? "#ef4444" : themeColors.primary}
                       />
                     </View>
                     <View style={styles.medicationInfo}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <Text style={[styles.medicationName, isMissed && { color: "#ef4444" }]}>
+                          <Text style={[styles.medicationName, { color: isMissed ? "#ef4444" : themeColors.text }]}>
                           {item.name}
                         </Text>
                         {isMissed && (
@@ -464,9 +472,9 @@ export default function Home() {
                         <Ionicons
                           name="time-outline"
                           size={12}
-                          color={isMissed ? "#ef4444" : "#64748b"}
+                          color={isMissed ? "#ef4444" : themeColors.icon}
                         />
-                        <Text style={[styles.medicationTime, isMissed && { color: "#ef4444" }]}>
+                        <Text style={[styles.medicationTime, { color: isMissed ? "#ef4444" : themeColors.icon }]}>
                           {item.schedule.time}
                         </Text>
                       </View>
@@ -475,21 +483,22 @@ export default function Home() {
                       style={[
                         styles.checkButton,
                         isMissed && { backgroundColor: "#fee2e2" },
+                        { backgroundColor: themeColors.card }
                       ]}
                       onPress={() => handleToggleMedication(item.id, item.scheduleIndex)}
                     >
                       <Ionicons
                         name="ellipse-outline"
                         size={28}
-                        color={isMissed ? "#ef4444" : "#cbd5e1"}
+                        color={isMissed ? "#ef4444" : themeColors.icon}
                       />
                     </TouchableOpacity>
                   </View>
                 );
               }) : (
-                <View style={styles.nextMedAlert}>
-                  <Ionicons name="checkmark-circle" size={16} color="#00bfa5" />
-                  <Text style={styles.nextMedText}>
+                <View style={[styles.nextMedAlert, { backgroundColor: themeColors.card }] }>
+                  <Ionicons name="checkmark-circle" size={16} color={themeColors.primary} />
+                  <Text style={[styles.nextMedText, { color: themeColors.primary }] }>
                     Génial ! Toutes les doses du moment sont prises.
                   </Text>
                 </View>
@@ -502,7 +511,7 @@ export default function Home() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitleLarge}>Prochain(s) RDV</Text>
               <TouchableOpacity onPress={() => router.push("/rdv")}>
-                <Text style={[styles.seeAllText, { color: "#8b5cf6" }]}>
+                <Text style={[styles.seeAllText, { color: themeColors.primary }]}> 
                   Voir tout
                 </Text>
               </TouchableOpacity>
@@ -524,8 +533,8 @@ export default function Home() {
                         isPastTime && { backgroundColor: "#fffbeb" },
                       ]}
                     >
-                      <View style={[styles.medicationIconContainer, { backgroundColor: "#ede9fe" }]}>
-                        <Ionicons name="calendar-outline" size={24} color="#8b5cf6" />
+                      <View style={[styles.medicationIconContainer, { backgroundColor: themeColors.card }]}> 
+                        <Ionicons name="calendar-outline" size={24} color={themeColors.primary} />
                       </View>
                       <View style={styles.medicationInfo}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -542,35 +551,35 @@ export default function Home() {
                           <Text style={styles.medicationDosage}>{appt.doctor}</Text>
                         )}
                         <View style={styles.medicationTimeContainer}>
-                          <Ionicons
-                            name="time-outline"
-                            size={12}
-                            color="#64748b"
-                          />
-                          <Text style={styles.medicationTime}>
-                            {isToday ? `Aujourd'hui à ${appt.time}` : `${appt.date} à ${appt.time}`}
-                          </Text>
-                        </View>
+                            <Ionicons
+                              name="time-outline"
+                              size={12}
+                              color={themeColors.icon}
+                            />
+                            <Text style={[styles.medicationTime, { color: themeColors.icon }]}> 
+                              {isToday ? `Aujourd'hui à ${appt.time}` : `${appt.date} à ${appt.time}`}
+                            </Text>
+                          </View>
                       </View>
-                      <TouchableOpacity
-                        style={styles.checkButton}
-                        onPress={async () => {
-                          if (!userId) return;
-                          await completeAppointment(userId, appt);
-                        }}
-                      >
-                        <Ionicons name="ellipse-outline" size={28} color="#8b5cf6" />
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.checkButton, { backgroundColor: themeColors.card }]}
+                          onPress={async () => {
+                            if (!userId) return;
+                            await completeAppointment(userId, appt);
+                          }}
+                        >
+                          <Ionicons name="ellipse-outline" size={28} color={themeColors.primary} />
+                        </TouchableOpacity>
                     </View>
                   );
                 })
               ) : (
-                <View style={styles.rdvEmptyAlert}>
-                  <Ionicons name="calendar" size={16} color="#8b5cf6" />
-                  <Text style={styles.rdvEmptyText}>
-                    Aucun rendez-vous à venir.
-                  </Text>
-                </View>
+                  <View style={[styles.rdvEmptyAlert, { backgroundColor: themeColors.card }] }>
+                    <Ionicons name="calendar" size={16} color={themeColors.primary} />
+                    <Text style={[styles.rdvEmptyText, { color: themeColors.primary }] }>
+                      Aucun rendez-vous à venir.
+                    </Text>
+                  </View>
               )}
             </View>
           </View>
@@ -578,7 +587,7 @@ export default function Home() {
           {/* ── Test Notifications Button (dev only) ── */}
           <TouchableOpacity
             style={{
-              backgroundColor: "#ec4899",
+              backgroundColor: themeColors.tint,
               paddingVertical: 14,
               paddingHorizontal: 24,
               borderRadius: 16,
@@ -593,8 +602,8 @@ export default function Home() {
               alert("3 notifications programmées !\n\n⏰ dans 5s\n⚠️ dans 10s\n💊 dans 15s (avec son)");
             }}
           >
-            <Ionicons name="notifications" size={20} color="#fff" />
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+            <Ionicons name="notifications" size={20} color={themeColors.background} />
+            <Text style={{ color: themeColors.background, fontWeight: "700", fontSize: 15 }}>
               Tester les notifications
             </Text>
           </TouchableOpacity>
@@ -613,32 +622,32 @@ export default function Home() {
         <View style={styles.modalOverlay}>
           <Pressable style={styles.overlay} onPress={toggleMenu} />
           <Animated.View
-            style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}
+            style={[styles.sidebar, { transform: [{ translateX: slideAnim }], backgroundColor: themeColors.background }]}
           >
             <View style={styles.menuHeader}>
-              <View style={styles.logoContainer}>
-                <View style={styles.logoIcon}>
-                  <Ionicons name="heart" size={24} color="#fff" />
+              <View style={[styles.logoContainer, { backgroundColor: 'transparent' }]}>
+                <View style={[styles.logoIcon, { backgroundColor: themeColors.primary }]}>
+                  <Ionicons name="heart" size={24} color={themeColors.background} />
                 </View>
                 <View>
-                  <Text style={styles.logoTitle}>MediReminder</Text>
-                  <Text style={styles.logoSubtitle}>Health App</Text>
+                  <Text style={[styles.logoTitle, { color: themeColors.text }]}>MediReminder</Text>
+                  <Text style={[styles.logoSubtitle, { color: themeColors.icon }]}>Health App</Text>
                 </View>
               </View>
             </View>
-            <View style={styles.userCard}>
-              <View style={styles.userAvatar}>
+            <View style={[styles.userCard, { backgroundColor: themeColors.tabIconDefault }]}> 
+              <View style={[styles.userAvatar, { backgroundColor: themeColors.primary }]}> 
                 <Text style={styles.userAvatarText}>{userName.substring(0, 2).toUpperCase()}</Text>
               </View>
               <View style={styles.userInfo}>
-                <Text style={styles.userCardName}>{userName}</Text>
-                <Text style={styles.userCardEmail}>{auth.currentUser?.email || "Utilisateur"}</Text>
+                <Text style={[styles.userCardName, { color: themeColors.text }]}>{userName}</Text>
+                <Text style={[styles.userCardEmail, { color: themeColors.icon }]}>{auth.currentUser?.email || "Utilisateur"}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.languageSelector}>
-              <Ionicons name="globe-outline" size={20} color="#64748b" />
-              <Text style={styles.languageText}>FR Français</Text>
-              <Ionicons name="chevron-down" size={16} color="#94a3b8" />
+              <Ionicons name="globe-outline" size={20} color={themeColors.icon} />
+              <Text style={[styles.languageText, { color: themeColors.text }]}>FR Français</Text>
+              <Ionicons name="chevron-down" size={16} color={themeColors.icon} />
             </TouchableOpacity>
             <View style={styles.menuList}>
               {menuItems.map((item, index) => (
@@ -646,7 +655,7 @@ export default function Home() {
                   key={index}
                   style={[
                     styles.menuItem,
-                    item.active && styles.menuItemActive,
+                    item.active && [styles.menuItemActive, { backgroundColor: themeColors.primary }],
                   ]}
                   onPress={() => {
                     toggleMenu();
@@ -660,12 +669,13 @@ export default function Home() {
                   <Ionicons
                     name={item.icon as any}
                     size={22}
-                    color={item.active ? "#fff" : "#64748b"}
+                    color={item.active ? themeColors.background : themeColors.icon}
                   />
                   <Text
                     style={[
                       styles.menuItemText,
                       item.active && styles.menuItemTextActive,
+                      { color: item.active ? themeColors.background : themeColors.text }
                     ]}
                   >
                     {item.label}
@@ -678,8 +688,8 @@ export default function Home() {
                 style={styles.logoutButton}
                 onPress={handleLogout}
               >
-                <Ionicons name="log-out-outline" size={22} color="#64748b" />
-                <Text style={styles.logoutText}>Déconnexion</Text>
+                <Ionicons name="log-out-outline" size={22} color={themeColors.icon} />
+                <Text style={[styles.logoutText, { color: themeColors.text }]}>Déconnexion</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -690,7 +700,7 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: "transparent" },
   scrollContent: { flexGrow: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   header: {
@@ -700,7 +710,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
   },
   headerCenter: { flex: 1, marginLeft: 16 },
   menuButton: {
@@ -767,7 +777,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -805,7 +815,6 @@ const styles = StyleSheet.create({
   dashboardGrid: { flexDirection: "row", gap: 12 },
   dashboardCard: {
     flex: 1,
-    backgroundColor: "#fff",
     borderRadius: 20,
     padding: 16,
     shadowColor: "#000",
@@ -847,7 +856,7 @@ const styles = StyleSheet.create({
   medicationCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
@@ -861,7 +870,7 @@ const styles = StyleSheet.create({
   medicationCardTaken: { borderLeftColor: "#cbd5e1", opacity: 0.7 },
   medicationCardMissed: {
     borderLeftColor: "#ef4444",
-    backgroundColor: "#fff5f5",
+    backgroundColor: "transparent",
   },
   missedBadge: {
     backgroundColor: "#ef4444",
@@ -879,7 +888,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
@@ -904,7 +913,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -912,7 +921,7 @@ const styles = StyleSheet.create({
   nextMedAlert: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e0f2f1",
+    backgroundColor: "transparent",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -923,7 +932,7 @@ const styles = StyleSheet.create({
   rdvEmptyAlert: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ede9fe",
+    backgroundColor: "transparent",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -975,7 +984,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: width * 0.75,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     shadowColor: "#000",
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.25,
@@ -986,7 +995,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   logoContainer: { flexDirection: "row", alignItems: "center", gap: 12 },
   logoIcon: {
@@ -1002,7 +1011,7 @@ const styles = StyleSheet.create({
   userCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e0f2f1",
+    backgroundColor: "transparent",
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 16,
@@ -1034,7 +1043,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "transparent",
     borderRadius: 12,
     gap: 8,
   },
@@ -1071,8 +1080,8 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-    backgroundColor: "#fff",
+    borderTopColor: "transparent",
+    backgroundColor: "transparent",
   },
   logoutButton: {
     flexDirection: "row",

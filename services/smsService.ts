@@ -1,7 +1,7 @@
 // services/smsService.ts
 import axios from 'axios';
 
-const API_KEY = '76apyr8vo4n8xp2xiau58akx8f1gbdrh';
+const API_KEY = 'ky671zbahoaim3ondm4ioc7qtkt6onr7';
 const BASE_URL = 'https://restapi.easysendsms.app/v1/rest/sms/send';
 
 /**
@@ -11,15 +11,22 @@ const BASE_URL = 'https://restapi.easysendsms.app/v1/rest/sms/send';
  */
 export const sendSMS = async (to: string, text: string) => {
   try {
-    // Clean numbers: remove +, 00, and spaces. Handle comma-separated list.
+    // Clean numbers: remove +, 00, spaces, and ensure 13 digits for EasySendSMS (e.g., 216XXXXXXXX)
     const cleanNumbers = to.split(',')
-      .map(num => num.trim().replace(/\s+/g, '').replace(/^\+/, '').replace(/^00/, ''))
+      .map(num => {
+        let cleaned = num.trim().replace(/\s+/g, '').replace(/^\+/, '').replace(/^00/, '');
+        // If the number is 8 digits (Tunisian format), prepend 216
+        if (cleaned.length === 8 && /^\d+$/.test(cleaned)) {
+          cleaned = '216' + cleaned;
+        }
+        return cleaned;
+      })
       .join(',');
 
     const response = await axios.post(
       BASE_URL,
       {
-        from: 'MediRemind',
+        from: 'EasySend',
         to: cleanNumbers,
         text,
         type: "0", // MUST be a string "0" for the REST API
@@ -63,7 +70,14 @@ export const scheduleSMS = async (to: string, text: string, scheduledDate: Date)
     }
 
     const cleanNumbers = to.split(',')
-      .map(num => num.trim().replace(/\s+/g, '').replace(/^\+/, '').replace(/^00/, ''))
+      .map(num => {
+        let cleaned = num.trim().replace(/\s+/g, '').replace(/^\+/, '').replace(/^00/, '');
+        // If the number is 8 digits (Tunisian format), prepend 216
+        if (cleaned.length === 8 && /^\d+$/.test(cleaned)) {
+          cleaned = '216' + cleaned;
+        }
+        return cleaned;
+      })
       .join(',');
 
     // Format date as ISO 8601 UTC (YYYY-MM-DDTHH:mm:ss)
@@ -74,7 +88,7 @@ export const scheduleSMS = async (to: string, text: string, scheduledDate: Date)
     const response = await axios.post(
       BASE_URL,
       {
-        from: 'MediRemind',
+        from: 'EasySend',
         to: cleanNumbers,
         text,
         type: "0", // MUST be a string
