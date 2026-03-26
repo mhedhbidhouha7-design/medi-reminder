@@ -3,10 +3,13 @@ import {
   addAppointment,
   deleteAppointment,
   listenToAppointments,
-  toggleAppointmentDone,
+  completeAppointment,
+  listenToAppointmentHistory,
+  updateAppointmentInsteadOfCreating,
 } from "@/controllers/appointmentController";
+import { combineDateAndTime, separateHistoryAndTodo, validateDateTime as validateAppointmentDate } from "@/utils/dateHelpers";
 import { auth } from "@/firebaseConfig";
-import { Appointment } from "@/models/interfaces";
+import { Appointment, AppointmentHistoryEntry } from "@/models/interfaces";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -34,6 +37,8 @@ type ConsultationType =
   | "dental"
   | "ophtalmo"
   | "cardio"
+  | "pharmacy"
+  | "analysis"
   | "other";
 
 type FormData = {
@@ -53,15 +58,12 @@ const CONSULTATION_TYPES: {
   color: string;
 }[] = [
   { key: "general", label: "Général", icon: "medkit", color: "#00bfa5" },
-  {
-    key: "specialist",
-    label: "Spécialiste",
-    icon: "fitness",
-    color: "#8b5cf6",
-  },
+  { key: "specialist", label: "Spécialiste", icon: "fitness", color: "#8b5cf6" },
   { key: "dental", label: "Dentaire", icon: "happy", color: "#3b82f6" },
   { key: "ophtalmo", label: "Ophtalmo", icon: "eye", color: "#f59e0b" },
   { key: "cardio", label: "Cardio", icon: "heart", color: "#ef4444" },
+  { key: "pharmacy", label: "Pharmacie", icon: "medical", color: "#10b981" },
+  { key: "analysis", label: "Analyse", icon: "flask", color: "#ec4899" },
   { key: "other", label: "Autre", icon: "add-circle", color: "#64748b" },
 ];
 
@@ -80,9 +82,16 @@ export default function AppointmentsScreen() {
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentHistory, setAppointmentHistory] = useState<AppointmentHistoryEntry[]>([]);
+
+  const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Form Pickers
+  const [showFormDatePicker, setShowFormDatePicker] = useState(false);
+  const [showFormTimePicker, setShowFormTimePicker] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -108,7 +117,13 @@ export default function AppointmentsScreen() {
     const unsub = listenToAppointments(userId, (fetched) =>
       setAppointments(fetched),
     );
-    return () => unsub();
+    const unsubHistory = listenToAppointmentHistory(userId, (fetched) =>
+      setAppointmentHistory(fetched),
+    );
+    return () => {
+      unsub();
+      unsubHistory();
+    };
   }, [userId]);
 
   // ── Helpers date ────────────────────────────────────────────────────
@@ -134,6 +149,23 @@ export default function AppointmentsScreen() {
     if (date) setSelectedDate(date);
   };
 
+  const onFormDateChange = (event: any, date?: Date) => {
+    if (Platform.OS === "android") setShowFormDatePicker(false);
+    if (date) {
+      const dateStr = date.toISOString().split("T")[0];
+      setFormData((prev) => ({ ...prev, date: dateStr }));
+    }
+  };
+
+  const onFormTimeChange = (event: any, time?: Date) => {
+    if (Platform.OS === "android") setShowFormTimePicker(false);
+    if (time) {
+      const hours = time.getHours().toString().padStart(2, '0');
+      const minutes = time.getMinutes().toString().padStart(2, '0');
+      setFormData((prev) => ({ ...prev, time: `${hours}:${minutes}` }));
+    }
+  };
+
   const displayDate = (dateStr: string): string => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
@@ -148,53 +180,24 @@ export default function AppointmentsScreen() {
     return input;
   };
 
-  // ── Filtrage avec date ET heure ─────────────────────────────────────
+  // ── Filtrage Tabs ─────────────────────────────────────
   const now = new Date();
   const selectedDateStr = toDateStr(selectedDate);
 
-  // RDV du jour sélectionné non terminés, triés par heure
-  const todayAppointments = appointments
-    .filter((a) => a.date === selectedDateStr && !a.done)
-    .sort((a, b) => {
-      const tA = new Date(`${a.date}T${a.time}`).getTime();
-      const tB = new Date(`${b.date}T${b.time}`).getTime();
-      return tA - tB;
-    });
+  // Utilize our clean helper function to properly partition active vs history arrays
+  const { todo: pendingAppointments, history: combinedHistory } = separateHistoryAndTodo(
+    appointments,
+    appointmentHistory
+  );
 
-  // À venir : date future OU même jour sélectionné avec heure future
-  const upcomingAppointments = appointments
-    .filter((a) => {
-      if (a.done) return false;
-      if (a.date > selectedDateStr) return true;
-      // même jour sélectionné mais heure pas encore passée par rapport à maintenant
-      if (a.date === selectedDateStr) {
-        const apptDateTime = new Date(`${a.date}T${a.time}`);
-        return apptDateTime > now;
-      }
-      return false;
-    })
-    .sort((a, b) => {
-      const tA = new Date(`${a.date}T${a.time}`).getTime();
-      const tB = new Date(`${b.date}T${b.time}`).getTime();
-      return tA - tB;
-    });
-
-  // Passés : done OU date passée OU même jour mais heure dépassée
-  const pastAppointments = appointments
-    .filter((a) => {
-      if (a.done) return true;
-      if (a.date < selectedDateStr) return true;
-      if (a.date === selectedDateStr) {
-        const apptDateTime = new Date(`${a.date}T${a.time}`);
-        return apptDateTime <= now;
-      }
-      return false;
-    })
-    .sort((a, b) => {
-      const tA = new Date(`${a.date}T${a.time}`).getTime();
-      const tB = new Date(`${b.date}T${b.time}`).getTime();
-      return tB - tA; // plus récent en premier pour les passés
-    });
+  // PENDING: we split pending into "today" and "future" strictly on date string 
+  // since timestamps are already guaranteed strictly future via the helper
+  const todayStr = toDateStr(now);
+  const todayAppointments = pendingAppointments.filter(a => a.date === todayStr);
+  const upcomingAppointments = pendingAppointments.filter(a => a.date > todayStr);
+  
+  // HISTORY: filter further by the UI datepicker
+  const historyAppointments = combinedHistory.filter((a) => a.date === selectedDateStr);
 
   // ── Formulaire ───────────────────────────────────────────────────────
   const updateForm = (field: Partial<FormData>) =>
@@ -209,7 +212,7 @@ export default function AppointmentsScreen() {
   const openEditModal = (appt: Appointment) => {
     setEditingAppt(appt);
     setFormData({
-      type: "general",
+      type: (appt.type as ConsultationType) || "general",
       typeName: appt.title,
       date: appt.date,
       time: appt.time,
@@ -236,22 +239,36 @@ export default function AppointmentsScreen() {
     if (!userId) return;
 
     const isoDate = convertDate(formData.date);
+    const generatedTimestamp = combineDateAndTime(isoDate, formData.time);
+
+    if (!validateAppointmentDate(generatedTimestamp)) {
+      Alert.alert("Date Invalide", "Vous ne pouvez pas créer un rendez-vous dans le passé.");
+      return;
+    }
 
     try {
-      if (editingAppt) {
-        await deleteAppointment(userId, editingAppt.id);
-      }
-      await addAppointment(userId, {
+      const apptPayload = {
         title: formData.typeName,
         doctor: formData.doctor,
         location: formData.location,
         notes: formData.notes,
         date: isoDate,
         time: formData.time,
-        done: false,
-      });
+        timestamp: generatedTimestamp,
+        type: formData.type,
+        done: editingAppt ? editingAppt.done : false,
+      };
+
+      if (editingAppt) {
+        // Update existing document instead of adding a new one
+        await updateAppointmentInsteadOfCreating(userId, editingAppt.id, apptPayload);
+      } else {
+        // Create new
+        await addAppointment(userId, apptPayload);
+      }
       setModalVisible(false);
     } catch (error) {
+      console.error(error);
       Alert.alert("Erreur", "Impossible d'enregistrer le rendez-vous.");
     }
   };
@@ -277,9 +294,10 @@ export default function AppointmentsScreen() {
   const toggleCompleted = async (appt: Appointment) => {
     if (!userId) return;
     try {
-      await toggleAppointmentDone(userId, appt);
+      await completeAppointment(userId, appt);
     } catch (e) {
       console.error(e);
+      Alert.alert("Erreur", "Impossible de marquer comme terminé.");
     }
   };
 
@@ -290,9 +308,8 @@ export default function AppointmentsScreen() {
   const renderAppointmentCard = (
     appt: Appointment,
     completed = false,
-    showUndo = false,
   ) => {
-    const typeInfo = getTypeInfo("general");
+    const typeInfo = getTypeInfo((appt.type as ConsultationType) || "general");
     const apptDateTime = new Date(`${appt.date}T${appt.time}`);
     const isPast =
       !completed && apptDateTime <= now && appt.date === selectedDateStr;
@@ -380,6 +397,14 @@ export default function AppointmentsScreen() {
             <Text style={[styles.metaText, isPast && { color: "#f59e0b" }]}>
               {appt.time}
             </Text>
+            {completed && appt.doneAt && (
+              <>
+                <View style={styles.dot} />
+                <Text style={{ fontSize: 13, color: "#00bfa5", fontWeight: "600" }}>
+                  Terminé à {new Date(appt.doneAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </>
+            )}
           </View>
 
           {!!appt.doctor && (
@@ -429,14 +454,6 @@ export default function AppointmentsScreen() {
               </TouchableOpacity>
             </>
           )}
-          {showUndo && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => toggleCompleted(appt)}
-            >
-              <Ionicons name="arrow-undo-outline" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-          )}
         </View>
       </View>
     );
@@ -448,34 +465,6 @@ export default function AppointmentsScreen() {
       <View style={styles.header}>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Rendez-vous</Text>
-
-          {/* Sélecteur de date */}
-          <TouchableOpacity
-            style={styles.dateSelectionContainer}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <TouchableOpacity
-              onPress={() => changeDate(-1)}
-              style={styles.arrowButton}
-            >
-              <Ionicons name="chevron-back" size={20} color="#8b5cf6" />
-            </TouchableOpacity>
-            <View style={styles.dateInfo}>
-              <Text style={styles.currentDateSubtitle}>
-                {isToday(selectedDate) ? "Aujourd'hui, " : ""}
-                {selectedDate.toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "long",
-                })}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => changeDate(1)}
-              style={styles.arrowButton}
-            >
-              <Ionicons name="chevron-forward" size={20} color="#8b5cf6" />
-            </TouchableOpacity>
-          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.addButtonHeader} onPress={openAddModal}>
@@ -487,6 +476,47 @@ export default function AppointmentsScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "pending" && styles.activeTab]}
+          onPress={() => setActiveTab("pending")}
+        >
+          <Text style={[styles.tabText, activeTab === "pending" && styles.activeTabText]}>
+            À faire
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "history" && styles.activeTab]}
+          onPress={() => setActiveTab("history")}
+        >
+          <Text style={[styles.tabText, activeTab === "history" && styles.activeTabText]}>
+            Historique
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === "history" && (
+        <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
+          <TouchableOpacity
+            style={styles.dateSelectionContainer}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <TouchableOpacity onPress={() => changeDate(-1)} style={styles.arrowButton}>
+              <Ionicons name="chevron-back" size={20} color="#8b5cf6" />
+            </TouchableOpacity>
+            <View style={styles.dateInfo}>
+              <Text style={styles.currentDateSubtitle}>
+                {isToday(selectedDate) ? "Aujourd'hui, " : ""}
+                {selectedDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => changeDate(1)} style={styles.arrowButton}>
+              <Ionicons name="chevron-forward" size={20} color="#8b5cf6" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {showDatePicker && (
         <DateTimePicker
@@ -507,86 +537,70 @@ export default function AppointmentsScreen() {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* ── Section : jour sélectionné ── */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <Ionicons name="today" size={18} color="#8b5cf6" />
-              </View>
-              <Text style={styles.sectionTitle}>
-                {isToday(selectedDate)
-                  ? "Aujourd'hui"
-                  : displayDate(selectedDateStr)}
-              </Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{todayAppointments.length}</Text>
-              </View>
-            </View>
-
-            <View style={styles.appointmentsList}>
-              {todayAppointments.length > 0 ? (
-                todayAppointments.map((appt) => renderAppointmentCard(appt))
-              ) : (
-                <View style={styles.emptyState}>
-                  <View style={styles.emptyIconContainer}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={48}
-                      color="#cbd5e1"
-                    />
+          {/* ── Pending (À faire) ── */}
+          {activeTab === "pending" && (
+            <>
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionIconContainer}>
+                    <Ionicons name="today" size={18} color="#8b5cf6" />
                   </View>
-                  <Text style={styles.emptyTitle}>Aucun rendez-vous</Text>
-                  <Text style={styles.emptySubtitle}>
-                    {isToday(selectedDate)
-                      ? "Appuyez sur + pour en ajouter un"
-                      : `Aucun RDV le ${displayDate(selectedDateStr)}`}
-                  </Text>
+                  <Text style={[styles.sectionTitle, { color: "#8b5cf6" }]}>Aujourd{'\''}hui</Text>
+                  <View style={[styles.badge, { backgroundColor: "#ede9fe" }]}>
+                    <Text style={[styles.badgeText, { color: "#8b5cf6" }]}>{todayAppointments.length}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.appointmentsList}>
+                  {todayAppointments.length > 0 ? (
+                    todayAppointments.map((appt) => renderAppointmentCard(appt))
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <View style={styles.emptyIconContainer}>
+                        <Ionicons name="calendar-outline" size={48} color="#cbd5e1" />
+                      </View>
+                      <Text style={styles.emptyTitle}>Vous êtes à jour</Text>
+                      <Text style={styles.emptySubtitle}>Aucun rendez-vous prévu aujourd{'\''}hui</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {upcomingAppointments.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionIconContainer}>
+                      <Ionicons name="calendar" size={18} color="#8b5cf6" />
+                    </View>
+                    <Text style={styles.sectionTitle}>À venir</Text>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{upcomingAppointments.length}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.appointmentsList}>
+                    {upcomingAppointments.map((appt) => renderAppointmentCard(appt))}
+                  </View>
                 </View>
               )}
-            </View>
-          </View>
-
-          {/* ── Section : À venir ── */}
-          {upcomingAppointments.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Ionicons name="calendar" size={18} color="#8b5cf6" />
-                </View>
-                <Text style={styles.sectionTitle}>À venir</Text>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {upcomingAppointments.length}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.appointmentsList}>
-                {upcomingAppointments.map((appt) =>
-                  renderAppointmentCard(appt),
-                )}
-              </View>
-            </View>
+            </>
           )}
 
-          {/* ── Section : Passés / terminés ── */}
-          {pastAppointments.length > 0 && (
+          {/* ── History (Historique) ── */}
+          {activeTab === "history" && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <View
-                  style={[
-                    styles.sectionIconContainer,
-                    { backgroundColor: "#f1f5f9" },
-                  ]}
-                >
+                <View style={[styles.sectionIconContainer, { backgroundColor: "#f1f5f9" }]}>
                   <Ionicons name="checkmark-circle" size={18} color="#94a3b8" />
                 </View>
-                <Text style={[styles.sectionTitle, { color: "#94a3b8" }]}>
-                  Passés
-                </Text>
+                <Text style={[styles.sectionTitle, { color: "#94a3b8" }]}>Rendez-vous terminés ou passés</Text>
               </View>
               <View style={styles.appointmentsList}>
-                {pastAppointments.map((appt) =>
-                  renderAppointmentCard(appt, true, true),
+                {historyAppointments.length > 0 ? (
+                  historyAppointments.map((appt) => renderAppointmentCard(appt, appt.done))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptySubtitle}>Aucun historique le {displayDate(selectedDateStr)}</Text>
+                  </View>
                 )}
               </View>
             </View>
@@ -699,39 +713,53 @@ export default function AppointmentsScreen() {
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>Date</Text>
-                  <View style={styles.inputContainer}>
+                  <TouchableOpacity
+                    style={styles.inputContainer}
+                    onPress={() => setShowFormDatePicker(true)}
+                  >
                     <Ionicons
                       name="calendar-outline"
                       size={20}
                       color="#94a3b8"
                       style={styles.inputIcon}
                     />
-                    <TextInput
-                      style={styles.input}
-                      value={formData.date}
-                      onChangeText={(text) => updateForm({ date: text })}
-                      placeholder="JJ/MM/AAAA"
-                      placeholderTextColor="#94a3b8"
+                    <Text style={[styles.input, { color: formData.date ? "#1e293b" : "#94a3b8" }]}>
+                      {formData.date ? displayDate(formData.date) : "Sélectionner..."}
+                    </Text>
+                  </TouchableOpacity>
+                  {showFormDatePicker && (
+                    <DateTimePicker
+                      value={formData.date ? new Date(`${formData.date}T12:00:00`) : new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={onFormDateChange}
                     />
-                  </View>
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>Heure</Text>
-                  <View style={styles.inputContainer}>
+                  <TouchableOpacity
+                    style={styles.inputContainer}
+                    onPress={() => setShowFormTimePicker(true)}
+                  >
                     <Ionicons
                       name="time-outline"
                       size={20}
                       color="#94a3b8"
                       style={styles.inputIcon}
                     />
-                    <TextInput
-                      style={styles.input}
-                      value={formData.time}
-                      onChangeText={(text) => updateForm({ time: text })}
-                      placeholder="HH:MM"
-                      placeholderTextColor="#94a3b8"
+                    <Text style={[styles.input, { color: formData.time ? "#1e293b" : "#94a3b8" }]}>
+                      {formData.time ? formData.time : "Sélectionner..."}
+                    </Text>
+                  </TouchableOpacity>
+                  {showFormTimePicker && (
+                    <DateTimePicker
+                      value={formData.time && formData.date ? new Date(`${formData.date}T${formData.time}:00`) : new Date()}
+                      mode="time"
+                      display="default"
+                      onChange={onFormTimeChange}
                     />
-                  </View>
+                  )}
                 </View>
               </View>
 
@@ -826,6 +854,107 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#1e293b",
     marginBottom: 8,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    gap: 12,
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#f1f5f9",
+  },
+  activeTab: {
+    backgroundColor: "#8b5cf6",
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+  activeTabText: {
+    color: "#fff",
+  },
+
+  // Dashboard & Search
+  dashboardContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  dashboardStats: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#8b5cf6",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: "#64748b",
+    fontWeight: "500",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#1e293b",
+  },
+  categoriesScroll: {
+    flexDirection: "row",
+  },
+  categoryFilter: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    marginRight: 8,
+  },
+  categoryFilterActive: {
+    backgroundColor: "#8b5cf6",
+    borderColor: "transparent",
+  },
+  categoryFilterText: {
+    fontSize: 14,
+    color: "#64748b",
+    fontWeight: "500",
+  },
+  categoryFilterTextActive: {
+    color: "#fff",
+    fontWeight: "600",
   },
 
   // Sélecteur de date

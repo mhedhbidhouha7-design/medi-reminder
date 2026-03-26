@@ -18,6 +18,7 @@ export const signUpUser = async (
   address: string,
   profileImageUrl: string,
 ): Promise<User> => {
+  //on va cree un compte avec email et password dans firebase 
   const userCredential = await createUserWithEmailAndPassword(
     auth,
     email.trim(),

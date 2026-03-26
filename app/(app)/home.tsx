@@ -1,18 +1,19 @@
 import {
+  completeAppointment,
   listenToAppointments,
-  toggleAppointmentDone,
 } from "@/controllers/appointmentController";
 import {
   listenToMedications,
   toggleMedicationDose,
 } from "@/controllers/medicationController";
-import { auth } from "@/firebaseConfig";
+import { auth, db } from "@/firebaseConfig";
+import { ref, onValue } from "firebase/database";
 import { Appointment, Medication } from "@/models/interfaces";
-import { cancelAllNotifications, scheduleMedicationReminders, scheduleAppointmentReminders, testNotifications } from "@/services/notificationService";
+import { cancelAllNotifications, scheduleMedicationReminders, testNotifications } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Animated,
@@ -29,7 +30,6 @@ import {
 const { width } = Dimensions.get("window");
 
 export default function Home() {
-  const navigation = useNavigation();
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -41,6 +41,7 @@ export default function Home() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("Utilisateur");
   const [adherenceRate, setAdherenceRate] = useState(0);
   const [stats, setStats] = useState({
     totalToday: 0,
@@ -48,42 +49,17 @@ export default function Home() {
     missedToday: 0,
     remainingToday: 0,
     nextMedTime: "",
+    upcomingAppointments: 0,
+    completedAppointments: 0,
+    nextAppointmentTime: "",
   });
 
-  const menuItems = [
-    {
-      icon: "grid-outline",
-      label: "Tableau de bord",
-      route: "index",
-      active: true,
-    },
-    {
-      icon: "medical-outline",
-      label: "Médicaments",
-      route: "medications",
-      active: false,
-    },
-    {
-      icon: "calendar-outline",
-      label: "Rendez-vous",
-      route: "rdv",
-      active: false,
-    },
-    {
-      icon: "sparkles-outline",
-      label: "Analyse IA",
-      route: "IA",
-      active: false,
-    },
-    {
-      icon: "person-outline",
-      label: "Profil",
-      route: "profile",
-      active: false,
-    },
-  ];
-
   const userId = auth.currentUser?.uid;
+
+  // Calcul du jour actuel (UTC pour cohérence avec le stockage)
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
 
   useEffect(() => {
     if (!userId) {
@@ -91,48 +67,33 @@ export default function Home() {
       return;
     }
 
+    const profileRef = ref(db, `users/${userId}`);
+    const unsubProfile = onValue(profileRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        setUserName(data.name || "Utilisateur");
+      }
+    });
+
     const unsubscribe = listenToMedications(userId, async (fetchedMeds) => {
-      const now = new Date();
-      const todayStr = now.toISOString().split("T")[0];
-      const activeMeds = fetchedMeds.filter((med) => {
-        if (!med.startDate || !med.endDate) return true;
-        return todayStr >= med.startDate && todayStr <= med.endDate;
-      });
-      setMedications(activeMeds);
-      calculateStats(activeMeds);
+      setMedications(fetchedMeds);
       setLoading(false);
 
-      // Only schedule notifications on FIRST load (app startup)
-      // addMedication already handles scheduling for newly added meds
       if (!hasScheduledNotifs.current) {
         hasScheduledNotifs.current = true;
         await cancelAllNotifications();
-        for (const med of activeMeds) {
+        for (const med of fetchedMeds) {
           try {
-            await scheduleMedicationReminders(med);
+            await scheduleMedicationReminders(userId, med);
           } catch (e) {
             console.log('Error scheduling med notification:', e);
           }
         }
-        console.log(`[INIT] Scheduled notifications for ${activeMeds.length} medications`);
       }
     });
 
     const unsubAppt = listenToAppointments(userId, async (fetched) => {
       setAppointments(fetched);
-
-      // Appointment reminders are also only scheduled on first load
-      if (hasScheduledNotifs.current) {
-        for (const appt of fetched) {
-          if (!appt.done) {
-            try {
-              await scheduleAppointmentReminders(appt);
-            } catch (e) {
-              console.log('Error scheduling appt notification:', e);
-            }
-          }
-        }
-      }
     });
 
     Animated.parallel([
@@ -150,84 +111,133 @@ export default function Home() {
     ]).start();
 
     return () => {
+      unsubProfile();
       unsubscribe();
       unsubAppt();
     };
   }, [userId]);
 
-  const calculateStats = (activeMeds: Medication[]) => {
+  // ── Filtrage Médicaments ──────────────────────────────────────────
+  const todayMedItems = useMemo(() => {
+    return medications.flatMap(med =>
+      med.schedules.map((schedule, index) => ({
+        ...med,
+        schedule,
+        scheduleIndex: index
+      }))
+    ).filter(item => {
+      const isWithinRange = todayStr >= item.startDate && todayStr <= item.endDate;
+      const isTakenToday = !!(item.takenLogs?.[todayStr]?.[item.scheduleIndex]);
+      // On n'affiche que s'il est dans la période et NON pris aujourd'hui
+      return isWithinRange && !isTakenToday;
+    }).sort((a, b) => a.schedule.time.localeCompare(b.schedule.time));
+  }, [medications, todayStr]);
+
+  // ── Filtrage Rendez-vous (Le(s) plus proche(s) à venir) ───────────
+  const nearestAppointments = useMemo(() => {
+    const upcoming = appointments.filter(a => !a.done && a.date >= todayStr);
+    if (upcoming.length === 0) return [];
+
+    const nearestDate = upcoming[0].date;
+    return upcoming.filter(a => a.date === nearestDate);
+  }, [appointments, todayStr]);
+
+  // ── Calcul des Stats ──────────────────────────────────────────────
+  useEffect(() => {
     let totalExpected = 0;
     let totalTaken = 0;
     let totalMissed = 0;
-    let remainingToday = 0;
+    let remaining = 0;
     let nextTime = "";
 
-    const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
-    const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
-
-    activeMeds.forEach((med) => {
+    medications.forEach((med) => {
       if (!med.startDate || !med.endDate) return;
-      const start = new Date(med.startDate);
-      const today = new Date(todayStr);
-      let currentLoopDate = new Date(start.getTime());
+      if (todayStr < med.startDate || todayStr > med.endDate) return;
 
-      while (currentLoopDate <= today) {
-        const loopDateStr = currentLoopDate.toISOString().split("T")[0];
-        const isToday = loopDateStr === todayStr;
-        const logs = med.takenLogs?.[loopDateStr] || {};
+      med.schedules.forEach((schedule, idx) => {
+        totalExpected++;
+        const isTaken = !!(med.takenLogs?.[todayStr]?.[idx]);
+        const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
 
-        med.schedules.forEach((schedule, idx) => {
-          const isTaken = !!logs[idx];
-          const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
-
-          if (loopDateStr < todayStr) {
-            totalExpected++;
-            if (isTaken) totalTaken++;
-            else totalMissed++;
-          } else if (isToday) {
-            totalExpected++;
-            if (isTaken) {
-              totalTaken++;
-            } else if (currentTimeMinutes > scheduleTimeMinutes) {
-              totalMissed++;
-            } else {
-              remainingToday++;
-              if (
-                !nextTime ||
-                scheduleTimeMinutes < parseTimeToMinutes(nextTime)
-              ) {
-                nextTime = schedule.time;
-              }
-            }
+        if (isTaken) {
+          totalTaken++;
+        } else if (currentTimeMinutes > scheduleTimeMinutes) {
+          totalMissed++;
+        } else {
+          remaining++;
+          if (!nextTime || scheduleTimeMinutes < parseTimeToMinutes(nextTime)) {
+            nextTime = schedule.time;
           }
-        });
-        currentLoopDate.setDate(currentLoopDate.getDate() + 1);
+        }
+      });
+    });
+
+    let upcomingAppts = 0;
+    let completedAppts = 0;
+    let nearestApptTime = "";
+
+    appointments.forEach((appt) => {
+      if (appt.done) {
+        completedAppts++;
+      } else {
+        // Enforce upcoming strictly to today or future
+        if (appt.date >= todayStr) {
+           upcomingAppts++;
+           
+           // Find next upcoming appointment
+           const apptDateTime = `${appt.date} à ${appt.time}`;
+           if (!nearestApptTime || appt.date < nearestApptTime.split(' ')[0] || (appt.date === nearestApptTime.split(' ')[0] && appt.time < nearestApptTime.split(' ')[2])) {
+              nearestApptTime = apptDateTime;
+           }
+        }
       }
     });
 
-    const rate =
-      totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
+    const rate = totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
     setAdherenceRate(rate);
     setStats({
       totalToday: totalExpected,
       takenToday: totalTaken,
       missedToday: totalMissed,
-      remainingToday,
+      remainingToday: remaining,
       nextMedTime: nextTime,
+      upcomingAppointments: upcomingAppts,
+      completedAppointments: completedAppts,
+      nextAppointmentTime: nearestApptTime,
     });
+
     Animated.timing(progressAnim, {
       toValue: rate,
       duration: 1000,
       useNativeDriver: false,
     }).start();
-  };
+  }, [medications, appointments, todayStr, currentTimeMinutes]);
 
   const parseTimeToMinutes = (timeStr: string) => {
     const match = timeStr.match(/(\d{1,2})[:h](\d{0,2})/);
     if (!match) return 9999;
     return parseInt(match[1]) * 60 + parseInt(match[2] || "0");
   };
+
+  const handleToggleMedication = async (medId: string, scheduleIndex: number) => {
+    if (!userId) return;
+    const med = medications.find((m) => m.id === medId);
+    if (!med) return;
+    try {
+      await toggleMedicationDose(userId, med, scheduleIndex, todayStr);
+    } catch (error) {
+      console.error("Erreur lors de la prise du médicament:", error);
+    }
+  };
+
+  const menuItems = [
+    { icon: "grid-outline", label: "Tableau de bord", route: "home", active: true },
+    { icon: "medical-outline", label: "Médicaments", route: "medications", active: false },
+    { icon: "calendar-outline", label: "Rendez-vous", route: "rdv", active: false },
+    { icon: "sparkles-outline", label: "Analyse IA", route: "IA", active: false },
+    { icon: "person-outline", label: "Profil", route: "profile", active: false },
+    { icon: "people-outline", label: "Proches", route: "proche", active: false },
+  ];
 
   const toggleMenu = () => {
     if (menuVisible) {
@@ -252,51 +262,9 @@ export default function Home() {
     return "#ef4444";
   };
 
-  const toggleMedication = async (medId: string, scheduleIndex: number) => {
-    if (!userId) return;
-    const med = medications.find((m) => m.id === medId);
-    if (!med) return;
-    const todayStr = new Date().toISOString().split("T")[0];
-    try {
-      await toggleMedicationDose(userId, med, scheduleIndex, todayStr);
-    } catch (error) {
-      console.error("Error toggling medication:", error);
-    }
-  };
-
   const handleLogout = () => toggleMenu();
 
-  // ── Calculs RDV avec date ET heure ──────────────────────────────────
-  const now = new Date();
-  const todayStr = now.toISOString().split("T")[0];
-
-  // RDV du jour (date = aujourd'hui) non cochés, triés par heure
-  const todayRdv = appointments
-    .filter((a) => !a.done && a.date === todayStr)
-    .sort((a, b) => {
-      const tA = new Date(`${a.date}T${a.time}`).getTime();
-      const tB = new Date(`${b.date}T${b.time}`).getTime();
-      return tA - tB;
-    });
-
-  // Compte RDV du jour non cochés (pour dashboard)
-  const todayRdvCount = todayRdv.length;
-
-  // Prochain RDV = le plus proche non coché avec date+heure >= maintenant
-  const next =
-    appointments
-      .filter((a) => !a.done && new Date(`${a.date}T${a.time}`) >= now)
-      .sort((a, b) => {
-        const tA = new Date(`${a.date}T${a.time}`).getTime();
-        const tB = new Date(`${b.date}T${b.time}`).getTime();
-        return tA - tB;
-      })[0] ?? null;
-
-  // RDV du jour passés (même jour mais heure dépassée) — pour alerte
-  const missedTodayRdv = appointments.filter(
-    (a) =>
-      !a.done && a.date === todayStr && new Date(`${a.date}T${a.time}`) < now,
-  );
+  // ── Calculs RDV — supprimés car gérés par useMemo nearestAppointments ──
 
   return (
     <View style={styles.container}>
@@ -307,9 +275,9 @@ export default function Home() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.greetingText}>Bonjour,</Text>
-          <Text style={styles.userName}>Jean Dupont</Text>
+          <Text style={styles.userName}>{userName}</Text>
           <Text style={styles.currentDateDisplay}>
-            {new Date().toLocaleDateString("fr-FR", {
+            {new Date(todayStr).toLocaleDateString("fr-FR", {
               weekday: "long",
               day: "numeric",
               month: "long",
@@ -387,208 +355,152 @@ export default function Home() {
           {/* ── 2. Dashboard ── */}
           <View style={styles.dashboardSection}>
             <Text style={styles.sectionTitleLarge}>Tableau de bord</Text>
-            <View style={styles.dashboardGrid}>
-              {/* Card Médicaments */}
-              <TouchableOpacity
-                style={styles.dashboardCard}
-                onPress={() => router.push("/medications")}
-              >
-                <View
-                  style={[
-                    styles.dashboardIconContainer,
-                    { backgroundColor: "#e0f2f1" },
-                  ]}
-                >
-                  <Ionicons name="medical" size={24} color="#00bfa5" />
-                </View>
+            
+            {/* Row 1: Médicaments */}
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#f0fdf4", flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
                 <Text style={styles.dashboardValue}>{stats.totalToday}</Text>
-                <Text style={styles.dashboardLabel}>
-                  Doses totales{"\n"}depuis le début
-                </Text>
-                <Text style={styles.dashboardSubtext}>
-                  {stats.nextMedTime
-                    ? `Prochain: ${stats.nextMedTime}`
-                    : "Terminé !"}
-                </Text>
+                <Text style={styles.dashboardLabel}>Prévues</Text>
+                <Text style={[styles.dashboardSubtext, { color: "#16a34a" }]}>Aujourd'hui</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#f0fdfa", flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
+                <Text style={styles.dashboardValue}>{stats.takenToday}</Text>
+                <Text style={styles.dashboardLabel}>Prises</Text>
+                <Text style={[styles.dashboardSubtext, { color: "#0d9488" }]}>Bravo !</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#fef2f2", flex: 1, padding: 12 }]} onPress={() => router.push("/medications")}>
+                <Text style={[styles.dashboardValue, { color: "#ef4444" }]}>{stats.missedToday}</Text>
+                <Text style={styles.dashboardLabel}>Manquées</Text>
+                <Text style={[styles.dashboardSubtext, { color: "#ef4444" }]}>À surveiller</Text>
+              </TouchableOpacity>
+            </View>
 
-              {/* Card RDV — nombre RDV du jour restants non cochés */}
-              <TouchableOpacity
-                style={styles.dashboardCard}
-                onPress={() => router.push("/rdv")}
-              >
-                <View
-                  style={[
-                    styles.dashboardIconContainer,
-                    { backgroundColor: "#ede9fe" },
-                  ]}
-                >
-                  <Ionicons name="calendar" size={24} color="#8b5cf6" />
+            {/* Row 2: Rendez-vous */}
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#f5f3ff", flex: 1, padding: 12 }]} onPress={() => router.push("/rdv")}>
+                <View style={{flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4}}>
+                  <Ionicons name="calendar-outline" size={16} color="#7c3aed" />
+                  <Text style={styles.dashboardValue}>{stats.upcomingAppointments}</Text>
                 </View>
-                <Text style={styles.dashboardValue}>{todayRdvCount}</Text>
-                <Text style={styles.dashboardLabel}>
-                  Rendez-vous d&apos;{"\n"}aujourd&apos;hui
-                </Text>
-                <Text style={[styles.dashboardSubtext, { color: "#8b5cf6" }]}>
-                  {next
-                    ? next.date === todayStr
-                      ? `Prochain : ${next.time}`
-                      : `Prochain : ${new Date(next.date + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`
-                    : "Aucun à venir"}
-                </Text>
+                <Text style={styles.dashboardLabel}>RDV à venir</Text>
+                <Text style={[styles.dashboardSubtext, { color: "#7c3aed" }]}>Total planifiés</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={[styles.dashboardCard, { backgroundColor: "#fdf4ff", flex: 1, padding: 12 }]} onPress={() => router.push("/rdv")}>
+                <View style={{flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4}}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#c026d3" />
+                  <Text style={styles.dashboardValue}>{stats.completedAppointments}</Text>
+                </View>
+                <Text style={styles.dashboardLabel}>RDV terminés</Text>
+                <Text style={[styles.dashboardSubtext, { color: "#c026d3" }]}>Historique</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Row 3: Next events */}
+            <View style={{ gap: 12 }}>
+               <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 16, borderRadius: 16, borderWidth: 1, borderColor: "#e2e8f0" }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#e0f2f1", justifyContent: "center", alignItems: "center", marginRight: 12 }}>
+                    <Ionicons name="medical" size={20} color="#00bfa5"/>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>Prochain Médicament</Text>
+                    <Text style={{ fontSize: 16, color: "#1e293b", fontWeight: "bold", marginTop: 2 }}>{stats.nextMedTime ? `Aujourd'hui à ${stats.nextMedTime}` : "Aucun pour aujourd'hui"}</Text>
+                  </View>
+               </View>
+               <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 16, borderRadius: 16, borderWidth: 1, borderColor: "#e2e8f0" }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#ede9fe", justifyContent: "center", alignItems: "center", marginRight: 12 }}>
+                    <Ionicons name="calendar" size={20} color="#8b5cf6"/>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>Prochain RDV</Text>
+                    <Text style={{ fontSize: 16, color: "#1e293b", fontWeight: "bold", marginTop: 2 }}>{stats.nextAppointmentTime || "Aucun à venir"}</Text>
+                  </View>
+               </View>
             </View>
           </View>
 
-          {/* ── 3. Médicaments du jour ── */}
+          {/* ── 3. Médicaments du jour (UNIQUEMENT NON PRIS) ── */}
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitleLarge}>Médicaments du jour</Text>
+              <Text style={styles.sectionTitleLarge}>Aujourd{"'"}hui</Text>
               <TouchableOpacity onPress={() => router.push("/medications")}>
                 <Text style={styles.seeAllText}>Voir tout</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.medicationsList}>
-              {medications.map((med) =>
-                med.schedules.map((schedule, idx) => {
-                  const nowLocal = new Date();
-                  const todayStrLocal = nowLocal.toISOString().split("T")[0];
-                  const currentTimeMinutes =
-                    nowLocal.getHours() * 60 + nowLocal.getMinutes();
-                  const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
-                  const logs = med.takenLogs?.[todayStrLocal] || {};
-                  const isTaken = !!logs[idx];
-                  const isMissed =
-                    !isTaken && currentTimeMinutes > scheduleTimeMinutes;
+              {todayMedItems.length > 0 ? todayMedItems.map((item) => {
+                const scheduleTimeMinutes = parseTimeToMinutes(item.schedule.time);
+                const isMissed = currentTimeMinutes > scheduleTimeMinutes;
 
-                  return (
-                    <View
-                      key={`${med.id}-${idx}`}
-                      style={[
-                        styles.medicationCard,
-                        isTaken && styles.medicationCardTaken,
-                        isMissed && styles.medicationCardMissed,
-                      ]}
-                    >
-                      <View style={styles.medicationIconContainer}>
-                        <Ionicons
-                          name="medical-outline"
-                          size={24}
-                          color={
-                            isTaken
-                              ? "#94a3b8"
-                              : isMissed
-                                ? "#ef4444"
-                                : "#00bfa5"
-                          }
-                        />
-                      </View>
-                      <View style={styles.medicationInfo}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.medicationName,
-                              isTaken && styles.medicationNameTaken,
-                              isMissed && { color: "#ef4444" },
-                            ]}
-                          >
-                            {med.name}
-                          </Text>
-                          {isMissed && (
-                            <View style={styles.missedBadge}>
-                              <Text style={styles.missedBadgeText}>Manqué</Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.medicationDosage}>
-                          {schedule.dose}
-                        </Text>
-                        {med.startDate && med.endDate && (
-                          <Text style={styles.medicationDateRange}>
-                            {med.startDate}
-                          </Text>
-                        )}
-                        <View style={styles.medicationTimeContainer}>
-                          <Ionicons
-                            name="time-outline"
-                            size={12}
-                            color={isMissed ? "#ef4444" : "#64748b"}
-                          />
-                          <Text
-                            style={[
-                              styles.medicationTime,
-                              isMissed && { color: "#ef4444" },
-                            ]}
-                          >
-                            {schedule.time}
-                          </Text>
-                        </View>
-                      </View>
-                      <TouchableOpacity
-                        style={[
-                          styles.checkButton,
-                          isTaken && styles.checkButtonTaken,
-                          isMissed && { backgroundColor: "#fee2e2" },
-                        ]}
-                        onPress={() => toggleMedication(med.id, idx)}
-                      >
-                        <Ionicons
-                          name={
-                            isTaken ? "checkmark-circle" : "ellipse-outline"
-                          }
-                          size={28}
-                          color={
-                            isTaken
-                              ? "#00bfa5"
-                              : isMissed
-                                ? "#ef4444"
-                                : "#cbd5e1"
-                          }
-                        />
-                      </TouchableOpacity>
+                return (
+                  <View
+                    key={`${item.id}-${item.scheduleIndex}`}
+                    style={[
+                      styles.medicationCard,
+                      isMissed && styles.medicationCardMissed,
+                    ]}
+                  >
+                    <View style={styles.medicationIconContainer}>
+                      <Ionicons
+                        name="medical-outline"
+                        size={24}
+                        color={isMissed ? "#ef4444" : "#00bfa5"}
+                      />
                     </View>
-                  );
-                }),
+                    <View style={styles.medicationInfo}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={[styles.medicationName, isMissed && { color: "#ef4444" }]}>
+                          {item.name}
+                        </Text>
+                        {isMissed && (
+                          <View style={styles.missedBadge}>
+                            <Text style={styles.missedBadgeText}>En retard</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.medicationDosage}>
+                        {item.schedule.dose}
+                      </Text>
+                      <View style={styles.medicationTimeContainer}>
+                        <Ionicons
+                          name="time-outline"
+                          size={12}
+                          color={isMissed ? "#ef4444" : "#64748b"}
+                        />
+                        <Text style={[styles.medicationTime, isMissed && { color: "#ef4444" }]}>
+                          {item.schedule.time}
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.checkButton,
+                        isMissed && { backgroundColor: "#fee2e2" },
+                      ]}
+                      onPress={() => handleToggleMedication(item.id, item.scheduleIndex)}
+                    >
+                      <Ionicons
+                        name="ellipse-outline"
+                        size={28}
+                        color={isMissed ? "#ef4444" : "#cbd5e1"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                );
+              }) : (
+                <View style={styles.nextMedAlert}>
+                  <Ionicons name="checkmark-circle" size={16} color="#00bfa5" />
+                  <Text style={styles.nextMedText}>
+                    Génial ! Toutes les doses du moment sont prises.
+                  </Text>
+                </View>
               )}
-            </View>
-            <View
-              style={[
-                styles.nextMedAlert,
-                stats.missedToday > 0 && { backgroundColor: "#fee2e2" },
-              ]}
-            >
-              <Ionicons
-                name={
-                  stats.missedToday > 0 ? "alert-circle" : "information-circle"
-                }
-                size={16}
-                color={stats.missedToday > 0 ? "#ef4444" : "#00bfa5"}
-              />
-              <Text
-                style={[
-                  styles.nextMedText,
-                  stats.missedToday > 0 && { color: "#ef4444" },
-                ]}
-              >
-                {stats.missedToday > 0
-                  ? `Attention : ${stats.missedToday} doses manquées !`
-                  : stats.remainingToday > 0
-                    ? `${stats.remainingToday} doses restantes pour aujourd'hui`
-                    : "Toutes les doses sont prises !"}
-              </Text>
             </View>
           </View>
 
-          {/* ── 3b. RDV du jour ── toujours affiché ── */}
+          {/* ── 3b. RDV PROCHES ── */}
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitleLarge}>RDV du jour</Text>
+              <Text style={styles.sectionTitleLarge}>Prochain(s) RDV</Text>
               <TouchableOpacity onPress={() => router.push("/rdv")}>
                 <Text style={[styles.seeAllText, { color: "#8b5cf6" }]}>
                   Voir tout
@@ -597,109 +509,66 @@ export default function Home() {
             </View>
 
             <View style={styles.medicationsList}>
-              {todayRdv.length > 0 ? (
-                todayRdv.map((appt) => {
+              {nearestAppointments.length > 0 ? (
+                nearestAppointments.map((appt) => {
                   const apptTime = new Date(`${appt.date}T${appt.time}`);
-                  const isPast = apptTime < now;
+                  const isToday = appt.date === todayStr;
+                  const isPastTime = isToday && apptTime < now;
+
                   return (
                     <View
                       key={appt.id}
                       style={[
                         styles.medicationCard,
-                        { borderLeftColor: isPast ? "#f59e0b" : "#8b5cf6" },
-                        isPast && { backgroundColor: "#fffbeb" },
+                        { borderLeftColor: "#8b5cf6" },
+                        isPastTime && { backgroundColor: "#fffbeb" },
                       ]}
                     >
-                      <View
-                        style={[
-                          styles.medicationIconContainer,
-                          { backgroundColor: isPast ? "#fef3c7" : "#ede9fe" },
-                        ]}
-                      >
-                        <Ionicons
-                          name="calendar-outline"
-                          size={24}
-                          color={isPast ? "#f59e0b" : "#8b5cf6"}
-                        />
+                      <View style={[styles.medicationIconContainer, { backgroundColor: "#ede9fe" }]}>
+                        <Ionicons name="calendar-outline" size={24} color="#8b5cf6" />
                       </View>
                       <View style={styles.medicationInfo}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                           <Text style={styles.medicationName}>
                             {appt.title}
                           </Text>
-                          {isPast && (
-                            <View
-                              style={[
-                                styles.missedBadge,
-                                { backgroundColor: "#f59e0b" },
-                              ]}
-                            >
-                              <Text style={styles.missedBadgeText}>
-                                En attente
-                              </Text>
+                          {isPastTime && (
+                            <View style={[styles.missedBadge, { backgroundColor: "#f59e0b" }]}>
+                              <Text style={styles.missedBadgeText}>Passé</Text>
                             </View>
                           )}
                         </View>
                         {!!appt.doctor && (
-                          <Text style={styles.medicationDosage}>
-                            {appt.doctor}
-                          </Text>
-                        )}
-                        {!!appt.location && (
-                          <Text
-                            style={styles.medicationDateRange}
-                            numberOfLines={1}
-                          >
-                            {appt.location}
-                          </Text>
+                          <Text style={styles.medicationDosage}>{appt.doctor}</Text>
                         )}
                         <View style={styles.medicationTimeContainer}>
                           <Ionicons
                             name="time-outline"
                             size={12}
-                            color={isPast ? "#f59e0b" : "#64748b"}
+                            color="#64748b"
                           />
-                          <Text
-                            style={[
-                              styles.medicationTime,
-                              isPast && { color: "#f59e0b" },
-                            ]}
-                          >
-                            {appt.time}
+                          <Text style={styles.medicationTime}>
+                            {isToday ? `Aujourd'hui à ${appt.time}` : `${appt.date} à ${appt.time}`}
                           </Text>
                         </View>
                       </View>
                       <TouchableOpacity
-                        style={[
-                          styles.checkButton,
-                          isPast && { backgroundColor: "#fef3c7" },
-                        ]}
+                        style={styles.checkButton}
                         onPress={async () => {
                           if (!userId) return;
-                          await toggleAppointmentDone(userId, appt);
+                          await completeAppointment(userId, appt);
                         }}
                       >
-                        <Ionicons
-                          name="ellipse-outline"
-                          size={28}
-                          color={isPast ? "#f59e0b" : "#8b5cf6"}
-                        />
+                        <Ionicons name="ellipse-outline" size={28} color="#8b5cf6" />
                       </TouchableOpacity>
                     </View>
                   );
                 })
               ) : (
-                /* État vide — violet comme les médicaments sont en vert */
                 <View style={styles.rdvEmptyAlert}>
-                  <Ionicons name="checkmark-circle" size={16} color="#8b5cf6" />
+                  <Ionicons name="calendar" size={16} color="#8b5cf6" />
                   <Text style={styles.rdvEmptyText}>
-                    Tous les RDV du jour sont terminés !
+                    Aucun rendez-vous à venir.
                   </Text>
                 </View>
               )}
@@ -759,11 +628,11 @@ export default function Home() {
             </View>
             <View style={styles.userCard}>
               <View style={styles.userAvatar}>
-                <Text style={styles.userAvatarText}>JD</Text>
+                <Text style={styles.userAvatarText}>{userName.substring(0, 2).toUpperCase()}</Text>
               </View>
               <View style={styles.userInfo}>
-                <Text style={styles.userCardName}>Jean Dupont</Text>
-                <Text style={styles.userCardEmail}>jean.dupont@email.com</Text>
+                <Text style={styles.userCardName}>{userName}</Text>
+                <Text style={styles.userCardEmail}>{auth.currentUser?.email || "Utilisateur"}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.languageSelector}>

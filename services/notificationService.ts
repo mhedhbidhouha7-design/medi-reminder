@@ -1,6 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { getProches } from '../controllers/procheController';
 import { Appointment, Medication } from '../models/interfaces';
+import { scheduleSMS } from './smsService';
 
 // Configure how notifications should be handled when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -65,10 +67,14 @@ const parseTime = (timeStr: string): { hours: number; minutes: number } => {
  * Schedules reminders for a medication.
  * - 30 minutes before each dose.
  * - 15 minutes before each dose.
+ * - 15 minutes before each dose.
  * - At dose time (with sound - Sonnerie).
  */
-export const scheduleMedicationReminders = async (medication: Medication) => {
+export const scheduleMedicationReminders = async (userId: string, medication: Medication) => {
   const { schedules, startDate, endDate, name } = medication;
+
+  // Fetch proches for this user
+  const proches = await getProches(userId);
 
   // Use date parts to avoid UTC shift issues
   const [sYear, sMonth, sDay] = startDate.split('-').map(Number);
@@ -115,6 +121,13 @@ export const scheduleMedicationReminders = async (medication: Medication) => {
           content,
           trigger: { type: 'date', date: reminder30 } as any,
         });
+
+        // SMS 30 min before (Batched)
+        const phoneNumbers = proches.map(p => p.phone).filter(Boolean).join(',');
+        if (phoneNumbers) {
+          const smsText = `⏰ Rappel Proche : Votre proche doit prendre ${name} (${schedule.dose}) dans 30 minutes.`;
+          await scheduleSMS(phoneNumbers, smsText, reminder30);
+        }
       }
 
       // 2. Reminder 15 minutes before
@@ -131,6 +144,13 @@ export const scheduleMedicationReminders = async (medication: Medication) => {
           content,
           trigger: { type: 'date', date: reminder15 } as any,
         });
+
+        // SMS 15 min before (Batched)
+        const phoneNumbers15 = proches.map(p => p.phone).filter(Boolean).join(',');
+        if (phoneNumbers15) {
+          const smsText = `⚠️ Rappel Proche : Votre proche doit prendre ${name} (${schedule.dose}) dans 15 minutes.`;
+          await scheduleSMS(phoneNumbers15, smsText, reminder15);
+        }
       }
 
       // 3. Exact time notification (Sonnerie)
@@ -146,6 +166,13 @@ export const scheduleMedicationReminders = async (medication: Medication) => {
         content: doseContent,
         trigger: { type: 'date', date: doseTime } as any,
       });
+
+      // Schedule SMS for proches at dose time (Batched)
+      const phoneNumbersDose = proches.map(p => p.phone).filter(Boolean).join(',');
+      if (phoneNumbersDose) {
+        const smsText = `🚨 Rappel Proche : Il est l'heure pour votre proche de prendre son médicament : ${name} (${schedule.dose}).`;
+        await scheduleSMS(phoneNumbersDose, smsText, doseTime);
+      }
     }
     d.setDate(d.getDate() + 1);
   }
@@ -200,10 +227,14 @@ export const testNotifications = async () => {
  * - 2 days before.
  * - 1 day before.
  * - 5 hours before.
+ * - 5 hours before.
  * - At appointment time (with sound).
  */
-export const scheduleAppointmentReminders = async (appointment: Appointment) => {
+export const scheduleAppointmentReminders = async (userId: string, appointment: Appointment) => {
   const { date, time, title, id } = appointment;
+
+  // Fetch proches
+  const proches = await getProches(userId);
 
   const [year, month, day] = date.split('-').map(Number);
   const { hours, minutes } = parseTime(time);
@@ -227,6 +258,13 @@ export const scheduleAppointmentReminders = async (appointment: Appointment) => 
       content,
       trigger: { type: 'date', date: twoDaysBefore } as any,
     });
+
+    // SMS 2 days before (Batched)
+    const phoneNumbers2d = proches.map(p => p.phone).filter(Boolean).join(',');
+    if (phoneNumbers2d) {
+      const smsText = `📅 Rappel RDV Proche : Votre proche a un rendez-vous (${title}) dans 2 jours (le ${date} à ${time}).`;
+      await scheduleSMS(phoneNumbers2d, smsText, twoDaysBefore);
+    }
   }
 
   // 2. One day before
@@ -243,10 +281,17 @@ export const scheduleAppointmentReminders = async (appointment: Appointment) => 
       content,
       trigger: { type: 'date', date: oneDayBefore } as any,
     });
+
+    // SMS 1 day before (Batched)
+    const phoneNumbers1d = proches.map(p => p.phone).filter(Boolean).join(',');
+    if (phoneNumbers1d) {
+      const smsText = `⚠️ Rappel RDV Proche : Votre proche a un rendez-vous (${title}) demain à ${time}.`;
+      await scheduleSMS(phoneNumbers1d, smsText, oneDayBefore);
+    }
   }
 
   // 3. Five hours before
-  const fiveHoursBefore = new Date(apptTime.getTime() - 1 * 60 * 1000);
+  const fiveHoursBefore = new Date(apptTime.getTime() - 5 * 60 * 60 * 1000);
   if (fiveHoursBefore > today) {
     const content: any = {
       title: '⏰ Devoir/RDV aujourd\'hui',
@@ -259,6 +304,13 @@ export const scheduleAppointmentReminders = async (appointment: Appointment) => 
       content,
       trigger: { type: 'date', date: fiveHoursBefore } as any,
     });
+
+    // SMS 5 hours before (Batched)
+    const phoneNumbers5h = proches.map(p => p.phone).filter(Boolean).join(',');
+    if (phoneNumbers5h) {
+      const smsText = `⏰ Rappel RDV Proche : Votre proche a un rendez-vous (${title}) dans quelques heures (à ${time}).`;
+      await scheduleSMS(phoneNumbers5h, smsText, fiveHoursBefore);
+    }
   }
 
   // 4. Exact time (Sonne)
@@ -274,6 +326,13 @@ export const scheduleAppointmentReminders = async (appointment: Appointment) => 
     content: contentNow,
     trigger: { type: 'date', date: apptTime } as any,
   });
+
+  // Schedule SMS for proches at appointment time (Batched)
+  const phoneNumbersAppt = proches.map(p => p.phone).filter(Boolean).join(',');
+  if (phoneNumbersAppt) {
+    const smsText = `🚨 Rappel RDV Proche : Votre proche a un rendez-vous/devoir : ${title} à ${time}.`;
+    await scheduleSMS(phoneNumbersAppt, smsText, apptTime);
+  }
 };
 
 /**

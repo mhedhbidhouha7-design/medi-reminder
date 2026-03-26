@@ -2,6 +2,9 @@ import { onValue, push, ref, remove, update } from "firebase/database";
 import { db } from "../models/firebaseConfig";
 import { Appointment } from "../models/interfaces";
 
+import { AppointmentHistoryEntry } from "../models/interfaces";
+import { scheduleAppointmentReminders } from "../services/notificationService";
+
 /**
  * Listens to appointments for a specific user.
  * @param userId The ID of the user
@@ -16,9 +19,9 @@ export const listenToAppointments = (
 
   return onValue(
     apptRef,
-    (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
+    (snapshot) => {//snapshot = etat de donnnee actuel a cet instant 
+      const data = snapshot.val();//tout les rdvs (donneez reelles sous forme d'objet )
+      if (data) {//si base contient des rdvs 
         const apptArray: Appointment[] = Object.keys(data).map((key) => ({
           id: key,
           ...data[key],
@@ -41,26 +44,41 @@ export const listenToAppointments = (
   );
 };
 
-/**
- * Ajoute un nouveau rendez-vous dans Firebase et planifie les notifications.
- */
-import { scheduleAppointmentReminders } from "../services/notificationService";
-
 export const addAppointment = async (
   userId: string,
   data: Omit<Appointment, "id">,
 ) => {
   const apptRef = ref(db, `users/${userId}/appointments`);
-  const newApptRef = await push(apptRef, {
+  const status = data.done ? "done" : "planned";
+  const apptData = {
     ...data,
+    done: data.done ?? false,
+    status: data.status || status,
+  };
+
+  const newApptRef = await push(apptRef, {
+    ...apptData,
     createdAt: new Date().toISOString(),
   });
 
-  // Schedule notifications for the new appointment
-  await scheduleAppointmentReminders({
+  await scheduleAppointmentReminders(userId, {
     id: newApptRef.key!,
+    ...apptData,
+  } as Appointment);
+};
+
+export const updateAppointmentInsteadOfCreating = async (
+  userId: string,
+  apptId: string,
+  data: Partial<Appointment>
+) => {
+  const specificApptRef = ref(db, `users/${userId}/appointments/${apptId}`);
+  await update(specificApptRef, data);
+
+  await scheduleAppointmentReminders(userId, {
+    id: apptId,
     ...data,
-  });
+  } as Appointment);
 };
 
 /**
@@ -72,14 +90,54 @@ export const deleteAppointment = async (userId: string, apptId: string) => {
 };
 
 /**
- * Bascule le statut done d'un rendez-vous (effectué / non effectué).
+ * Marque un rendez-vous comme terminé, le déplace vers l'historique et le supprime de la liste active.
  */
-export const toggleAppointmentDone = async (
+export const completeAppointment = async (
   userId: string,
   appointment: Appointment,
 ) => {
   const apptRef = ref(db, `users/${userId}/appointments/${appointment.id}`);
-  await update(apptRef, {
-    done: !appointment.done,
+  const historyRef = ref(db, `users/${userId}/appointmentHistory`);
+
+  const historyEntry: AppointmentHistoryEntry = {
+    ...appointment,
+    done: true,
+    completedAt: new Date().toISOString(),
+  };
+
+  try {
+    // 1. Ajouter à l'historique
+    await push(historyRef, historyEntry);
+    // 2. Supprimer de la liste active
+    await remove(apptRef);
+    console.log(`✅ Rendez-vous "${appointment.title}" déplacé vers l'historique.`);
+  } catch (error) {
+    console.error("Erreur lors de la complétion du rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Listens to completed appointments history for a specific user.
+ */
+export const listenToAppointmentHistory = (
+  userId: string,
+  callback: (appointments: AppointmentHistoryEntry[]) => void,
+) => {
+  const historyRef = ref(db, `users/${userId}/appointmentHistory`);
+
+  return onValue(historyRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      const historyArray: AppointmentHistoryEntry[] = Object.keys(data).map((key) => ({
+        id: key,
+        ...data[key],
+      }));
+      // Trier par date de complétion (décroissant)
+      historyArray.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+      callback(historyArray);
+    } else {
+      callback([]);
+    }
   });
 };

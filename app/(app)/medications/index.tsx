@@ -3,11 +3,14 @@ import {
   deleteMedication,
   listenToMedications,
   toggleMedicationDose,
+  listenToMedicationHistory,
+  updateMedication,
 } from "@/controllers/medicationController";
 import { auth } from "@/firebaseConfig";
-import { DosageSchedule, Medication } from "@/models/interfaces";
+import { DosageSchedule, Medication, MedicationHistoryEntry } from "@/models/interfaces";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { combineDateAndTime, validateDateTime } from "@/utils/dateHelpers";
 import { useTheme } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import {
@@ -36,9 +39,19 @@ export default function MedicationsScreen() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
+
   // History / View Date State
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showHistoryPicker, setShowHistoryPicker] = useState(false);
+  const [medicationHistory, setMedicationHistory] = useState<MedicationHistoryEntry[]>([]);
+
+  // Editing State
+  const [editingMedId, setEditingMedId] = useState<string | null>(null);
+
+  // Time Picker for Schedules State
+  const [timePickerIndex, setTimePickerIndex] = useState<number | null>(null);
 
   // Allow multiple doses per medication
   const [newSchedules, setNewSchedules] = useState<DosageSchedule[]>([
@@ -59,12 +72,22 @@ export default function MedicationsScreen() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubHistory = listenToMedicationHistory(userId, (fetched) => {
+      setMedicationHistory(fetched);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubHistory();
+    };
   }, [userId]);
 
   const handleToggleTaken = async (med: Medication, index: number) => {
     if (!userId) return;
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = activeTab === "history" 
+      ? selectedDate.toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+      
     try {
       await toggleMedicationDose(userId, med, index, dateStr);
     } catch (error) {
@@ -94,6 +117,15 @@ export default function MedicationsScreen() {
         },
       ]
     );
+  };
+
+  const openEditModal = (med: Medication) => {
+    setEditingMedId(med.id);
+    setNewMedName(med.name);
+    setNewMedStartDate(new Date(med.startDate));
+    setNewMedEndDate(new Date(med.endDate));
+    setNewSchedules(med.schedules);
+    setAddModalVisible(true);
   };
 
   const addScheduleField = () => {
@@ -152,26 +184,49 @@ export default function MedicationsScreen() {
       return;
     }
 
+    // Validation to prevent selecting past date/time for NEW medications
+    if (!editingMedId) {
+       for (const schedule of validSchedules) {
+         const timestamp = combineDateAndTime(newMedStartDate.toISOString().split('T')[0], schedule.time);
+         if (!validateDateTime(timestamp)) {
+            Alert.alert("Date Invalide", "Vous ne pouvez pas créer un médicament dont la première prise est dans le passé.");
+            return;
+         }
+       }
+    }
+
     if (!userId) return;
 
     try {
-      await addMedication(
-        userId,
-        newMedName,
-        validSchedules,
-        newMedStartDate.toISOString().split('T')[0],
-        newMedEndDate.toISOString().split('T')[0]
-      );
+      if (editingMedId) {
+        await updateMedication(
+          userId,
+          editingMedId,
+          newMedName,
+          validSchedules,
+          newMedStartDate.toISOString().split('T')[0],
+          newMedEndDate.toISOString().split('T')[0]
+        );
+      } else {
+        await addMedication(
+          userId,
+          newMedName,
+          validSchedules,
+          newMedStartDate.toISOString().split('T')[0],
+          newMedEndDate.toISOString().split('T')[0]
+        );
+      }
 
       // Reset and close
       setNewMedName("");
       setNewMedStartDate(new Date());
       setNewMedEndDate(new Date());
       setNewSchedules([{ time: "", dose: "" }]);
+      setEditingMedId(null);
       setAddModalVisible(false);
     } catch (error) {
-      console.error("Error adding medication:", error);
-      Alert.alert("Erreur", "Impossible d'ajouter le médicament.");
+      console.error("Error saving medication:", error);
+      Alert.alert("Erreur", "Impossible d'enregistrer le médicament.");
     }
   };
 
@@ -186,6 +241,15 @@ export default function MedicationsScreen() {
     setShowEndPicker(Platform.OS === 'ios');
     if (selectedDate) {
       setNewMedEndDate(selectedDate);
+    }
+  };
+
+  const onScheduleTimeChange = (event: any, time?: Date) => {
+    if (Platform.OS === "android") setTimePickerIndex(null);
+    if (time && timePickerIndex !== null) {
+      const hours = time.getHours().toString().padStart(2, '0');
+      const minutes = time.getMinutes().toString().padStart(2, '0');
+      updateScheduleField(timePickerIndex, "time", `${hours}:${minutes}`);
     }
   };
 
@@ -223,7 +287,8 @@ export default function MedicationsScreen() {
   };
 
   const renderItem = ({ item }: { item: Medication }) => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateStr = activeTab === "history" ? selectedDate.toISOString().split('T')[0] : todayStr;
     const logs = item.takenLogs?.[dateStr] || {};
 
     // Check if ALL schedules are taken for SELECTED date
@@ -250,12 +315,20 @@ export default function MedicationsScreen() {
                 </Text>
               )}
             </View>
-            <TouchableOpacity
-              onPress={() => handleDeleteMedication(item.id, item.name)}
-              style={styles.deleteButtonHeader}
-            >
-              <Ionicons name="trash-outline" size={20} color="#ef4444" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => openEditModal(item)}
+                style={styles.editButtonHeader}
+              >
+                <Ionicons name="create-outline" size={20} color="#64748b" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleDeleteMedication(item.id, item.name)}
+                style={styles.deleteButtonHeader}
+              >
+                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Render Each Schedule Dose individually */}
@@ -276,6 +349,7 @@ export default function MedicationsScreen() {
                       isTaken && { textDecorationLine: "line-through", color: "#94a3b8" }
                     ]}>
                       {schedule.time ? `${schedule.time}` : "Heure non spécifiée"}
+                      {isTaken && typeof logs[index] === "string" && ` • Pris à ${new Date(logs[index] as string).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
                     </Text>
                     <Text
                       style={[
@@ -305,10 +379,12 @@ export default function MedicationsScreen() {
     );
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const compareDateStr = activeTab === "history" ? selectedDate.toISOString().split('T')[0] : todayStr;
+
   const filteredMedications = medications.filter(med => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
     if (!med.startDate || !med.endDate) return true;
-    return dateStr >= med.startDate && dateStr <= med.endDate;
+    return compareDateStr >= med.startDate && compareDateStr <= med.endDate;
   });
 
   return (
@@ -318,6 +394,36 @@ export default function MedicationsScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             Mes médicaments
           </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setAddModalVisible(true)}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "pending" && styles.activeTab]}
+          onPress={() => setActiveTab("pending")}
+        >
+          <Text style={[styles.tabText, activeTab === "pending" && styles.activeTabText]}>
+            À faire
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "history" && styles.activeTab]}
+          onPress={() => setActiveTab("history")}
+        >
+          <Text style={[styles.tabText, activeTab === "history" && styles.activeTabText]}>
+            Historique
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === "history" && (
+        <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
           <TouchableOpacity
             style={styles.dateSelectionContainer}
             onPress={() => setShowHistoryPicker(true)}
@@ -338,13 +444,7 @@ export default function MedicationsScreen() {
             </TouchableOpacity>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setAddModalVisible(true)}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      )}
 
       {showHistoryPicker && (
         <DateTimePicker
@@ -376,9 +476,9 @@ export default function MedicationsScreen() {
                   fontSize: 16,
                 }}
               >
-                {isToday(selectedDate)
-                  ? "Aucun médicament ajouté pour le moment. Appuyez sur le bouton + pour en ajouter un."
-                  : `Aucun médicament prévu pour le ${selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}.`}
+                {activeTab === "pending"
+                  ? "Aucune dose programmée." 
+                  : "Aucun historique pour ce jour."}
               </Text>
             </View>
           }
@@ -395,8 +495,15 @@ export default function MedicationsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nouveau médicament</Text>
-              <TouchableOpacity onPress={() => setAddModalVisible(false)}>
+              <Text style={styles.modalTitle}>
+                {editingMedId ? "Modifier le médicament" : "Nouveau médicament"}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setAddModalVisible(false);
+                setEditingMedId(null);
+                setNewMedName("");
+                setNewSchedules([{ time: "", dose: "" }]);
+              }}>
                 <Ionicons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
@@ -481,15 +588,28 @@ export default function MedicationsScreen() {
                       <View style={styles.scheduleInputRow}>
                         <View style={{ flex: 1, marginRight: 8 }}>
                           <Text style={styles.subLabel}>Heure / Moment</Text>
-                          <TextInput
-                            style={styles.input}
-                            value={schedule.time}
-                            onChangeText={(val) =>
-                              updateScheduleField(index, "time", val)
-                            }
-                            placeholder="Ex: Matin"
-                            placeholderTextColor="#94a3b8"
-                          />
+                          <TouchableOpacity
+                            style={[
+                              styles.input,
+                              {
+                                justifyContent: "center",
+                                borderColor: "#e2e8f0",
+                                borderWidth: 1,
+                                borderRadius: 14,
+                                backgroundColor: "#f8fafc",
+                                minHeight: 48,
+                                paddingHorizontal: 12
+                              }
+                            ]}
+                            onPress={() => setTimePickerIndex(index)}
+                          >
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                              <Ionicons name="time-outline" size={18} color="#94a3b8" />
+                              <Text style={{ color: schedule.time ? "#1e293b" : "#94a3b8", fontSize: 16 }}>
+                                {schedule.time || "Sélectionner..."}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.subLabel}>Quantité</Text>
@@ -519,6 +639,15 @@ export default function MedicationsScreen() {
                       )}
                     </View>
                   ))}
+
+                  {timePickerIndex !== null && (
+                    <DateTimePicker
+                      value={newSchedules[timePickerIndex]?.time ? new Date(`1970-01-01T${newSchedules[timePickerIndex].time}:00`) : new Date()}
+                      mode="time"
+                      display="default"
+                      onChange={onScheduleTimeChange}
+                    />
+                  )}
 
                   <TouchableOpacity
                     style={styles.addDoseButton}
@@ -560,6 +689,29 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     flex: 1,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    gap: 12,
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#f1f5f9",
+  },
+  activeTab: {
+    backgroundColor: "#00bfa5",
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+  activeTabText: {
+    color: "#fff",
   },
   addButton: {
     backgroundColor: "#00bfa5",
@@ -622,6 +774,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   deleteButtonHeader: {
+    padding: 4,
+  },
+  editButtonHeader: {
     padding: 4,
   },
   name: {

@@ -245,6 +245,12 @@ export default function ProtectedLayout() {
           tabBarButton: () => null,
         }}
       />
+      <Tabs.Screen
+        name="proche"
+        options={{
+          tabBarButton: () => null,
+        }}
+      />
     </Tabs>
   );
 }

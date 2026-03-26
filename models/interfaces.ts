@@ -1,6 +1,6 @@
 // models/interfaces.ts
 // Contient les définitions des objets utilisés dans l'application
-// Chaque interface décrit la structure d'un objet (par exemple un médicament ou un profil utilisateur)
+// Chaque interface décrit la structure d'un objet 
 export interface User {
   id: string;
   email: string;
@@ -13,7 +13,7 @@ export interface User {
   address: string;
   profileImageUrl: string;
 }
-
+//DosageSchedule = represente une prise de medicament (heure+dose)
 export interface DosageSchedule {
   time: string; // e.g., "08:00", "Morning", "Night"
   dose: string; // e.g., "2 pills", "1 spoonful"
@@ -36,6 +36,34 @@ export interface Appointment {
   notes?: string;
   date: string; // "YYYY-MM-DD"
   time: string; // "HH:MM"
+  timestamp?: number; // Unix timestamp for sorting
   done: boolean;
+  doneAt?: string;
   createdAt?: string;
+  status?: "planned" | "done" | "missed";
+  type?: string; // e.g. "general", "specialist"
+}
+
+export interface Proche {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  createdAt?: string;
+}
+
+export interface MedicationHistoryEntry {
+  id: string;
+  userId: string;
+  medicationId: string;
+  medicationName: string;
+  scheduleIndex: number;
+  dose: string;
+  scheduledTime: string;
+  takenAt: string; // ISO string
+  date: string; // YYYY-MM-DD
+}
+
+export interface AppointmentHistoryEntry extends Appointment {
+  completedAt: string; // ISO string
 }
