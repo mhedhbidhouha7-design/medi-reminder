@@ -54,6 +54,12 @@ const MENU_ITEMS = [
     key: "health-summary",
   },
   {
+    icon: "book-outline",
+    label: "Journal de santé",
+    route: "/(app)/journal/index",
+    key: "journal",
+  },
+  {
     icon: "people-outline",
     label: "Proches",
     route: "/(app)/family",
@@ -128,14 +134,7 @@ export default function SidebarMenu({
               <Text style={styles.userCardEmail}>jean.dupont@email.com</Text>
             </View>
           </View>
-
-          {/* Langue */}
-          <TouchableOpacity style={styles.languageSelector}>
-            <Ionicons name="globe-outline" size={20} color="#64748b" />
-            <Text style={styles.languageText}>FR Français</Text>
-            <Ionicons name="chevron-down" size={16} color="#94a3b8" />
-          </TouchableOpacity>
-
+                                                                                                                                                                      bnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn                                                                                                                                                                                                                               vv
           {/* Items */}
           <View style={styles.menuList}>
             {MENU_ITEMS.map((item, index) => {
@@ -236,27 +235,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   userCardEmail: { fontSize: 13, color: "#64748b" },
-  languageSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingVertical: 12,
+  menuList: {
+    marginTop: 20,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
+    paddingBottom: 140,
     gap: 8,
   },
-  languageText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#1e293b",
-    textAlign: "center",
-  },
-  menuList: { marginTop: 20, paddingHorizontal: 16, gap: 8 },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",

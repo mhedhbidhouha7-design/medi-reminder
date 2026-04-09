@@ -1,6 +1,6 @@
 // models/interfaces.ts
 // Contient les définitions des objets utilisés dans l'application
-// Chaque interface décrit la structure d'un objet 
+// Chaque interface décrit la structure d'un objet
 export interface User {
   id: string;
   email: string;
@@ -66,4 +66,14 @@ export interface MedicationHistoryEntry {
 
 export interface AppointmentHistoryEntry extends Appointment {
   completedAt: string; // ISO string
+}
+// models/interfaces.ts
+export interface HealthJournalEntry {
+  id?: string; // id automatique Firebase
+  date: string; // yyyy-mm-dd
+  mood: string; // humeur du jour
+  bloodSugar?: number; // glycémie
+  bloodPressure?: string; // tension (ex: "120/80")
+  notes?: string; // notes personnelles
+  createdAt: string; // timestamp
 }

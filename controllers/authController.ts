@@ -7,7 +7,8 @@ import {
 import { ref, set } from "firebase/database";
 import { auth, db } from "../models/firebaseConfig";
 import { User } from "../models/interfaces";
-
+//créer un nouvel utilisateur à la fois
+// dans Authentication et dans la base de données
 export const signUpUser = async (
   email: string,
   password: string,
@@ -18,7 +19,8 @@ export const signUpUser = async (
   address: string,
   profileImageUrl: string,
 ): Promise<User> => {
-  //on va cree un compte avec email et password dans firebase 
+  //renvoi un objet de type User 
+  // mais uniquement une fois que l’opération asynchrone sera terminée
   const userCredential = await createUserWithEmailAndPassword(
     auth,
     email.trim(),
@@ -42,7 +44,7 @@ export const signUpUser = async (
     createdAt: new Date(),
   };
 
-  // Save to Realtime DB
+  //stocke les infos essentielles du profil dans la base de données Firebase sous le "users/userId"
   await set(ref(db, "users/" + userId), {
     name,
     phone,
@@ -55,7 +57,7 @@ export const signUpUser = async (
   });
 
   return user;
-};
+}; 
 
 export const signInUser = async (email: string, password: string) => {
   return await signInWithEmailAndPassword(auth, email.trim(), password);

@@ -1,11 +1,23 @@
+import { FullScreenMedicationOverlay } from "@/components/FullScreenMedicationOverlay";
 import { Colors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import {
+  handleMedicationNotification,
+  PendingMedicationAlert,
+  subscribeToPendingMedicationAlert,
+} from "@/services/medicationNotificationHandler";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
-import { useEffect, useRef } from "react";
-import { Animated, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { auth } from "../../firebaseConfig";
 
 // Configure notification handler for LOCAL notifications only
@@ -99,7 +111,9 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <View style={styles.tabBarContainer}>
-      <View style={[styles.tabBar, { backgroundColor: themeColors.background }]}> 
+      <View
+        style={[styles.tabBar, { backgroundColor: themeColors.background }]}
+      >
         {/* Animated active indicator */}
         {visualActiveIndex !== -1 && (
           <Animated.View
@@ -142,7 +156,9 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
                 color={isFocused ? themeColors.background : themeColors.icon}
               />
               {isFocused && (
-                <Animated.Text style={[styles.tabLabel, { color: themeColors.background }]}> 
+                <Animated.Text
+                  style={[styles.tabLabel, { color: themeColors.background }]}
+                >
                   {config.label}
                 </Animated.Text>
               )}
@@ -156,8 +172,10 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
 
 export default function ProtectedLayout() {
   const router = useRouter();
+  const [pendingMedicationAlert, setPendingMedicationAlert] =
+    useState<PendingMedicationAlert | null>(null);
 
-  // Setup LOCAL notifications only (works in Expo Go)
+  // Setup LOCAL notifications and medication handlers
   useEffect(() => {
     async function setupNotifications() {
       try {
@@ -179,19 +197,56 @@ export default function ProtectedLayout() {
             vibrationPattern: [0, 250, 250, 250],
             lightColor: "#FF231F7C",
           });
-          console.log("Android notification channel created");
+          // Create full-screen notification channel for Android
+          await Notifications.setNotificationChannelAsync(
+            "medication_fullscreen",
+            {
+              name: "Medication Full-Screen",
+              importance: Notifications.AndroidImportance.MAX,
+              vibrationPattern: [0, 250, 250, 250],
+              lightColor: "#FF231F7C",
+              enableVibrate: true,
+              enableLights: true,
+            },
+          );
+          console.log("Android notification channels created");
         }
 
         // NOTE: We do NOT call getExpoPushTokenAsync() here
         // because that requires remote notifications which are
         // not supported in Expo Go SDK 53+
-
       } catch (error) {
         console.log("Notification setup error:", error);
       }
     }
 
     setupNotifications();
+  }, []);
+
+  // Subscribe to pending medication alerts
+  useEffect(() => {
+    const unsubscribe = subscribeToPendingMedicationAlert((alert) => {
+      setPendingMedicationAlert(alert);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Handle notification responses (when notification is tapped)
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      async (response) => {
+        console.log(
+          "Notification response received:",
+          response.notification.request.content.data,
+        );
+        await handleMedicationNotification(response);
+      },
+    );
+
+    return () => {
+      // Unsubscribe from the listener
+      subscription.remove();
+    };
   }, []);
 
   // Auth state listener
@@ -205,57 +260,66 @@ export default function ProtectedLayout() {
   }, [router]);
 
   return (
-    <Tabs
-      tabBar={(props) => <FloatingTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Accueil",
-        }}
+    <>
+      {/* Full-screen medication overlay - blocks all interactions until confirmed */}
+      <FullScreenMedicationOverlay
+        visible={!!pendingMedicationAlert}
+        medicationAlert={pendingMedicationAlert}
       />
 
-      {/* 
-        Windows/Expo sometimes normalizes this to 'ia' even if the folder is 'IA' 
-        We use 'IA' (or whatever matches your filesystem exactly) and it works
-        We don't append /index because we want Expo to match the route directly 
-      */}
-      <Tabs.Screen
-        name="IA"
-        options={{
-          title: "IA",
+      {/* Main tab navigation - hidden behind overlay when medication alert is active */}
+      <Tabs
+        tabBar={(props) => <FloatingTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
         }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profil",
-        }}
-      />
+      >
+        <Tabs.Screen
+          name="home"
+          options={{
+            title: "Accueil",
+          }}
+        />
 
-      {/* Hidden Screens - no tab bar button */}
-      <Tabs.Screen
-        name="medications"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="rdv"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="proche"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
-    </Tabs>
+        {/* 
+          Windows/Expo sometimes normalizes this to 'ia' even if the folder is 'IA' 
+          We use 'IA' (or whatever matches your filesystem exactly) and it works
+          We don't append /index because we want Expo to match the route directly 
+        */}
+        <Tabs.Screen
+          name="IA"
+          options={{
+            title: "IA",
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "Profil",
+          }}
+        />
+
+        {/* Hidden Screens - no tab bar button */}
+        <Tabs.Screen
+          name="medications"
+          options={{
+            tabBarButton: () => null,
+          }}
+        />
+        <Tabs.Screen
+          name="rdv"
+          options={{
+            tabBarButton: () => null,
+          }}
+        />
+        <Tabs.Screen
+          name="proche"
+          options={{
+            tabBarButton: () => null,
+          }}
+        />
+      </Tabs>
+    </>
   );
 }
 
