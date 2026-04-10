@@ -2,9 +2,9 @@ import { FullScreenMedicationOverlay } from "@/components/FullScreenMedicationOv
 import { Colors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import {
-  handleMedicationNotification,
-  PendingMedicationAlert,
-  subscribeToPendingMedicationAlert,
+    handleMedicationNotification,
+    PendingMedicationAlert,
+    subscribeToPendingMedicationAlert,
 } from "@/services/medicationNotificationHandler";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
@@ -12,11 +12,11 @@ import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Animated,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 
@@ -174,6 +174,7 @@ export default function ProtectedLayout() {
   const router = useRouter();
   const [pendingMedicationAlert, setPendingMedicationAlert] =
     useState<PendingMedicationAlert | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Setup LOCAL notifications and medication handlers
   useEffect(() => {
@@ -252,12 +253,20 @@ export default function ProtectedLayout() {
   // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log(
+        "ProtectedLayout auth check:",
+        user ? "User logged in" : "No user",
+      );
+      setIsInitializing(false);
       if (!user) {
+        console.log("No user in ProtectedLayout, replacing with /signin");
         router.replace("/signin");
       }
     });
     return unsubscribe;
   }, [router]);
+
+  if (isInitializing) return null;
 
   return (
     <>

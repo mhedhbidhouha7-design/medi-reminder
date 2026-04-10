@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
+import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -16,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { signInUser } from "../../controllers/authController";
+import { auth } from "../../firebaseConfig";
 
 export default function Login() {
   console.log("Rendering Signin screen");
@@ -24,6 +26,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Simple auth check to prevent landing on login if already authenticated
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log("User already logged in, redirecting from signin to home");
+        router.replace("/home");
+      }
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -40,9 +53,16 @@ export default function Login() {
 
     setLoading(true);
     try {
+      console.log("Starting sign in...");
       await signInUser(email, password);
-      router.replace("/home");
+      console.log("Sign in success");
+      // Use setTimeout to ensure the navigation happens after React finishes state updates
+      setTimeout(() => {
+        console.log("Replacing route with /home");
+        router.replace("/home");
+      }, 0);
     } catch (error: any) {
+      console.error("Login Error:", error);
       Alert.alert("Login failed", error.message);
     } finally {
       setLoading(false);

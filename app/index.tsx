@@ -108,15 +108,31 @@ export default function SplashScreen() {
 
     // Check auth state after animation completes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setTimeout(() => router.replace("/home"), 3500);
-      } else {
-        setTimeout(() => router.replace("/signin"), 3500);
+      console.log("SplashScreen: Auth state changed, user:", user?.uid);
+
+      // Stop any existing timeout to avoid conflicting redirects
+      if ((global as any).authRedirectTimeout) {
+        clearTimeout((global as any).authRedirectTimeout);
       }
+
+      (global as any).authRedirectTimeout = setTimeout(() => {
+        if (user) {
+          console.log("SplashScreen: Redirecting to /home");
+          router.replace("/home");
+        } else {
+          console.log("SplashScreen: Redirecting to /signin");
+          router.replace("/signin");
+        }
+      }, 3500);
     });
 
-    return unsubscribe;
-  }, []);
+    return () => {
+      unsubscribe();
+      if ((global as any).authRedirectTimeout) {
+        clearTimeout((global as any).authRedirectTimeout);
+      }
+    };
+  }, [router]);
 
   return (
     <LinearGradient

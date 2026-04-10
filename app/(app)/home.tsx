@@ -1,17 +1,15 @@
 import {
-  completeAppointment,
-  listenToAppointments,
+    completeAppointment,
+    listenToAppointments,
 } from "@/controllers/appointmentController";
 import {
-  listenToMedications,
-  toggleMedicationDose,
+    listenToMedications,
+    toggleMedicationDose,
 } from "@/controllers/medicationController";
 import { auth, db } from "@/firebaseConfig";
 import { Appointment, Medication } from "@/models/interfaces";
 import {
-  cancelAllNotifications,
-  scheduleMedicationReminders,
-  testNotifications,
+    testNotifications
 } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,15 +20,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Colors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -83,18 +81,6 @@ export default function Home() {
 
     const unsubscribe = listenToMedications(userId, async (fetchedMeds) => {
       setMedications(fetchedMeds);
-
-      if (!hasScheduledNotifs.current) {
-        hasScheduledNotifs.current = true;
-        await cancelAllNotifications();
-        for (const med of fetchedMeds) {
-          try {
-            await scheduleMedicationReminders(userId, med);
-          } catch (e) {
-            console.log("Error scheduling med notification:", e);
-          }
-        }
-      }
     });
 
     const unsubAppt = listenToAppointments(userId, async (fetched) => {
