@@ -74,6 +74,10 @@ export interface HealthJournalEntry {
   mood: string; // humeur du jour
   bloodSugar?: number; // glycémie
   bloodPressure?: string; // tension (ex: "120/80")
+  weight?: number; // poid (kg)
+  height?: number; // hauteur (cm)
+  illness?: string; // current maladie
+  symptoms?: string; // symptomes
   notes?: string; // notes personnelles
   createdAt: string; // timestamp
 }

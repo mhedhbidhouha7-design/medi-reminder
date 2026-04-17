@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 const path = require("path");
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 // ============================================================
 // SETUP: You need a Firebase service account key.
@@ -16,14 +17,19 @@ try {
   const serviceAccount = require(serviceAccountPath);
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://medi-reminder-2c715-default-rtdb.europe-west1.firebasedatabase.app",
+    databaseURL:
+      "https://medi-reminder-2c715-default-rtdb.europe-west1.firebasedatabase.app",
   });
 } catch (error) {
   console.error("\n❌ ERROR: serviceAccountKey.json not found!\n");
   console.error("To fix this:");
-  console.error("1. Go to: https://console.firebase.google.com/project/medi-reminder-2c715/settings/serviceaccounts/adminsdk");
+  console.error(
+    "1. Go to: https://console.firebase.google.com/project/medi-reminder-2c715/settings/serviceaccounts/adminsdk",
+  );
   console.error("2. Click 'Generate New Private Key'");
-  console.error("3. Save the downloaded file as 'serviceAccountKey.json' in the /server folder\n");
+  console.error(
+    "3. Save the downloaded file as 'serviceAccountKey.json' in the /server folder\n",
+  );
   process.exit(1);
 }
 
@@ -156,7 +162,10 @@ app.get("/api/patient/:userId", async (req, res) => {
         createdAt: doc.data().createdAt,
       }));
     } catch (firestoreError) {
-      console.warn("Could not fetch journal from Firestore:", firestoreError.message);
+      console.warn(
+        "Could not fetch journal from Firestore:",
+        firestoreError.message,
+      );
     }
 
     // 10. Build response
