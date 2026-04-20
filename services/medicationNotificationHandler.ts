@@ -1,6 +1,8 @@
 import * as Notifications from "expo-notifications";
 import { getAuth } from "firebase/auth";
 import { recordMedicationTaken } from "../utils/medicationTracker";
+import { speakNotification } from "./audioService";
+import { NotificationType } from "./notificationMessages";
 
 export interface PendingMedicationAlert {
   medicationId: string;
@@ -9,23 +11,18 @@ export interface PendingMedicationAlert {
   scheduledTime: string;
   notificationId: string;
   timestamp: number;
+  snoozedUntil?: number; // ← timestamp si reporté
 }
 
-// Global state for pending medication alerts (on-time notifications)
 let pendingMedicationAlert: PendingMedicationAlert | null = null;
 let notificationListeners: ((alert: PendingMedicationAlert | null) => void)[] =
   [];
 
-//Écoute les changements d’état des alertes
 export const subscribeToPendingMedicationAlert = (
   callback: (alert: PendingMedicationAlert | null) => void,
 ) => {
   notificationListeners.push(callback);
-
-  // Send current alert immediately if exists
   callback(pendingMedicationAlert);
-
-  // Return unsubscribe function
   return () => {
     notificationListeners = notificationListeners.filter(
       (cb) => cb !== callback,
@@ -33,54 +30,45 @@ export const subscribeToPendingMedicationAlert = (
   };
 };
 
-/**
- * Set the current pending medication alert and notify all listeners.
- */
 const setPendingMedicationAlert = (alert: PendingMedicationAlert | null) => {
   pendingMedicationAlert = alert;
-  notificationListeners.forEach((callback) => {
-    callback(alert);
-  });
+  notificationListeners.forEach((cb) => cb(alert));
 };
 
-/**
- * Handle foreground notifications from Expo.
- * Separates pre-reminders from on-time medication notifications.
- */
 export const handleMedicationNotification = async (
   response: Notifications.NotificationResponse,
 ): Promise<void> => {
   const { notification } = response;
   const data = (notification.request.content.data as Record<string, any>) || {};
 
-  // Check if this is a medication dose (on-time) notification
-  if (data?.type === "medication_dose") {
-    const medicationId = data?.medId || "unknown";
-    const medicationName = data?.medicationName || "Médicament";
-    const dose = data?.dose || "dose";
-    const scheduledTime =
-      data?.scheduledTime || new Date().toLocaleTimeString();
+  // Lecture vocale pour tous les types
+  speakNotification(data?.type as NotificationType, {
+    medicationName: data?.medicationName,
+    dose: data?.dose,
+    appointmentTitle: data?.appointmentTitle || data?.title,
+    time: data?.time,
+  });
 
+  // Plein écran forcé uniquement pour medication_dose
+  if (data?.type === "medication_dose") {
     const alert: PendingMedicationAlert = {
-      medicationId,
-      medicationName,
-      dose,
-      scheduledTime,
+      medicationId: data?.medId || "unknown",
+      medicationName: data?.medicationName || "Médicament",
+      dose: data?.dose || "dose",
+      scheduledTime:
+        data?.scheduledTime ||
+        new Date().toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       notificationId: notification.request.identifier,
       timestamp: Date.now(),
     };
-
-    // Set as pending and show full-screen overlay
     setPendingMedicationAlert(alert);
   }
-
-  // Pre-reminders (30min, 15min) are handled as normal notifications
-  // and don't trigger the full-screen overlay
 };
 
-/**
- * Mark medication as taken and dismiss the full-screen overlay.
- */
+// Appelé quand l'utilisateur confirme la prise
 export const confirmMedicationTaken = async (
   medicationId: string,
   medicationName: string = "Médicament",
@@ -90,18 +78,13 @@ export const confirmMedicationTaken = async (
   try {
     const auth = getAuth();
     const userId = auth.currentUser?.uid;
-
-    if (!userId) {
-      console.error("No user logged in");
-      return;
-    }
+    if (!userId) return;
 
     const scheduledTime = new Date().toLocaleTimeString("fr-FR", {
       hour: "2-digit",
       minute: "2-digit",
     });
 
-    // Record in Firebase and local storage
     await recordMedicationTaken(
       userId,
       medicationId,
@@ -111,26 +94,22 @@ export const confirmMedicationTaken = async (
       scheduledTime,
     );
 
-    // Clear the pending alert
     setPendingMedicationAlert(null);
-
-    console.log(`✅ Medication ${medicationId} marked as taken`);
   } catch (error) {
     console.error("Error confirming medication taken:", error);
   }
 };
 
-/**
- * Dismiss the full-screen notification without marking as taken.
- * (This should trigger an alert or require some action)
- */
-export const dismissMedicationAlert = () => {
-  setPendingMedicationAlert(null);
+// Reporter de N minutes — garde l'alerte active avec un timestamp
+export const snoozeMedicationAlert = (minutes: number = 5): void => {
+  if (!pendingMedicationAlert) return;
+  setPendingMedicationAlert({
+    ...pendingMedicationAlert,
+    snoozedUntil: Date.now() + minutes * 60 * 1000,
+  });
 };
 
-/**
- * Get the current pending medication alert.
- */
-export const getPendingMedicationAlert = (): PendingMedicationAlert | null => {
-  return pendingMedicationAlert;
-};
+export const dismissMedicationAlert = () => setPendingMedicationAlert(null);
+
+export const getPendingMedicationAlert = (): PendingMedicationAlert | null =>
+  pendingMedicationAlert;

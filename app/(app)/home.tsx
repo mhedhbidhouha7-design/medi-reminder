@@ -1,16 +1,14 @@
 import {
-    completeAppointment,
-    listenToAppointments,
+  completeAppointment,
+  listenToAppointments,
 } from "@/controllers/appointmentController";
 import {
-    listenToMedications,
-    toggleMedicationDose,
+  listenToMedications,
+  toggleMedicationDose,
 } from "@/controllers/medicationController";
 import { auth, db } from "@/firebaseConfig";
 import { Appointment, Medication } from "@/models/interfaces";
-import {
-    testNotifications
-} from "@/services/notificationService";
+import { testNotifications } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -20,15 +18,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Colors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -112,7 +110,7 @@ export default function Home() {
   const todayMedItems = useMemo(() => {
     return medications
       .flatMap((med) =>
-        med.schedules.map((schedule, index) => ({
+        (med.schedules || []).map((schedule, index) => ({
           ...med,
           schedule,
           scheduleIndex: index,
@@ -149,7 +147,7 @@ export default function Home() {
       if (!med.startDate || !med.endDate) return;
       if (todayStr < med.startDate || todayStr > med.endDate) return;
 
-      med.schedules.forEach((schedule, idx) => {
+      (med.schedules || []).forEach((schedule, idx) => {
         totalExpected++;
         const isTaken = !!med.takenLogs?.[todayStr]?.[idx];
         const scheduleTimeMinutes = parseTimeToMinutes(schedule.time);
@@ -275,6 +273,12 @@ export default function Home() {
       icon: "book-outline",
       label: "Journal de santé",
       route: "journal",
+      active: false,
+    },
+    {
+      icon: "search-outline",
+      label: "Trouver un médecin",
+      route: "doctor", // correspond au dossier doctor/index.tsx
       active: false,
     },
   ];

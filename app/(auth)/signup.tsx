@@ -241,7 +241,7 @@ export default function Signup() {
         (dateOfBirth?.toISOString() || "") as string,
         gender,
         address,
-        profileImage, // Cloudinary URL
+        profileImage, 
       );
       router.replace("/home");
     } catch (error: any) {

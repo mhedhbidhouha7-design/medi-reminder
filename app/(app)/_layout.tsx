@@ -232,6 +232,45 @@ export default function ProtectedLayout() {
     return unsubscribe;
   }, []);
 
+  // Handle notification received in foreground (auto-speak)
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        const data = (notification.request.content.data as Record<string, any>) || {};
+        console.log("Notification received in foreground:", data);
+
+        // Speak the notification aloud
+        const { speakNotification } = require("@/services/audioService");
+        const { NotificationType } = require("@/services/notificationMessages");
+        speakNotification(data?.type as typeof NotificationType, {
+          medicationName: data?.medicationName,
+          dose: data?.dose,
+          appointmentTitle: data?.appointmentTitle || data?.title,
+          time: data?.time,
+        });
+
+        // If it's a medication dose, show the full-screen overlay
+        if (data?.type === "medication_dose") {
+          setPendingMedicationAlert({
+            medicationId: data?.medId || "unknown",
+            medicationName: data?.medicationName || "Médicament",
+            dose: data?.dose || "dose",
+            scheduledTime:
+              data?.scheduledTime ||
+              new Date().toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            notificationId: notification.request.identifier,
+            timestamp: Date.now(),
+          });
+        }
+      },
+    );
+
+    return () => subscription.remove();
+  }, []);
+
   // Handle notification responses (when notification is tapped)
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(

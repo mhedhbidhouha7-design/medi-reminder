@@ -70,7 +70,7 @@ export interface AppointmentHistoryEntry extends Appointment {
 // models/interfaces.ts
 export interface HealthJournalEntry {
   id?: string; // id automatique Firebase
-  date: string; // yyyy-mm-dd
+  date: Date; // yyyy-mm-dd
   mood: string; // humeur du jour
   bloodSugar?: number; // glycémie
   bloodPressure?: string; // tension (ex: "120/80")

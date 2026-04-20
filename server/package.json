@@ -1,6 +1,7 @@
 {
   "name": "medi-reminder-api",
   "version": "1.0.0",
+  "type": "module",
   "description": "Local API server for Medi-Reminder patient data",
   "main": "server.js",
   "scripts": {
