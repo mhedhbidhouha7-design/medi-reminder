@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/theme";
+import { useAlert } from "@/components/ThemedAlert";
 import { auth, db } from "@/firebaseConfig";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +8,6 @@ import { onValue, ref, update } from "firebase/database";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -37,6 +37,7 @@ interface UserData {
 export default function Profile() {
   const { theme, setTheme, isDark } = useAppTheme();
   const themeColors = Colors[theme];
+  const { showError, showSuccess, showConfirm, showAlert } = useAlert();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -146,7 +147,7 @@ export default function Profile() {
   const handleChangeProfileImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
+      showError(
         "Permission refusée",
         "Nous avons besoin d'accéder à votre galerie pour changer la photo.",
       );
@@ -173,10 +174,10 @@ export default function Profile() {
           await update(ref(db, `users/${userId}`), {
             profileImageUrl: cloudinaryUrl,
           });
-          Alert.alert("Succès", "Photo de profil mise à jour");
+          showSuccess("Photo mise à jour", "Photo de profil mise à jour avec succès.");
         }
       } catch (error: any) {
-        Alert.alert("Erreur", error.message);
+        showError("Erreur", error.message);
       } finally {
         setUploadingImage(false);
       }
@@ -186,7 +187,7 @@ export default function Profile() {
   // Save profile name
   const handleSaveProfile = async () => {
     if (!editedName.trim()) {
-      Alert.alert("Erreur", "Le nom ne peut pas être vide");
+      showError("Champ requis", "Le nom ne peut pas être vide.");
       return;
     }
 
@@ -198,10 +199,10 @@ export default function Profile() {
           name: editedName.trim(),
         });
         setIsEditingProfile(false);
-        Alert.alert("Succès", "Profil mis à jour avec succès");
+        showSuccess("Profil mis à jour", "Votre profil a été mis à jour avec succès.");
       }
     } catch (error) {
-      Alert.alert("Erreur", "Impossible de mettre à jour le profil");
+      showError("Erreur", "Impossible de mettre à jour le profil.");
     } finally {
       setUpdating(false);
     }
@@ -221,10 +222,10 @@ export default function Profile() {
           address: personalInfo.address,
         });
         setIsEditingInfo(false);
-        Alert.alert("Succès", "Informations personnelles mises à jour");
+        showSuccess("Informations mises à jour", "Vos informations personnelles ont été sauvegardées.");
       }
     } catch (error) {
-      Alert.alert("Erreur", "Impossible de mettre à jour les informations");
+      showError("Erreur", "Impossible de mettre à jour les informations.");
     } finally {
       setUpdating(false);
     }
@@ -287,30 +288,25 @@ export default function Profile() {
             </View>
           </View>
 
-              <TouchableOpacity
+          <TouchableOpacity
             style={[styles.headerLogoutButton, { backgroundColor: themeColors.card }]}
             onPress={() => {
-              Alert.alert(
+              showConfirm(
                 "Déconnexion",
                 "Êtes-vous sûr de vouloir vous déconnecter ?",
-                [
-                  { text: "Annuler", style: "cancel" },
-                  {
-                    text: "Se déconnecter",
-                    style: "destructive",
-                    onPress: async () => {
-                      try {
-                        await auth.signOut();
-                      } catch (error) {
-                        Alert.alert("Erreur", "Impossible de vous déconnecter");
-                      }
-                    }
+                async () => {
+                  try {
+                    await auth.signOut();
+                  } catch (error) {
+                    showError("Erreur", "Impossible de vous déconnecter.");
                   }
-                ]
+                },
+                "Se déconnecter",
+                "Annuler",
               );
             }}
           >
-              <Ionicons name="log-out-outline" size={22} color="#ef4444" />
+            <Ionicons name="log-out-outline" size={22} color="#ef4444" />
           </TouchableOpacity>
         </View>
       </View>
@@ -325,7 +321,7 @@ export default function Profile() {
             <Ionicons name="color-palette-outline" size={22} color={themeColors.tint} />
             <Text style={[styles.sectionTitle, { color: themeColors.tint }]}>Thème de l'application</Text>
           </View>
-          
+
           <View style={styles.themeGrid}>
             {[
               { id: 'light', label: 'Clair', icon: 'sunny-outline' },
@@ -344,7 +340,7 @@ export default function Profile() {
               >
                 <Ionicons name={t.icon as any} size={20} color={t.id === theme ? themeColors.tint : themeColors.icon} />
                 <Text style={[
-                  styles.themeButtonText, 
+                  styles.themeButtonText,
                   { color: t.id === theme ? themeColors.tint : themeColors.text }
                 ]}>
                   {t.label}
@@ -368,7 +364,7 @@ export default function Profile() {
                   style={styles.profileImage}
                 />
               ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.primary }] }>
+                <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.primary }]}>
                   <Text style={[styles.avatarText, { color: themeColors.background }]}>
                     {getInitials(userData.name)}
                   </Text>
@@ -398,7 +394,7 @@ export default function Profile() {
                 <Text style={[styles.profileName, { color: themeColors.text }]}>{userData.name}</Text>
               )}
               <Text style={[styles.profileEmail, { color: themeColors.icon }]}>{userData.email}</Text>
-              <Text style={[styles.profileDate, { color: themeColors.icon }]}> 
+              <Text style={[styles.profileDate, { color: themeColors.icon }]}>
                 Compte créé le {formatCreationDate(userData.createdAt)}
               </Text>
             </View>
@@ -428,7 +424,7 @@ export default function Profile() {
                 onPress={handleSaveProfile}
                 disabled={updating}
               >
-                <Text style={[styles.saveButtonText, { color: themeColors.background }]}> 
+                <Text style={[styles.saveButtonText, { color: themeColors.background }]}>
                   {updating ? "..." : "Enregistrer"}
                 </Text>
               </TouchableOpacity>
@@ -487,7 +483,7 @@ export default function Profile() {
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: themeColors.text }]}>Nom complet</Text>
-              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
                   value={personalInfo.name}
@@ -501,7 +497,7 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email</Text>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Email</Text>
               <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
@@ -513,8 +509,8 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Numéro de téléphone</Text>
-              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Numéro de téléphone</Text>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name="call-outline"
                   size={18}
@@ -535,8 +531,8 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Date de naissance</Text>
-              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Date de naissance</Text>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name="calendar-outline"
                   size={18}
@@ -556,8 +552,8 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Genre</Text>
-              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}> 
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Genre</Text>
+              <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name={
                     personalInfo.gender === "Femme"
@@ -581,8 +577,8 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Adresse</Text>
-              <View style={[styles.inputContainer, styles.textAreaContainer, { backgroundColor: themeColors.card }]}> 
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Adresse</Text>
+              <View style={[styles.inputContainer, styles.textAreaContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name="location-outline"
                   size={18}
@@ -611,7 +607,7 @@ export default function Profile() {
             <Ionicons name="notifications-outline" size={22} color={themeColors.tint} />
             <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>Paramètres de notifications</Text>
           </View>
-          <Text style={[styles.sectionSubtitle, { color: themeColors.icon }]}> 
+          <Text style={[styles.sectionSubtitle, { color: themeColors.icon }]}>
             Notifications de médicaments, Notifications de rendez-vous, Alertes
             santé
           </Text>

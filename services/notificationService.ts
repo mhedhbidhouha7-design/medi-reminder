@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import { getProches } from "../controllers/procheController";
 import { Appointment, Medication } from "../models/interfaces";
 import { getNotificationContent } from "./notificationMessages";
-import { scheduleSMS } from "./smsService";
+import { scheduleEmail } from "./emailService";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -95,10 +95,9 @@ export const scheduleMedicationReminders = async (
 
   const finalEndDate = end < scheduleUntil ? end : scheduleUntil;
   const d = new Date(start > todayMidnight ? start : todayMidnight);
-  const phoneNumbers = proches
-    .map((p) => p.phone)
-    .filter(Boolean)
-    .join(",");
+  const procheContacts = proches
+    .map((p) => ({ email: p.email, name: p.name }))
+    .filter((p) => !!p.email);
 
   while (d <= finalEndDate) {
     for (const schedule of schedules) {
@@ -133,8 +132,9 @@ export const scheduleMedicationReminders = async (
           content,
           trigger: { type: "date", date: reminder30 } as any,
         });
-        if (phoneNumbers)
-          await scheduleSMS(phoneNumbers, msg30.sms, reminder30);
+        // Medication emails are now handled by missed-dose monitoring (2-day delay)
+        // No immediate email for 30 min reminder
+
       }
 
       // 2. Rappel 15 min avant — canal standard
@@ -161,8 +161,8 @@ export const scheduleMedicationReminders = async (
           content,
           trigger: { type: "date", date: reminder15 } as any,
         });
-        if (phoneNumbers)
-          await scheduleSMS(phoneNumbers, msg15.sms, reminder15);
+        // No immediate email for 15 min reminder
+
       }
 
       // 3. Heure exacte — canal haute priorité + plein écran
@@ -191,7 +191,8 @@ export const scheduleMedicationReminders = async (
         content: doseContent,
         trigger: { type: "date", date: doseTime } as any,
       });
-      if (phoneNumbers) await scheduleSMS(phoneNumbers, msgDose.sms, doseTime);
+      // No immediate email for exact time. Email will be sent after 2 days if missed.
+
     }
     d.setDate(d.getDate() + 1);
   }
@@ -203,10 +204,9 @@ export const scheduleAppointmentReminders = async (
 ) => {
   const { date, time, title, id } = appointment;
   const proches = await getProches(userId);
-  const phoneNumbers = proches
-    .map((p) => p.phone)
-    .filter(Boolean)
-    .join(",");
+  const procheContacts = proches
+    .map((p) => ({ email: p.email, name: p.name }))
+    .filter((p) => !!p.email);
 
   const [year, month, day] = date.split("-").map(Number);
   const { hours, minutes } = parseTime(time);
@@ -234,7 +234,11 @@ export const scheduleAppointmentReminders = async (
       content,
       trigger: { type: "date", date: twoDaysBefore } as any,
     });
-    if (phoneNumbers) await scheduleSMS(phoneNumbers, msg2d.sms, twoDaysBefore);
+    if (procheContacts.length > 0) {
+      for (const proche of procheContacts) {
+        await scheduleEmail(proche.email, proche.name, msg2d.email, twoDaysBefore);
+      }
+    }
   }
 
   const oneDayBefore = new Date(apptTime.getTime() - 24 * 60 * 60 * 1000);
@@ -255,7 +259,11 @@ export const scheduleAppointmentReminders = async (
       content,
       trigger: { type: "date", date: oneDayBefore } as any,
     });
-    if (phoneNumbers) await scheduleSMS(phoneNumbers, msg1d.sms, oneDayBefore);
+    if (procheContacts.length > 0) {
+      for (const proche of procheContacts) {
+        await scheduleEmail(proche.email, proche.name, msg1d.email, oneDayBefore);
+      }
+    }
   }
 
   const fiveHoursBefore = new Date(apptTime.getTime() - 5 * 60 * 60 * 1000);
@@ -276,8 +284,11 @@ export const scheduleAppointmentReminders = async (
       content,
       trigger: { type: "date", date: fiveHoursBefore } as any,
     });
-    if (phoneNumbers)
-      await scheduleSMS(phoneNumbers, msg5h.sms, fiveHoursBefore);
+    if (procheContacts.length > 0) {
+      for (const proche of procheContacts) {
+        await scheduleEmail(proche.email, proche.name, msg5h.email, fiveHoursBefore);
+      }
+    }
   }
 
   const msgNow = getNotificationContent("appointment_now", apptParams);
@@ -297,7 +308,11 @@ export const scheduleAppointmentReminders = async (
     content: contentNow,
     trigger: { type: "date", date: apptTime } as any,
   });
-  if (phoneNumbers) await scheduleSMS(phoneNumbers, msgNow.sms, apptTime);
+  if (procheContacts.length > 0) {
+    for (const proche of procheContacts) {
+      await scheduleEmail(proche.email, proche.name, msgNow.email, apptTime);
+    }
+  }
 };
 
 export const testNotifications = async () => {

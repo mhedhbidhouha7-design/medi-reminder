@@ -86,10 +86,10 @@ export default function MedicationsScreen() {
 
   const handleToggleTaken = async (med: Medication, index: number) => {
     if (!userId) return;
-    const dateStr = activeTab === "history" 
+    const dateStr = activeTab === "history"
       ? selectedDate.toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0];
-      
+
     try {
       await toggleMedicationDose(userId, med, index, dateStr);
     } catch (error) {
@@ -188,13 +188,13 @@ export default function MedicationsScreen() {
 
     // Validation to prevent selecting past date/time for NEW medications
     if (!editingMedId) {
-       for (const schedule of validSchedules) {
-         const timestamp = combineDateAndTime(newMedStartDate.toISOString().split('T')[0], schedule.time);
-         if (!validateDateTime(timestamp)) {
-            Alert.alert("Date Invalide", "Vous ne pouvez pas créer un médicament dont la première prise est dans le passé.");
-            return;
-         }
-       }
+      for (const schedule of validSchedules) {
+        const timestamp = combineDateAndTime(newMedStartDate.toISOString().split('T')[0], schedule.time);
+        if (!validateDateTime(timestamp)) {
+          Alert.alert("Date Invalide", "Vous ne pouvez pas créer un médicament dont la première prise est dans le passé.");
+          return;
+        }
+      }
     }
 
     if (!userId) return;
@@ -312,7 +312,7 @@ export default function MedicationsScreen() {
                 allTaken && { textDecorationLine: "line-through" }
               ]}>{item.name}</Text>
               {(!!item.startDate || !!durationStr) && (
-                <Text style={[styles.durationText, { color: themeColors.text + "60" }] }>
+                <Text style={[styles.durationText, { color: themeColors.text + "60" }]}>
                   <Ionicons name="calendar-outline" size={14} color={themeColors.text + "60"} /> {durationStr ? `${durationStr} (${item.startDate} → ${item.endDate})` : item.startDate}
                 </Text>
               )}
@@ -340,7 +340,7 @@ export default function MedicationsScreen() {
               return (
                 <View
                   key={index}
-                    style={[
+                  style={[
                     styles.scheduleRow,
                     { backgroundColor: themeColors.background },
                     isTaken && styles.scheduleRowTaken
@@ -392,9 +392,9 @@ export default function MedicationsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: themeColors.background }}>
-          <View style={styles.header}>
+      <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: themeColors.text }]}> 
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>
             Mes médicaments
           </Text>
         </View>
@@ -411,7 +411,7 @@ export default function MedicationsScreen() {
           style={[styles.tab, { backgroundColor: activeTab === "pending" ? themeColors.primary : themeColors.background }]}
           onPress={() => setActiveTab("pending")}
         >
-          <Text style={[styles.tabText, { color: activeTab === "pending" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "pending" ? "700" : "600" }]}> 
+          <Text style={[styles.tabText, { color: activeTab === "pending" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "pending" ? "700" : "600" }]}>
             À faire
           </Text>
         </TouchableOpacity>
@@ -419,7 +419,7 @@ export default function MedicationsScreen() {
           style={[styles.tab, { backgroundColor: activeTab === "history" ? themeColors.primary : themeColors.background }]}
           onPress={() => setActiveTab("history")}
         >
-          <Text style={[styles.tabText, { color: activeTab === "history" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "history" ? "700" : "600" }]}> 
+          <Text style={[styles.tabText, { color: activeTab === "history" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "history" ? "700" : "600" }]}>
             Historique
           </Text>
         </TouchableOpacity>
@@ -436,7 +436,7 @@ export default function MedicationsScreen() {
             </TouchableOpacity>
 
             <View style={styles.dateInfo}>
-              <Text style={[styles.currentDateSubtitle, { color: themeColors.text }]}> 
+              <Text style={[styles.currentDateSubtitle, { color: themeColors.text }]}>
                 {isToday(selectedDate) ? "Aujourd'hui, " : ""}
                 {selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
               </Text>
@@ -459,7 +459,7 @@ export default function MedicationsScreen() {
       )}
 
       {loading ? (
-          <View style={styles.centerContainer}>
+        <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={themeColors.primary} />
         </View>
       ) : (
@@ -480,7 +480,7 @@ export default function MedicationsScreen() {
                 }}
               >
                 {activeTab === "pending"
-                  ? "Aucune dose programmée." 
+                  ? "Aucune dose programmée."
                   : "Aucun historique pour ce jour."}
               </Text>
             </View>
@@ -496,7 +496,7 @@ export default function MedicationsScreen() {
         onRequestClose={() => setAddModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.background }] }>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.background }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingMedId ? "Modifier le médicament" : "Nouveau médicament"}
@@ -519,7 +519,7 @@ export default function MedicationsScreen() {
                 <>
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Nom du médicament</Text>
-                      <TextInput
+                    <TextInput
                       style={styles.input}
                       value={newMedName}
                       onChangeText={setNewMedName}
@@ -531,15 +531,15 @@ export default function MedicationsScreen() {
                   <View style={styles.dateRow}>
                     <View style={{ flex: 1, marginRight: 8 }}>
                       <Text style={styles.inputLabel}>Date de début</Text>
-                                <TouchableOpacity
-                                  style={[styles.datePickerButton, { backgroundColor: themeColors.background }]}
-                                    onPress={() => setShowStartPicker(true)}
-                                  >
-                                    <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
-                                    <Text style={[styles.dateInputText, { color: themeColors.text }]}>
-                                      {newMedStartDate.toLocaleDateString('fr-FR')}
-                                    </Text>
-                                  </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.datePickerButton, { backgroundColor: themeColors.background }]}
+                        onPress={() => setShowStartPicker(true)}
+                      >
+                        <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
+                        <Text style={[styles.dateInputText, { color: themeColors.text }]}>
+                          {newMedStartDate.toLocaleDateString('fr-FR')}
+                        </Text>
+                      </TouchableOpacity>
                       {showStartPicker && (
                         <DateTimePicker
                           value={newMedStartDate}
@@ -657,7 +657,7 @@ export default function MedicationsScreen() {
                     onPress={addScheduleField}
                   >
                     <Ionicons name="add-circle-outline" size={20} color={themeColors.primary} />
-                    <Text style={[styles.addDoseButtonText, { color: themeColors.primary }] }>
+                    <Text style={[styles.addDoseButtonText, { color: themeColors.primary }]}>
                       Ajouter une autre dose (Midi, Soir...)
                     </Text>
                   </TouchableOpacity>

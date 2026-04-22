@@ -1,33 +1,36 @@
+import { useAlert } from "@/components/ThemedAlert";
+import { Colors } from "@/constants/theme";
 import { addProche, updateProche } from "@/controllers/procheController";
 import { auth } from "@/firebaseConfig";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function AddProcheScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { theme, isDark } = useAppTheme();
+  const themeColors = Colors[theme];
+  const { showError, showSuccess } = useAlert();
   const params = useLocalSearchParams();
 
   // If we pass an `id` param, it means we are editing
   const editingId = params.id as string | undefined;
 
-  const [name, setName] = useState(params.name as string || "");
-  const [phone, setPhone] = useState(params.phone as string || "");
-  const [email, setEmail] = useState(params.email as string || "");
+  const [name, setName] = useState((params.name as string) || "");
+  const [phone, setPhone] = useState((params.phone as string) || "");
+  const [email, setEmail] = useState((params.email as string) || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const userId = auth.currentUser?.uid;
@@ -39,19 +42,19 @@ export default function AddProcheScreen() {
 
   const handleSave = async () => {
     // 1. Validate required fields
-    if (!name.trim() || !phone.trim() || !email.trim()) {
-      Alert.alert("Erreur", "Tous les champs (Nom, Téléphone, Email) sont requis.");
+    if (!name.trim() || !email.trim()) {
+      showError("Champs requis", "Veuillez remplir le nom et l'email.");
       return;
     }
 
     // 2. Validate email format
     if (!validateEmail(email.trim())) {
-      Alert.alert("Erreur", "Veuillez entrer une adresse email valide.");
+      showError("Email invalide", "Veuillez entrer une adresse email valide.");
       return;
     }
 
     if (!userId) {
-      Alert.alert("Erreur", "Vous devez être connecté pour ajouter un proche.");
+      showError("Non connecté", "Vous devez être connecté pour ajouter un proche.");
       return;
     }
 
@@ -65,28 +68,27 @@ export default function AddProcheScreen() {
           phone: phone.trim(),
           email: email.trim(),
         });
-        Alert.alert("Succès", "Le contact a été modifié avec succès.");
+        showSuccess("Contact modifié", "Le contact a été modifié avec succès.", () => {
+          router.back();
+        });
       } else {
         await addProche(userId, {
           name: name.trim(),
           phone: phone.trim(),
           email: email.trim(),
         });
-        Alert.alert("Succès", "Le contact a été ajouté avec succès.");
+        showSuccess("Contact ajouté", "Le contact a été ajouté avec succès.", () => {
+          router.back();
+        });
       }
 
-      // 4. Success feedback and Navigation
-      
       // Clear form
       setName("");
       setPhone("");
       setEmail("");
-      
-      // Navigate back
-      router.back();
     } catch (error) {
       console.error("Error saving proche:", error);
-      Alert.alert("Erreur", "Impossible d'ajouter ce contact. Veuillez réessayer.");
+      showError("Échec", "Impossible d'ajouter ce contact. Veuillez réessayer.");
     } finally {
       setIsSubmitting(false);
     }
@@ -94,66 +96,54 @@ export default function AddProcheScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: themeColors.background }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.card }]}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <View style={[styles.header, { backgroundColor: isDark ? "#0f172a" : themeColors.background }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: themeColors.card }]}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.icon} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>
           {editingId ? "Modifier le proche" : "Nouveau proche"}
         </Text>
-        <View style={{ width: 40 }} /> {/* Spacer */}
+        <View style={{ width: 40 }} />{/* Spacer */}
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.card, { backgroundColor: colors.card }]}> 
+        <View style={[styles.card, { backgroundColor: themeColors.card }]}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Nom complet *</Text>
+            <Text style={[styles.inputLabel, { color: themeColors.text }]}>Nom complet *</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+              style={[styles.input, { backgroundColor: isDark ? themeColors.background : themeColors.card, color: themeColors.text, borderColor: themeColors.tabIconDefault }]}
               value={name}
               onChangeText={setName}
               placeholder="Ex: Marie Martin"
-              placeholderTextColor={colors.text + "60"}
+              placeholderTextColor={themeColors.icon}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Numéro de téléphone *</Text>
+            <Text style={[styles.inputLabel, { color: themeColors.text }]}>Adresse email *</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Ex: 06 12 34 56 78"
-              keyboardType="phone-pad"
-              placeholderTextColor={colors.text + "60"}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Adresse email *</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+              style={[styles.input, { backgroundColor: isDark ? themeColors.background : themeColors.card, color: themeColors.text, borderColor: themeColors.tabIconDefault }]}
               value={email}
               onChangeText={setEmail}
               placeholder="Ex: marie@exemple.com"
               keyboardType="email-address"
               autoCapitalize="none"
-              placeholderTextColor={colors.text + "60"}
+              placeholderTextColor={themeColors.icon}
             />
           </View>
 
-          <TouchableOpacity 
-            style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled, { backgroundColor: colors.primary ?? colors.text }]} 
+          <TouchableOpacity
+            style={[styles.saveButton, isSubmitting && styles.saveButtonDisabled, { backgroundColor: themeColors.primary }]}
             onPress={handleSave}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator color={colors.background} />
+              <ActivityIndicator color={themeColors.background} />
             ) : (
-              <Text style={styles.saveButtonText}>
+              <Text style={[styles.saveButtonText, { color: themeColors.background }]}>
                 {editingId ? "Enregistrer les modifications" : "Enregistrer le contact"}
               </Text>
             )}
@@ -177,7 +167,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f1f5f9",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -203,18 +192,15 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#475569",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#f1f5f9",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: "#1e293b",
+    borderWidth: 1,
   },
   saveButton: {
-    backgroundColor: "#00bfa5",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
@@ -224,7 +210,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
   },

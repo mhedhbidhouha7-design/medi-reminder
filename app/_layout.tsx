@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Modal } from "react-native";
 import { Slot } from "expo-router";
 import { ThemeProvider } from "../hooks/use-app-theme";
+import { AlertProvider } from "../components/ThemedAlert";
 import { MedicationAlertScreen } from "../components/MedicationAlertScreen";
 
 import {
@@ -30,18 +31,21 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      {/* Slot renders the matched child route (index, auth, app, etc.) */}
-      <Slot />
+      <AlertProvider>
+        {/* Slot renders the matched child route (index, auth, app, etc.) */}
+        <Slot />
 
-      {/* Modal plein écran — s'affiche par-dessus tout, non fermable */}
-      <Modal
-        visible={!!medicationAlert}
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => {}} // bloque la fermeture native Android
-      >
-        {medicationAlert && <MedicationAlertScreen alert={medicationAlert} />}
-      </Modal>
+        {/* Modal plein écran — s'affiche par-dessus tout, non fermable */}
+        <Modal
+          visible={!!medicationAlert}
+          animationType="slide"
+          statusBarTranslucent
+          onRequestClose={() => {}} // bloque la fermeture native Android
+        >
+          {medicationAlert && <MedicationAlertScreen alert={medicationAlert} />}
+        </Modal>
+      </AlertProvider>
     </ThemeProvider>
   );
 }
+

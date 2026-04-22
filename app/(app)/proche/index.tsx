@@ -1,23 +1,26 @@
+import { Colors } from "@/constants/theme";
+import { useAlert } from "@/components/ThemedAlert";
 import { deleteProche, listenToProches } from "@/controllers/procheController";
 import { auth } from "@/firebaseConfig";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { Proche } from "@/models/interfaces";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function ProcheScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { theme, isDark } = useAppTheme();
+  const themeColors = Colors[theme];
+  const { showConfirm, showError } = useAlert();
   const [proches, setProches] = useState<Proche[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,57 +50,52 @@ export default function ProcheScreen() {
         id: proche.id,
         name: proche.name,
         phone: proche.phone,
-        email: proche.email
-      }
+        email: proche.email,
+      },
     });
   };
 
   const handleDelete = (id: string, name: string) => {
-    Alert.alert(
-      "Supprimer",
+    showConfirm(
+      "Supprimer le contact",
       `Êtes-vous sûr de vouloir supprimer ${name} ?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            if (!userId) return;
-            try {
-              await deleteProche(userId, id);
-            } catch (error) {
-              console.error("Error deleting proche:", error);
-              Alert.alert("Erreur", "Impossible de supprimer ce contact.");
-            }
-          }
+      async () => {
+        if (!userId) return;
+        try {
+          await deleteProche(userId, id);
+        } catch (error) {
+          console.error("Error deleting proche:", error);
+          showError("Erreur", "Impossible de supprimer ce contact.");
         }
-      ]
+      },
+      "Supprimer",
+      "Annuler",
     );
   };
 
   const renderItem = ({ item }: { item: Proche }) => (
-    <View style={[styles.item, { backgroundColor: colors.card }]}>
-        <View style={styles.itemHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: colors.card }]}> 
-          <Ionicons name="person" size={24} color={colors.primary ?? colors.text} />
+    <View style={[styles.item, { backgroundColor: themeColors.card }]}>
+      <View style={styles.itemHeader}>
+        <View style={[styles.iconContainer, { backgroundColor: isDark ? themeColors.background : themeColors.card }]}>
+          <Ionicons name="person" size={24} color={themeColors.primary} />
         </View>
         <View style={styles.infoContainer}>
-          <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
+          <Text style={[styles.name, { color: themeColors.text }]}>{item.name}</Text>
 
           <View style={styles.contactRow}>
-            <Ionicons name="call-outline" size={14} color={colors.text + "60"} />
-            <Text style={[styles.contactText, { color: colors.text + "60" }]}>{item.phone}</Text>
+            <Ionicons name="call-outline" size={14} color={themeColors.icon} />
+            <Text style={[styles.contactText, { color: themeColors.icon }]}>{item.phone}</Text>
           </View>
 
           <View style={styles.contactRow}>
-            <Ionicons name="mail-outline" size={14} color={colors.text + "60"} />
-            <Text style={[styles.contactText, { color: colors.text + "60" }]}>{item.email}</Text>
+            <Ionicons name="mail-outline" size={14} color={themeColors.icon} />
+            <Text style={[styles.contactText, { color: themeColors.icon }]}>{item.email}</Text>
           </View>
         </View>
 
         <View style={styles.actionsContainer}>
           <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionButton}>
-            <Ionicons name="create-outline" size={22} color={colors.text + "60"} />
+            <Ionicons name="create-outline" size={22} color={themeColors.icon} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleDelete(item.id, item.name)} style={styles.actionButton}>
             <Ionicons name="trash-outline" size={22} color="#ef4444" />
@@ -108,24 +106,30 @@ export default function ProcheScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={styles.header}>
+    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
+      <View style={[styles.header, { backgroundColor: isDark ? "#0f172a" : themeColors.background }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: themeColors.card }]}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color={themeColors.icon} />
+        </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>
             Mes Proches
           </Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.headerSubtitle, { color: themeColors.icon }]}>
             Contacts de confiance
           </Text>
         </View>
-        <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary ?? colors.text, shadowColor: colors.primary ?? colors.text }]} onPress={openAddModal}>
-          <Ionicons name="add" size={24} color={colors.background} />
+        <TouchableOpacity style={[styles.addButton, { backgroundColor: themeColors.primary, shadowColor: themeColors.primary }]} onPress={openAddModal}>
+          <Ionicons name="add" size={24} color={themeColors.background} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary ?? colors.text} />
+          <ActivityIndicator size="large" color={themeColors.primary} />
         </View>
       ) : (
         <FlatList
@@ -135,8 +139,8 @@ export default function ProcheScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={48} color={colors.text + "20"} />
-              <Text style={[styles.emptyText, { color: colors.text + "70" }]}>
+              <Ionicons name="people-outline" size={48} color={themeColors.icon} />
+              <Text style={[styles.emptyText, { color: themeColors.icon }]}>
                 Vous n'avez pas encore ajouté de proche. Appuyez sur le bouton + pour en ajouter un.
               </Text>
             </View>
@@ -150,13 +154,21 @@ export default function ProcheScreen() {
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     padding: 20,
     paddingTop: 60,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   headerTitleContainer: {
     flex: 1,
+    marginLeft: 12,
   },
   headerTitle: {
     fontSize: 28,
@@ -164,17 +176,14 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#64748b",
     marginTop: 4,
   },
   addButton: {
-    backgroundColor: "#00bfa5",
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#00bfa5",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -214,7 +223,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#e0f2f1",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -235,7 +243,6 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 14,
-    color: "#475569",
   },
   actionsContainer: {
     flexDirection: "row",

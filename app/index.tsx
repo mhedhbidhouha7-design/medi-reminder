@@ -185,7 +185,7 @@ export default function SplashScreen() {
       </Animated.View>
 
       {/* Subtitle */}
-      <Animated.Text style={[styles.subtitle, { opacity: fadeSubtitle }]}>
+      <Animated.Text style={[styles.subtitle, { opacity: fadeSubtitle, color: themeColors.text }]}>
         Your health, always on time
       </Animated.Text>
 

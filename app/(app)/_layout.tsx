@@ -6,6 +6,7 @@ import {
     PendingMedicationAlert,
     subscribeToPendingMedicationAlert,
 } from "@/services/medicationNotificationHandler";
+import { checkAndNotifyMissedDoses } from "@/services/missedDoseService";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import { Tabs, useRouter } from "expo-router";
@@ -13,6 +14,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
 import {
     Animated,
+    AppState,
     Platform,
     StyleSheet,
     TouchableOpacity,
@@ -297,12 +299,36 @@ export default function ProtectedLayout() {
         user ? "User logged in" : "No user",
       );
       setIsInitializing(false);
-      if (!user) {
+      if (user) {
+        // Run check on login
+        checkAndNotifyMissedDoses(user.uid);
+      } else {
         console.log("No user in ProtectedLayout, replacing with /signin");
         router.replace("/signin");
       }
     });
-    return unsubscribe;
+
+    // Add AppState listener to check when app comes to foreground
+    const appStateListener = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active" && auth.currentUser) {
+        console.log("App moved to foreground, checking for missed doses...");
+        checkAndNotifyMissedDoses(auth.currentUser.uid);
+      }
+    });
+
+    // AUTO-CHECK TIMER: Check every 60 seconds while app is running
+    const autoCheckInterval = setInterval(() => {
+      if (auth.currentUser) {
+        console.log("⏱️ Periodic auto-check for missed doses...");
+        checkAndNotifyMissedDoses(auth.currentUser.uid);
+      }
+    }, 60000); // 60,000ms = 1 minute
+
+    return () => {
+      unsubscribe();
+      appStateListener.remove();
+      clearInterval(autoCheckInterval);
+    };
   }, [router]);
 
   if (isInitializing) return null;

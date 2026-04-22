@@ -81,3 +81,30 @@ export interface HealthJournalEntry {
   notes?: string; // notes personnelles
   createdAt: string; // timestamp
 }
+
+export interface Demande {
+  id?: string;
+  type: 'appointment' | 'follow-up';
+  doctorId: string;
+  doctorName: string;
+  patientId: string;
+  patientEmail: string | null;
+  patientName: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: any; // Firebase serverTimestamp
+}
+
+export interface Doctor {
+  id: string;
+  firstName?: string;
+  lastName: string;
+  specialty: string;
+  hospital: string;
+  phone: string;
+  email?: string;
+  role: string;
+  uid: string;
+  licenseNumber?: string;
+  rating?: number | string;
+  bio?: string;
+}

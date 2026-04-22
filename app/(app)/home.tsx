@@ -257,12 +257,7 @@ export default function Home() {
       route: "IA",
       active: false,
     },
-    {
-      icon: "person-outline",
-      label: "Profil",
-      route: "profile",
-      active: false,
-    },
+
     {
       icon: "people-outline",
       label: "Proches",
@@ -449,7 +444,7 @@ export default function Home() {
                 ]}
                 onPress={() => router.push("/medications")}
               >
-                <Text style={styles.dashboardValue}>{stats.totalToday}</Text>
+                <Text style={[styles.dashboardValue, { color: themeColors.text }]}>{stats.totalToday}</Text>
                 <Text style={styles.dashboardLabel}>Prévues</Text>
                 <Text
                   style={[
@@ -471,7 +466,7 @@ export default function Home() {
                 ]}
                 onPress={() => router.push("/medications")}
               >
-                <Text style={styles.dashboardValue}>{stats.takenToday}</Text>
+                <Text style={[styles.dashboardValue, { color: themeColors.text }]}>{stats.takenToday}</Text>
                 <Text style={styles.dashboardLabel}>Prises</Text>
                 <Text
                   style={[styles.dashboardSubtext, { color: themeColors.tint }]}
@@ -526,7 +521,7 @@ export default function Home() {
                     size={16}
                     color={themeColors.primary}
                   />
-                  <Text style={styles.dashboardValue}>
+                  <Text style={[styles.dashboardValue, { color: themeColors.text }]}>
                     {stats.upcomingAppointments}
                   </Text>
                 </View>
@@ -564,7 +559,7 @@ export default function Home() {
                     size={16}
                     color={themeColors.tint}
                   />
-                  <Text style={styles.dashboardValue}>
+                  <Text style={[styles.dashboardValue, { color: themeColors.text }]}>
                     {stats.completedAppointments}
                   </Text>
                 </View>
@@ -689,7 +684,7 @@ export default function Home() {
           {/* ── 3. Médicaments du jour (UNIQUEMENT NON PRIS) ── */}
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitleLarge}>Aujourd{"'"}hui</Text>
+              <Text style={[styles.sectionTitleLarge, { color: themeColors.text }]}>Aujourd{"'"}hui</Text>
               <TouchableOpacity onPress={() => router.push("/medications")}>
                 <Text
                   style={[styles.seeAllText, { color: themeColors.primary }]}
@@ -818,7 +813,7 @@ export default function Home() {
           {/* ── 3b. RDV PROCHES ── */}
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitleLarge}>Prochain(s) RDV</Text>
+              <Text style={[styles.sectionTitleLarge, { color: themeColors.text }]}>Prochain(s) RDV</Text>
               <TouchableOpacity onPress={() => router.push("/rdv")}>
                 <Text
                   style={[styles.seeAllText, { color: themeColors.primary }]}
@@ -1107,21 +1102,7 @@ export default function Home() {
                 </TouchableOpacity>
               ))}
             </View>
-            <View style={styles.logoutSection}>
-              <TouchableOpacity
-                style={styles.logoutButton}
-                onPress={handleLogout}
-              >
-                <Ionicons
-                  name="log-out-outline"
-                  size={22}
-                  color={themeColors.icon}
-                />
-                <Text style={[styles.logoutText, { color: themeColors.text }]}>
-                  Déconnexion
-                </Text>
-              </TouchableOpacity>
-            </View>
+
           </Animated.View>
         </View>
       </Modal>
@@ -1264,8 +1245,8 @@ const styles = StyleSheet.create({
   dashboardValue: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#1e293b",
     marginBottom: 4,
+
   },
   dashboardLabel: {
     fontSize: 13,
@@ -1490,13 +1471,14 @@ const styles = StyleSheet.create({
   menuItemTextActive: { color: "#fff", fontWeight: "600" },
   logoutSection: {
     position: "absolute",
-    bottom: 0,
+    bottom: 20,
     left: 0,
     right: 0,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "transparent",
+    borderTopColor: "#e2e8f0",
     backgroundColor: "transparent",
+    marginTop: 20,
   },
   logoutButton: {
     flexDirection: "row",

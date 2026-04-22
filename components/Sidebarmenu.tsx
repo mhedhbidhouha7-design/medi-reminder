@@ -134,7 +134,7 @@ export default function SidebarMenu({
               <Text style={styles.userCardEmail}>jean.dupont@email.com</Text>
             </View>
           </View>
-                                                                                                                                                                      bnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn                                                                                                                                                                                                                               vv
+          bnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn                                                                                                                                                                                                                               vv
           {/* Items */}
           <View style={styles.menuList}>
             {MENU_ITEMS.map((item, index) => {
