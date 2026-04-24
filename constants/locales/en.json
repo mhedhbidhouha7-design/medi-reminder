@@ -1,0 +1,116 @@
+{
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "Settings and themes",
+    "theme_section": "App Theme",
+    "language_section": "App Language",
+    "language_restart_msg": "The application needs to restart to apply language changes.",
+    "account_created_on": "Account created on",
+    "personal_info": "Personal Info",
+    "personal_info_subtitle": "Manage your personal and medical information",
+    "notifications": "Notification Settings",
+    "notifications_subtitle": "Medication, appointment, and health alert notifications",
+    "logout": "Logout",
+    "logout_confirm_title": "Logout",
+    "logout_confirm_message": "Are you sure you want to log out?",
+    "logout_confirm_btn": "Log out",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "save": "Save",
+    "ok": "OK",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "emerald": "Emerald",
+      "royal": "Royal"
+    },
+    "languages": {
+      "fr": "French",
+      "en": "English",
+      "ar": "Arabic"
+    },
+    "form": {
+      "full_name": "Full Name",
+      "email": "Email",
+      "phone": "Phone Number",
+      "dob": "Date of Birth",
+      "gender": "Gender",
+      "address": "Address",
+      "placeholder_name": "Your name"
+    },
+    "notification_items": {
+      "medications": "Medication Notifications",
+      "medications_desc": "Reminders for your medications",
+      "email": "Email Notifications",
+      "email_desc": "Receive by email",
+      "appointments": "Appointment Notifications",
+      "appointments_desc": "Reminders for your appointments",
+      "sms": "SMS Notifications",
+      "sms_desc": "Receive by SMS",
+      "health_alerts": "Health Alerts",
+      "health_alerts_desc": "Important health alerts"
+    },
+    "messages": {
+      "profile_updated": "Profile updated",
+      "profile_updated_desc": "Your profile has been updated successfully.",
+      "info_updated": "Information updated",
+      "info_updated_desc": "Your personal information has been saved.",
+      "error_update": "Unable to update information.",
+      "error_logout": "Unable to log out.",
+      "required_field": "Required field",
+      "name_empty": "Name cannot be empty.",
+      "unknown_date": "Unknown date",
+      "error": "Error",
+      "error_upload": "Error during image upload",
+      "permission_denied": "Permission denied",
+      "permission_denied_desc": "We need access to your gallery to change the photo.",
+      "photo_updated": "Photo updated",
+      "photo_updated_desc": "Profile photo updated successfully."
+    }
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "menu": {
+      "dashboard": "Dashboard",
+      "medications": "Medications",
+      "appointments": "Appointments",
+      "ai_analysis": "AI Analysis",
+      "proches": "Relatives",
+      "health_journal": "Health Journal",
+      "find_doctor": "Find a Doctor",
+      "health_summary": "Health Summary"
+    },
+    "sidebar": {
+      "app_subtitle": "Health App",
+      "logout": "Logout"
+    }
+  },
+  "home": {
+    "welcome": "Hello,",
+    "user_placeholder": "User",
+    "adherence_title": "Treatment Adherence",
+    "this_week": "This week",
+    "stats_summary": "{{taken}} taken, {{missed}} missed, {{remaining}} upcoming out of {{total}} today.",
+    "excellent_work": "Excellent work!",
+    "dont_forget": "Don't forget your care!",
+    "dashboard_title": "Dashboard",
+    "planned": "Planned",
+    "today": "Today",
+    "taken": "Taken",
+    "bravo": "Bravo!",
+    "missed": "Missed",
+    "watch_out": "To watch",
+    "upcoming_appointments": "Upcoming Appts",
+    "total_planned": "Total planned",
+    "completed_appointments": "Completed Appts",
+    "history": "History",
+    "next_medication": "Next Medication",
+    "no_meds_today": "None for today",
+    "next_appointment": "Next Appt",
+    "no_upcoming_appointments": "No upcoming",
+    "see_all": "See all",
+    "late": "Late",
+    "at": "at"
+  }
+}

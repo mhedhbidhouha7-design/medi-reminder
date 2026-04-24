@@ -1,0 +1,116 @@
+{
+  "profile": {
+    "title": "Mon Profil",
+    "subtitle": "Paramètres et thèmes",
+    "theme_section": "Thème de l'application",
+    "language_section": "Langue de l'application",
+    "language_restart_msg": "L'application doit redémarrer pour appliquer les changements de langue.",
+    "account_created_on": "Compte créé le",
+    "personal_info": "Informations perso.",
+    "personal_info_subtitle": "Gérez vos informations personnelles et médicales",
+    "notifications": "Paramètres de notifications",
+    "notifications_subtitle": "Notifications de médicaments, rendez-vous, alertes santé",
+    "logout": "Déconnexion",
+    "logout_confirm_title": "Déconnexion",
+    "logout_confirm_message": "Êtes-vous sûr de vouloir vous déconnecter ?",
+    "logout_confirm_btn": "Se déconnecter",
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "ok": "OK",
+    "themes": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "emerald": "Émeraude",
+      "royal": "Royal"
+    },
+    "languages": {
+      "fr": "Français",
+      "en": "Anglais",
+      "ar": "Arabe"
+    },
+    "form": {
+      "full_name": "Nom complet",
+      "email": "Email",
+      "phone": "Numéro de téléphone",
+      "dob": "Date de naissance",
+      "gender": "Genre",
+      "address": "Adresse",
+      "placeholder_name": "Votre nom"
+    },
+    "notification_items": {
+      "medications": "Notifications de médicaments",
+      "medications_desc": "Rappels pour vos médicaments",
+      "email": "Notifications par email",
+      "email_desc": "Recevoir par email",
+      "appointments": "Notifications de rendez-vous",
+      "appointments_desc": "Rappels de vos rendez-vous",
+      "sms": "Notifications par SMS",
+      "sms_desc": "Recevoir par SMS",
+      "health_alerts": "Alertes santé",
+      "health_alerts_desc": "Alertes de santé importantes"
+    },
+    "messages": {
+      "profile_updated": "Profil mis à jour",
+      "profile_updated_desc": "Votre profil a été mis à jour avec succès.",
+      "info_updated": "Informations mises à jour",
+      "info_updated_desc": "Vos informations personnelles ont été sauvegardées.",
+      "error_update": "Impossible de mettre à jour les informations.",
+      "error_logout": "Impossible de vous déconnecter.",
+      "required_field": "Champ requis",
+      "name_empty": "Le nom ne peut pas être vide.",
+      "unknown_date": "Date inconnue",
+      "error": "Erreur",
+      "error_upload": "Erreur lors de l'upload de l'image",
+      "permission_denied": "Permission refusée",
+      "permission_denied_desc": "Nous avons besoin d'accéder à votre galerie pour changer la photo.",
+      "photo_updated": "Photo mise à jour",
+      "photo_updated_desc": "Photo de profil mise à jour avec succès."
+    }
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Annuler",
+    "menu": {
+      "dashboard": "Tableau de bord",
+      "medications": "Médicaments",
+      "appointments": "Rendez-vous",
+      "ai_analysis": "Analyse IA",
+      "proches": "Proches",
+      "health_journal": "Journal de santé",
+      "find_doctor": "Trouver un médecin",
+      "health_summary": "Résumé de santé"
+    },
+    "sidebar": {
+      "app_subtitle": "Application Santé",
+      "logout": "Déconnexion"
+    }
+  },
+  "home": {
+    "welcome": "Bonjour,",
+    "user_placeholder": "Utilisateur",
+    "adherence_title": "Adhérence au traitement",
+    "this_week": "Cette semaine",
+    "stats_summary": "{{taken}} prises, {{missed}} manquées, {{remaining}} à venir sur {{total}} aujourd'hui.",
+    "excellent_work": "Excellent travail !",
+    "dont_forget": "N'oubliez pas vos soins !",
+    "dashboard_title": "Tableau de bord",
+    "planned": "Prévues",
+    "today": "Aujourd'hui",
+    "taken": "Prises",
+    "bravo": "Bravo !",
+    "missed": "Manquées",
+    "watch_out": "À surveiller",
+    "upcoming_appointments": "RDV à venir",
+    "total_planned": "Total planifiés",
+    "completed_appointments": "RDV terminés",
+    "history": "Historique",
+    "next_medication": "Prochain Médicament",
+    "no_meds_today": "Aucun pour aujourd'hui",
+    "next_appointment": "Prochain RDV",
+    "no_upcoming_appointments": "Aucun à venir",
+    "see_all": "Voir tout",
+    "late": "En retard",
+    "at": "à"
+  }
+}

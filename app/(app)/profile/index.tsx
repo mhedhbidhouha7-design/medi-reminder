@@ -1,13 +1,16 @@
-import { Colors } from "@/constants/theme";
 import { useAlert } from "@/components/ThemedAlert";
+import { Colors } from "@/constants/theme";
 import { auth, db } from "@/firebaseConfig";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { onValue, ref, update } from "firebase/database";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  DevSettings,
+  I18nManager,
   Image,
   ScrollView,
   StyleSheet,
@@ -37,6 +40,7 @@ interface UserData {
 export default function Profile() {
   const { theme, setTheme, isDark } = useAppTheme();
   const themeColors = Colors[theme];
+  const { t, i18n } = useTranslation();
   const { showError, showSuccess, showConfirm, showAlert } = useAlert();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,7 +143,7 @@ export default function Profile() {
       return data.secure_url;
     } catch (error: any) {
       console.error("Cloudinary upload error:", error);
-      throw new Error(error.message || "Erreur lors de l'upload de l'image");
+      throw new Error(error.message || t("profile.messages.error_upload"));
     }
   };
 
@@ -148,8 +152,8 @@ export default function Profile() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       showError(
-        "Permission refusée",
-        "Nous avons besoin d'accéder à votre galerie pour changer la photo.",
+        t("profile.messages.permission_denied"),
+        t("profile.messages.permission_denied_desc"),
       );
       return;
     }
@@ -174,10 +178,10 @@ export default function Profile() {
           await update(ref(db, `users/${userId}`), {
             profileImageUrl: cloudinaryUrl,
           });
-          showSuccess("Photo mise à jour", "Photo de profil mise à jour avec succès.");
+          showSuccess(t("profile.messages.photo_updated"), t("profile.messages.photo_updated_desc"));
         }
       } catch (error: any) {
-        showError("Erreur", error.message);
+        showError(t("profile.messages.error"), error.message);
       } finally {
         setUploadingImage(false);
       }
@@ -187,7 +191,7 @@ export default function Profile() {
   // Save profile name
   const handleSaveProfile = async () => {
     if (!editedName.trim()) {
-      showError("Champ requis", "Le nom ne peut pas être vide.");
+      showError(t("profile.messages.required_field"), t("profile.messages.name_empty"));
       return;
     }
 
@@ -199,10 +203,10 @@ export default function Profile() {
           name: editedName.trim(),
         });
         setIsEditingProfile(false);
-        showSuccess("Profil mis à jour", "Votre profil a été mis à jour avec succès.");
+        showSuccess(t("profile.messages.profile_updated"), t("profile.messages.profile_updated_desc"));
       }
     } catch (error) {
-      showError("Erreur", "Impossible de mettre à jour le profil.");
+      showError(t("profile.messages.error"), t("profile.messages.error_update"));
     } finally {
       setUpdating(false);
     }
@@ -222,12 +226,45 @@ export default function Profile() {
           address: personalInfo.address,
         });
         setIsEditingInfo(false);
-        showSuccess("Informations mises à jour", "Vos informations personnelles ont été sauvegardées.");
+        showSuccess(t("profile.messages.info_updated"), t("profile.messages.info_updated_desc"));
       }
     } catch (error) {
-      showError("Erreur", "Impossible de mettre à jour les informations.");
+      showError(t("profile.messages.error"), t("profile.messages.error_update"));
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const changeLanguage = async (lng: string) => {
+    if (i18n.language === lng) return;
+
+    try {
+      await i18n.changeLanguage(lng);
+      const isRTL = lng === "ar";
+
+      if (I18nManager.isRTL !== isRTL) {
+        I18nManager.allowRTL(isRTL);
+        I18nManager.forceRTL(isRTL);
+
+        showAlert(
+          t("profile.language_section"),
+          t("profile.language_restart_msg"),
+          [
+            {
+              text: t("common.cancel"),
+              style: "cancel",
+            },
+            {
+              text: t("common.ok"),
+              onPress: () => {
+                DevSettings.reload();
+              },
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Error changing language:", error);
     }
   };
 
@@ -236,9 +273,9 @@ export default function Profile() {
   };
 
   const formatCreationDate = (isoString: string): string => {
-    if (!isoString) return "Date inconnue";
+    if (!isoString) return t("profile.messages.unknown_date");
     const date = new Date(isoString);
-    return date.toLocaleDateString("fr-FR", {
+    return date.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : i18n.language === "en" ? "en-US" : "fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -281,9 +318,9 @@ export default function Profile() {
               <Ionicons name="person" size={24} color="#fff" />
             </View>
             <View style={{ flexShrink: 1 }}>
-              <Text style={[styles.headerTitle, { color: themeColors.text }]}>Mon Profil</Text>
+              <Text style={[styles.headerTitle, { color: themeColors.text }]}>{t("profile.title")}</Text>
               <Text style={[styles.headerSubtitle, { color: themeColors.icon }]}>
-                Paramètres et thèmes
+                {t("profile.subtitle")}
               </Text>
             </View>
           </View>
@@ -292,17 +329,17 @@ export default function Profile() {
             style={[styles.headerLogoutButton, { backgroundColor: themeColors.card }]}
             onPress={() => {
               showConfirm(
-                "Déconnexion",
-                "Êtes-vous sûr de vouloir vous déconnecter ?",
+                t("profile.logout_confirm_title"),
+                t("profile.logout_confirm_message"),
                 async () => {
                   try {
                     await auth.signOut();
                   } catch (error) {
-                    showError("Erreur", "Impossible de vous déconnecter.");
+                    showError(t("profile.messages.error"), t("profile.messages.error_logout"));
                   }
                 },
-                "Se déconnecter",
-                "Annuler",
+                t("profile.logout_confirm_btn"),
+                t("profile.cancel"),
               );
             }}
           >
@@ -319,31 +356,65 @@ export default function Profile() {
         <View style={[styles.section, { backgroundColor: themeColors.card }]}>
           <View style={styles.sectionTitleContainer}>
             <Ionicons name="color-palette-outline" size={22} color={themeColors.tint} />
-            <Text style={[styles.sectionTitle, { color: themeColors.tint }]}>Thème de l'application</Text>
+            <Text style={[styles.sectionTitle, { color: themeColors.tint }]}>{t("profile.theme_section")}</Text>
           </View>
 
           <View style={styles.themeGrid}>
             {[
-              { id: 'light', label: 'Clair', icon: 'sunny-outline' },
-              { id: 'dark', label: 'Sombre', icon: 'moon-outline' },
-              { id: 'emerald', label: 'Émeraude', icon: 'leaf-outline' },
-              { id: 'royal', label: 'Royal', icon: 'ribbon-outline' },
-            ].map((t) => (
+              { id: 'light', label: t("profile.themes.light"), icon: 'sunny-outline' },
+              { id: 'dark', label: t("profile.themes.dark"), icon: 'moon-outline' },
+              { id: 'emerald', label: t("profile.themes.emerald"), icon: 'leaf-outline' },
+              { id: 'royal', label: t("profile.themes.royal"), icon: 'ribbon-outline' },
+            ].map((t_theme) => (
               <TouchableOpacity
-                key={t.id}
+                key={t_theme.id}
                 style={[
                   styles.themeButton,
-                  theme === t.id && { borderColor: themeColors.tint, borderWidth: 2 },
+                  theme === t_theme.id && { borderColor: themeColors.tint, borderWidth: 2 },
                   { backgroundColor: themeColors.card }
                 ]}
-                onPress={() => setTheme(t.id as any)}
+                onPress={() => setTheme(t_theme.id as any)}
               >
-                <Ionicons name={t.icon as any} size={20} color={t.id === theme ? themeColors.tint : themeColors.icon} />
+                <Ionicons name={t_theme.icon as any} size={20} color={t_theme.id === theme ? themeColors.tint : themeColors.icon} />
                 <Text style={[
                   styles.themeButtonText,
-                  { color: t.id === theme ? themeColors.tint : themeColors.text }
+                  { color: t_theme.id === theme ? themeColors.tint : themeColors.text }
                 ]}>
-                  {t.label}
+                  {t_theme.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Language Selection Section */}
+        <View style={[styles.section, { backgroundColor: themeColors.card }]}>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="language-outline" size={22} color={themeColors.tint} />
+            <Text style={[styles.sectionTitle, { color: themeColors.tint }]}>{t("profile.language_section")}</Text>
+          </View>
+
+          <View style={styles.themeGrid}>
+            {[
+              { id: 'fr', label: t("profile.languages.fr"), icon: 'text-outline' },
+              { id: 'en', label: t("profile.languages.en"), icon: 'text-outline' },
+              { id: 'ar', label: t("profile.languages.ar"), icon: 'text-outline' },
+            ].map((l) => (
+              <TouchableOpacity
+                key={l.id}
+                style={[
+                  styles.themeButton,
+                  i18n.language === l.id && { borderColor: themeColors.tint, borderWidth: 2 },
+                  { backgroundColor: themeColors.card }
+                ]}
+                onPress={() => changeLanguage(l.id)}
+              >
+                <Ionicons name={l.icon as any} size={20} color={l.id === i18n.language ? themeColors.tint : themeColors.icon} />
+                <Text style={[
+                  styles.themeButtonText,
+                  { color: l.id === i18n.language ? themeColors.tint : themeColors.text }
+                ]}>
+                  {l.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -387,7 +458,7 @@ export default function Profile() {
                   value={editedName}
                   onChangeText={setEditedName}
                   autoFocus
-                  placeholder="Votre nom"
+                  placeholder={t("profile.form.placeholder_name")}
                   placeholderTextColor={themeColors.icon}
                 />
               ) : (
@@ -395,7 +466,7 @@ export default function Profile() {
               )}
               <Text style={[styles.profileEmail, { color: themeColors.icon }]}>{userData.email}</Text>
               <Text style={[styles.profileDate, { color: themeColors.icon }]}>
-                Compte créé le {formatCreationDate(userData.createdAt)}
+                {t("profile.account_created_on")} {formatCreationDate(userData.createdAt)}
               </Text>
             </View>
           </View>
@@ -406,7 +477,7 @@ export default function Profile() {
               onPress={() => setIsEditingProfile(true)}
             >
               <Ionicons name="create-outline" size={18} color={themeColors.primary} />
-              <Text style={[styles.editButtonText, { color: themeColors.primary }]}>Modifier</Text>
+              <Text style={[styles.editButtonText, { color: themeColors.primary }]}>{t("profile.edit")}</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.editActions}>
@@ -417,7 +488,7 @@ export default function Profile() {
                   setEditedName(userData.name);
                 }}
               >
-                <Text style={[styles.cancelButtonText, { color: themeColors.icon }]}>Annuler</Text>
+                <Text style={[styles.cancelButtonText, { color: themeColors.icon }]}>{t("profile.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionButton, styles.saveButton, { backgroundColor: themeColors.primary }]}
@@ -425,7 +496,7 @@ export default function Profile() {
                 disabled={updating}
               >
                 <Text style={[styles.saveButtonText, { color: themeColors.background }]}>
-                  {updating ? "..." : "Enregistrer"}
+                  {updating ? "..." : t("profile.save")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -437,7 +508,7 @@ export default function Profile() {
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleContainer}>
               <Ionicons name="person-outline" size={22} color={themeColors.tint} />
-              <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>Informations perso.</Text>
+              <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>{t("profile.personal_info")}</Text>
             </View>
             {!isEditingInfo ? (
               <TouchableOpacity
@@ -462,7 +533,7 @@ export default function Profile() {
                     });
                   }}
                 >
-                  <Text style={styles.smallCancelText}>Annuler</Text>
+                  <Text style={styles.smallCancelText}>{t("profile.cancel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.smallSaveButton}
@@ -470,19 +541,19 @@ export default function Profile() {
                   disabled={updating}
                 >
                   <Text style={styles.smallSaveText}>
-                    {updating ? "..." : "OK"}
+                    {updating ? "..." : t("profile.ok")}
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
           <Text style={styles.sectionSubtitle}>
-            Gérez vos informations personnelles et médicales
+            {t("profile.personal_info_subtitle")}
           </Text>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Nom complet</Text>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("profile.form.full_name")}</Text>
               <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
@@ -497,7 +568,7 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Email</Text>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("profile.form.email")}</Text>
               <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
@@ -509,7 +580,7 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Numéro de téléphone</Text>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("profile.form.phone")}</Text>
               <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name="call-outline"
@@ -531,7 +602,7 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Date de naissance</Text>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("profile.form.dob")}</Text>
               <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name="calendar-outline"
@@ -552,7 +623,7 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Genre</Text>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("profile.form.gender")}</Text>
               <View style={[styles.inputContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name={
@@ -577,7 +648,7 @@ export default function Profile() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: themeColors.text }]}>Adresse</Text>
+              <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("profile.form.address")}</Text>
               <View style={[styles.inputContainer, styles.textAreaContainer, { backgroundColor: themeColors.card }]}>
                 <Ionicons
                   name="location-outline"
@@ -605,18 +676,17 @@ export default function Profile() {
         <View style={[styles.section, { backgroundColor: themeColors.card }]}>
           <View style={styles.sectionTitleContainer}>
             <Ionicons name="notifications-outline" size={22} color={themeColors.tint} />
-            <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>Paramètres de notifications</Text>
+            <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>{t("profile.notifications")}</Text>
           </View>
           <Text style={[styles.sectionSubtitle, { color: themeColors.icon }]}>
-            Notifications de médicaments, Notifications de rendez-vous, Alertes
-            santé
+            {t("profile.notifications_subtitle")}
           </Text>
 
           <View style={styles.notificationsGrid}>
             <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications de médicaments</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Rappels pour vos médicaments</Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.medications")}</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.medications_desc")}</Text>
               </View>
               <Switch
                 value={notifications.medications}
@@ -628,8 +698,8 @@ export default function Profile() {
 
             <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications par email</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Recevoir par email</Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.email")}</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.email_desc")}</Text>
               </View>
               <Switch
                 value={notifications.email}
@@ -641,8 +711,8 @@ export default function Profile() {
 
             <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications de rendez-vous</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Rappels de vos rendez-vous</Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.appointments")}</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.appointments_desc")}</Text>
               </View>
               <Switch
                 value={notifications.appointments}
@@ -654,8 +724,8 @@ export default function Profile() {
 
             <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Notifications par SMS</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Recevoir par SMS</Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.sms")}</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.sms_desc")}</Text>
               </View>
               <Switch
                 value={notifications.sms}
@@ -667,8 +737,8 @@ export default function Profile() {
 
             <View style={[styles.notificationCard, styles.fullWidth, { backgroundColor: themeColors.card }]}>
               <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>Alertes santé</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>Alertes de santé importantes</Text>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.health_alerts")}</Text>
+                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.health_alerts_desc")}</Text>
               </View>
               <Switch
                 value={notifications.healthAlerts}

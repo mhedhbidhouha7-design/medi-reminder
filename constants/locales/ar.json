@@ -1,0 +1,116 @@
+{
+  "profile": {
+    "title": "ملفي الشخصي",
+    "subtitle": "الإعدادات والسمات",
+    "theme_section": "سمة التطبيق",
+    "language_section": "لغة التطبيق",
+    "language_restart_msg": "يجب إعادة تشغيل التطبيق لتطبيق تغييرات اللغة.",
+    "account_created_on": "تم إنشاء الحساب في",
+    "personal_info": "المعلومات الشخصية",
+    "personal_info_subtitle": "إدارة معلوماتك الشخصية والطبية",
+    "notifications": "إعدادات الإشعارات",
+    "notifications_subtitle": "إشعارات الأدوية، المواعيد، والتنبيهات الصحية",
+    "logout": "تسجيل الخروج",
+    "logout_confirm_title": "تسجيل الخروج",
+    "logout_confirm_message": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+    "logout_confirm_btn": "تسجيل الخروج",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "save": "حفظ",
+    "ok": "موافق",
+    "themes": {
+      "light": "فاتح",
+      "dark": "داكن",
+      "emerald": "زمردي",
+      "royal": "ملكي"
+    },
+    "languages": {
+      "fr": "الفرنسية",
+      "en": "الإنجليزية",
+      "ar": "العربية"
+    },
+    "form": {
+      "full_name": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الهاتف",
+      "dob": "تاريخ الميلاد",
+      "gender": "الجنس",
+      "address": "العنوان",
+      "placeholder_name": "اسمك"
+    },
+    "notification_items": {
+      "medications": "إشعارات الأدوية",
+      "medications_desc": "تذكيرات لأدويتك",
+      "email": "إشعارات البريد الإلكتروني",
+      "email_desc": "الاستلام عبر البريد الإلكتروني",
+      "appointments": "إشعارات المواعيد",
+      "appointments_desc": "تذكيرات لمواعيدك",
+      "sms": "إشعارات SMS",
+      "sms_desc": "الاستلام عبر SMS",
+      "health_alerts": "تنبيهات صحية",
+      "health_alerts_desc": "تنبيهات صحية هامة"
+    },
+    "messages": {
+      "profile_updated": "تم تحديث الملف الشخصي",
+      "profile_updated_desc": "تم تحديث ملفك الشخصي بنجاح.",
+      "info_updated": "تم تحديث المعلومات",
+      "info_updated_desc": "تم حفظ معلوماتك الشخصية.",
+      "error_update": "تعذر تحديث المعلومات.",
+      "error_logout": "تعذر تسجيل الخروج.",
+      "required_field": "حقل مطلوب",
+      "name_empty": "لا يمكن أن يكون الاسم فارغاً.",
+      "unknown_date": "تاريخ غير معروف",
+      "error": "خطأ",
+      "error_upload": "خطأ أثناء تحميل الصورة",
+      "permission_denied": "تم رفض الإذن",
+      "permission_denied_desc": "نحتاج للوصول إلى معرض الصور لتغيير الصورة.",
+      "photo_updated": "تم تحديث الصورة",
+      "photo_updated_desc": "تم تحديث صورة الملف الشخصي بنجاح."
+    }
+  },
+  "common": {
+    "ok": "موافق",
+    "cancel": "إلغاء",
+    "menu": {
+      "dashboard": "لوحة القيادة",
+      "medications": "الأدوية",
+      "appointments": "المواعيد",
+      "ai_analysis": "تحليل الذكاء الاصطناعي",
+      "proches": "الأقارب",
+      "health_journal": "سجل الصحة",
+      "find_doctor": "ابحث عن طبيب",
+      "health_summary": "ملخص الصحة"
+    },
+    "sidebar": {
+      "app_subtitle": "تطبيق الصحة",
+      "logout": "تسجيل الخروج"
+    }
+  },
+  "home": {
+    "welcome": "مرحباً،",
+    "user_placeholder": "مستخدم",
+    "adherence_title": "الالتزام بالعلاج",
+    "this_week": "هذا الأسبوع",
+    "stats_summary": "{{taken}} مأخوذة، {{missed}} فائتة، {{remaining}} قادمة من أصل {{total}} اليوم.",
+    "excellent_work": "عمل ممتاز!",
+    "dont_forget": "لا تنسَ رعايتك!",
+    "dashboard_title": "لوحة القيادة",
+    "planned": "مخطط لها",
+    "today": "اليوم",
+    "taken": "مأخوذة",
+    "bravo": "أحسنت!",
+    "missed": "فائتة",
+    "watch_out": "للمراقبة",
+    "upcoming_appointments": "مواعيد قادمة",
+    "total_planned": "إجمالي المخطط",
+    "completed_appointments": "مواعيد مكتملة",
+    "history": "السجل",
+    "next_medication": "الدواء التالي",
+    "no_meds_today": "لا يوجد اليوم",
+    "next_appointment": "الموعد التالي",
+    "no_upcoming_appointments": "لا يوجد قادم",
+    "see_all": "عرض الكل",
+    "late": "متأخر",
+    "at": "في"
+  }
+}

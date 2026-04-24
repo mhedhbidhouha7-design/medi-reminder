@@ -1,7 +1,7 @@
 // components/SidebarMenu.tsx
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router"; //  useRouter au lieu de useNavigation
-import { useRef } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -12,6 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
+import { auth, db } from "@/firebaseConfig";
+import { onValue, ref } from "firebase/database";
 
 const { width } = Dimensions.get("window");
 
@@ -21,59 +24,77 @@ type SidebarMenuProps = {
   activeRoute: string; // "home" | "medications" | "profile" | ...
 };
 
-// ✅ Les routes correspondent exactement à votre structure app/(app)/
-const MENU_ITEMS = [
-  {
-    icon: "grid-outline",
-    label: "Tableau de bord",
-    route: "/(app)/home",
-    key: "home",
-  },
-  {
-    icon: "medical-outline",
-    label: "Médicaments",
-    route: "/(app)/medications/index",
-    key: "medications",
-  },
-  {
-    icon: "calendar-outline",
-    label: "Rendez-vous",
-    route: "/(app)/rdv/index",
-    key: "rdv",
-  },
-  {
-    icon: "sparkles-outline",
-    label: "Analyse IA",
-    route: "/(app)/IA/index",
-    key: "ia",
-  },
-  {
-    icon: "document-text-outline",
-    label: "Résumé de santé",
-    route: "/(app)/health-summary",
-    key: "health-summary",
-  },
-  {
-    icon: "book-outline",
-    label: "Journal de santé",
-    route: "/(app)/journal/index",
-    key: "journal",
-  },
-  {
-    icon: "people-outline",
-    label: "Proches",
-    route: "/(app)/family",
-    key: "family",
-  },
-];
-
 export default function SidebarMenu({
   visible,
   onClose,
   activeRoute,
 }: SidebarMenuProps) {
-  const router = useRouter(); // ✅ useRouter
+  const { t } = useTranslation();
+  const router = useRouter();
   const slideAnim = useRef(new Animated.Value(-width)).current;
+  const [userData, setUserData] = useState({ name: "", email: "" });
+
+  const MENU_ITEMS = [
+    {
+      icon: "grid-outline",
+      label: t("common.menu.dashboard"),
+      route: "/(app)/home",
+      key: "home",
+    },
+    {
+      icon: "medical-outline",
+      label: t("common.menu.medications"),
+      route: "/(app)/medications/index",
+      key: "medications",
+    },
+    {
+      icon: "calendar-outline",
+      label: t("common.menu.appointments"),
+      route: "/(app)/rdv/index",
+      key: "rdv",
+    },
+    {
+      icon: "sparkles-outline",
+      label: t("common.menu.ai_analysis"),
+      route: "/(app)/IA/index",
+      key: "ia",
+    },
+    {
+      icon: "document-text-outline",
+      label: t("common.menu.health_summary"),
+      route: "/(app)/health-summary",
+      key: "health-summary",
+    },
+    {
+      icon: "book-outline",
+      label: t("common.menu.health_journal"),
+      route: "/(app)/journal/index",
+      key: "journal",
+    },
+    {
+      icon: "people-outline",
+      label: t("common.menu.proches"),
+      route: "/(app)/family",
+      key: "family",
+    },
+  ];
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user) {
+      setUserData({ name: user.displayName || "", email: user.email || "" });
+      const userRef = ref(db, `users/${user.uid}`);
+      return onValue(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          setUserData({
+            name: data.name || user.displayName || "",
+            email: data.email || user.email || "",
+          });
+        }
+      });
+    }
+  }, []);
 
   if (visible) {
     Animated.timing(slideAnim, {
@@ -94,8 +115,18 @@ export default function SidebarMenu({
   const handleNavigate = (item: (typeof MENU_ITEMS)[0]) => {
     handleClose();
     if (item.key !== activeRoute) {
-      router.push(item.route as any); // ✅ navigation avec le chemin complet
+      router.push(item.route as any);
     }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
@@ -119,7 +150,7 @@ export default function SidebarMenu({
               </View>
               <View>
                 <Text style={styles.logoTitle}>MediReminder</Text>
-                <Text style={styles.logoSubtitle}>Health App</Text>
+                <Text style={styles.logoSubtitle}>{t("sidebar.app_subtitle")}</Text>
               </View>
             </View>
           </View>
@@ -127,18 +158,18 @@ export default function SidebarMenu({
           {/* Carte utilisateur */}
           <View style={styles.userCard}>
             <View style={styles.userAvatar}>
-              <Text style={styles.userAvatarText}>JD</Text>
+              <Text style={styles.userAvatarText}>{getInitials(userData.name)}</Text>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userCardName}>Jean Dupont</Text>
-              <Text style={styles.userCardEmail}>jean.dupont@email.com</Text>
+              <Text style={styles.userCardName}>{userData.name || t("home.user_placeholder")}</Text>
+              <Text style={styles.userCardEmail}>{userData.email}</Text>
             </View>
           </View>
-          bnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn                                                                                                                                                                                                                               vv
+
           {/* Items */}
           <View style={styles.menuList}>
             {MENU_ITEMS.map((item, index) => {
-              const isActive = item.key === activeRoute; // ✅ comparaison sur la clé courte
+              const isActive = item.key === activeRoute;
               return (
                 <TouchableOpacity
                   key={index}
@@ -167,7 +198,7 @@ export default function SidebarMenu({
           <View style={styles.logoutSection}>
             <TouchableOpacity style={styles.logoutButton} onPress={handleClose}>
               <Ionicons name="log-out-outline" size={22} color="#64748b" />
-              <Text style={styles.logoutText}>Déconnexion</Text>
+              <Text style={styles.logoutText}>{t("sidebar.logout")}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

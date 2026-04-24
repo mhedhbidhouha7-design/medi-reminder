@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { onValue, ref } from "firebase/database";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Colors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
@@ -32,6 +33,7 @@ import {
 const { width } = Dimensions.get("window");
 
 export default function Home() {
+  const { t, i18n } = useTranslation();
   const { theme, isDark } = useAppTheme();
   const themeColors = Colors[theme];
   const router = useRouter();
@@ -44,7 +46,7 @@ export default function Home() {
 
   const [medications, setMedications] = useState<Medication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [userName, setUserName] = useState("Utilisateur");
+  const [userName, setUserName] = useState(t("home.user_placeholder"));
   const [adherenceRate, setAdherenceRate] = useState(0);
   const [stats, setStats] = useState({
     totalToday: 0,
@@ -73,7 +75,7 @@ export default function Home() {
     const unsubProfile = onValue(profileRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        setUserName(data.name || "Utilisateur");
+        setUserName(data.name || t("home.user_placeholder"));
       }
     });
 
@@ -178,7 +180,7 @@ export default function Home() {
           upcomingAppts++;
 
           // Find next upcoming appointment
-          const apptDateTime = `${appt.date} à ${appt.time}`;
+          const apptDateTime = `${appt.date} ${t("home.at")} ${appt.time}`;
           if (
             !nearestApptTime ||
             appt.date < nearestApptTime.split(" ")[0] ||
@@ -235,44 +237,44 @@ export default function Home() {
   const menuItems = [
     {
       icon: "grid-outline",
-      label: "Tableau de bord",
+      label: t("common.menu.dashboard"),
       route: "home",
       active: true,
     },
     {
       icon: "medical-outline",
-      label: "Médicaments",
+      label: t("common.menu.medications"),
       route: "medications",
       active: false,
     },
     {
       icon: "calendar-outline",
-      label: "Rendez-vous",
+      label: t("common.menu.appointments"),
       route: "rdv",
       active: false,
     },
     {
       icon: "sparkles-outline",
-      label: "Analyse IA",
+      label: t("common.menu.ai_analysis"),
       route: "IA",
       active: false,
     },
 
     {
       icon: "people-outline",
-      label: "Proches",
+      label: t("common.menu.proches"),
       route: "proche",
       active: false,
     },
     {
       icon: "book-outline",
-      label: "Journal de santé",
+      label: t("common.menu.health_journal"),
       route: "journal",
       active: false,
     },
     {
       icon: "search-outline",
-      label: "Trouver un médecin",
+      label: t("common.menu.find_doctor"),
       route: "doctor", // correspond au dossier doctor/index.tsx
       active: false,
     },
@@ -332,7 +334,7 @@ export default function Home() {
         </View>
         <View style={styles.headerCenter}>
           <Text style={[styles.greetingText, { color: themeColors.icon }]}>
-            Bonjour,
+            {t("home.welcome")}
           </Text>
           <Text style={[styles.userName, { color: themeColors.text }]}>
             {userName}
@@ -340,7 +342,7 @@ export default function Home() {
           <Text
             style={[styles.currentDateDisplay, { color: themeColors.icon }]}
           >
-            {new Date(todayStr).toLocaleDateString("fr-FR", {
+            {new Date(todayStr).toLocaleDateString(i18n.language === "ar" ? "ar-EG" : i18n.language, {
               weekday: "long",
               day: "numeric",
               month: "long",
@@ -384,13 +386,13 @@ export default function Home() {
                   />
                 </View>
                 <Text style={styles.adherenceTitle}>
-                  Adhérence au traitement
+                  {t("home.adherence_title")}
                 </Text>
               </View>
               <View style={styles.adherenceContent}>
                 <View style={styles.percentageContainer}>
                   <Text style={styles.percentageText}>{adherenceRate}%</Text>
-                  <Text style={styles.adherenceLabel}>Cette semaine</Text>
+                  <Text style={styles.adherenceLabel}>{t("home.this_week")}</Text>
                 </View>
                 <View style={styles.progressBarContainer}>
                   <View style={styles.progressBarBackground}>
@@ -409,15 +411,15 @@ export default function Home() {
                   </View>
                 </View>
                 <Text style={styles.adherenceMessage}>
-                  {stats.takenToday} prises,{" "}
-                  {stats.missedToday > 0
-                    ? `${stats.missedToday} manquées, `
-                    : ""}
-                  {stats.remainingToday} à venir sur {stats.totalToday}{" "}
-                  aujourd&apos;hui.
+                  {t("home.stats_summary", {
+                    taken: stats.takenToday,
+                    missed: stats.missedToday,
+                    remaining: stats.remainingToday,
+                    total: stats.totalToday,
+                  })}
                   {adherenceRate >= 80
-                    ? "\nExcellent travail !"
-                    : "\nN'oubliez pas vos soins !"}
+                    ? `\n${t("home.excellent_work")}`
+                    : `\n${t("home.dont_forget")}`}
                 </Text>
               </View>
             </LinearGradient>
@@ -428,7 +430,7 @@ export default function Home() {
             <Text
               style={[styles.sectionTitleLarge, { color: themeColors.text }]}
             >
-              Tableau de bord
+              {t("home.dashboard_title")}
             </Text>
 
             {/* Row 1: Médicaments */}
@@ -445,14 +447,14 @@ export default function Home() {
                 onPress={() => router.push("/medications")}
               >
                 <Text style={[styles.dashboardValue, { color: themeColors.text }]}>{stats.totalToday}</Text>
-                <Text style={styles.dashboardLabel}>Prévues</Text>
+                <Text style={styles.dashboardLabel}>{t("home.planned")}</Text>
                 <Text
                   style={[
                     styles.dashboardSubtext,
                     { color: themeColors.primary },
                   ]}
                 >
-                  Aujourd&apos;hui
+                  {t("home.today")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -467,11 +469,11 @@ export default function Home() {
                 onPress={() => router.push("/medications")}
               >
                 <Text style={[styles.dashboardValue, { color: themeColors.text }]}>{stats.takenToday}</Text>
-                <Text style={styles.dashboardLabel}>Prises</Text>
+                <Text style={styles.dashboardLabel}>{t("home.taken")}</Text>
                 <Text
                   style={[styles.dashboardSubtext, { color: themeColors.tint }]}
                 >
-                  Bravo !
+                  {t("home.bravo")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -488,9 +490,9 @@ export default function Home() {
                 <Text style={[styles.dashboardValue, { color: "#ef4444" }]}>
                   {stats.missedToday}
                 </Text>
-                <Text style={styles.dashboardLabel}>Manquées</Text>
+                <Text style={styles.dashboardLabel}>{t("home.missed")}</Text>
                 <Text style={[styles.dashboardSubtext, { color: "#ef4444" }]}>
-                  À surveiller
+                  {t("home.watch_out")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -525,14 +527,14 @@ export default function Home() {
                     {stats.upcomingAppointments}
                   </Text>
                 </View>
-                <Text style={styles.dashboardLabel}>RDV à venir</Text>
+                <Text style={styles.dashboardLabel}>{t("home.upcoming_appointments")}</Text>
                 <Text
                   style={[
                     styles.dashboardSubtext,
                     { color: themeColors.primary },
                   ]}
                 >
-                  Total planifiés
+                  {t("home.total_planned")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -563,11 +565,11 @@ export default function Home() {
                     {stats.completedAppointments}
                   </Text>
                 </View>
-                <Text style={styles.dashboardLabel}>RDV terminés</Text>
+                <Text style={styles.dashboardLabel}>{t("home.completed_appointments")}</Text>
                 <Text
                   style={[styles.dashboardSubtext, { color: themeColors.tint }]}
                 >
-                  Historique
+                  {t("home.history")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -611,7 +613,7 @@ export default function Home() {
                       textTransform: "uppercase",
                     }}
                   >
-                    Prochain Médicament
+                    {t("home.next_medication")}
                   </Text>
                   <Text
                     style={{
@@ -622,8 +624,8 @@ export default function Home() {
                     }}
                   >
                     {stats.nextMedTime
-                      ? `Aujourd'hui à ${stats.nextMedTime}`
-                      : "Aucun pour aujourd'hui"}
+                      ? `${t("home.today")} ${t("home.at")} ${stats.nextMedTime}`
+                      : t("home.no_meds_today")}
                   </Text>
                 </View>
               </View>
@@ -664,7 +666,7 @@ export default function Home() {
                       textTransform: "uppercase",
                     }}
                   >
-                    Prochain RDV
+                    {t("home.next_appointment")}
                   </Text>
                   <Text
                     style={{
@@ -674,7 +676,7 @@ export default function Home() {
                       marginTop: 2,
                     }}
                   >
-                    {stats.nextAppointmentTime || "Aucun à venir"}
+                    {stats.nextAppointmentTime || t("home.no_upcoming_appointments")}
                   </Text>
                 </View>
               </View>
@@ -684,12 +686,12 @@ export default function Home() {
           {/* ── 3. Médicaments du jour (UNIQUEMENT NON PRIS) ── */}
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitleLarge, { color: themeColors.text }]}>Aujourd{"'"}hui</Text>
+              <Text style={[styles.sectionTitleLarge, { color: themeColors.text }]}>{t("home.today")}</Text>
               <TouchableOpacity onPress={() => router.push("/medications")}>
                 <Text
                   style={[styles.seeAllText, { color: themeColors.primary }]}
                 >
-                  Voir tout
+                  {t("home.see_all")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -743,7 +745,7 @@ export default function Home() {
                           {isMissed && (
                             <View style={styles.missedBadge}>
                               <Text style={styles.missedBadgeText}>
-                                En retard
+                                {t("home.late")}
                               </Text>
                             </View>
                           )}
