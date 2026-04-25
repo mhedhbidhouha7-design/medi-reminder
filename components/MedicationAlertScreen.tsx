@@ -9,6 +9,7 @@ import {
     Vibration,
     View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import {
     PendingMedicationAlert,
     confirmMedicationTaken,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const MedicationAlertScreen: React.FC<Props> = ({ alert }) => {
+  const { t } = useTranslation();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Bloque le bouton retour Android — l'utilisateur ne peut pas fuir
@@ -80,21 +82,21 @@ export const MedicationAlertScreen: React.FC<Props> = ({ alert }) => {
         >
           💊
         </Animated.Text>
-        <Text style={styles.headerTitle}>Heure du médicament !</Text>
+        <Text style={styles.headerTitle}>{t("medication_alert.title")}</Text>
         <Text style={styles.headerTime}>{alert.scheduledTime}</Text>
       </View>
 
       {/* Infos médicament */}
       <View style={styles.body}>
-        <Text style={styles.label}>Médicament</Text>
+        <Text style={styles.label}>{t("medication_alert.medication")}</Text>
         <Text style={styles.medicationName}>{alert.medicationName}</Text>
 
-        <Text style={styles.label}>Dose</Text>
+        <Text style={styles.label}>{t("medication_alert.dose")}</Text>
         <Text style={styles.dose}>{alert.dose}</Text>
 
         <View style={styles.warningBox}>
           <Text style={styles.warningText}>
-            Vous devez confirmer la prise de votre médicament pour continuer.
+            {t("medication_alert.instruction")}
           </Text>
         </View>
       </View>
@@ -107,7 +109,7 @@ export const MedicationAlertScreen: React.FC<Props> = ({ alert }) => {
           activeOpacity={0.85}
         >
           <Text style={styles.confirmButtonText}>
-            ✓ J'ai pris mon médicament
+            {t("medication_alert.confirm")}
           </Text>
         </TouchableOpacity>
 
@@ -116,7 +118,7 @@ export const MedicationAlertScreen: React.FC<Props> = ({ alert }) => {
           onPress={handleSnooze}
           activeOpacity={0.85}
         >
-          <Text style={styles.snoozeButtonText}>Reporter de 5 minutes</Text>
+          <Text style={styles.snoozeButtonText}>{t("medication_alert.snooze")}</Text>
         </TouchableOpacity>
       </View>
     </View>

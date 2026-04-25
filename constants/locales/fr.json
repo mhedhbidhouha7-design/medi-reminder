@@ -111,6 +111,20 @@
     "no_upcoming_appointments": "Aucun à venir",
     "see_all": "Voir tout",
     "late": "En retard",
-    "at": "à"
+    "at": "à",
+    "all_taken_success": "Génial ! Toutes les doses du moment sont prises.",
+    "next_appointments": "Prochain(s) Rendez-vous",
+    "passed": "Passé",
+    "no_upcoming_rdv": "Aucun rendez-vous à venir.",
+    "test_notifications": "Tester les notifications",
+    "test_notif_alert": "3 notifications programmées !\n\n⏰ dans 5s\n⚠️ dans 10s\n💊 dans 15s (avec son)"
+  },
+  "medication_alert": {
+    "title": "Heure du médicament !",
+    "medication": "Médicament",
+    "dose": "Dose",
+    "instruction": "Vous devez confirmer la prise de votre médicament pour continuer.",
+    "confirm": "✓ J'ai pris mon médicament",
+    "snooze": "Reporter de 5 minutes"
   }
 }

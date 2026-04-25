@@ -805,7 +805,7 @@ export default function Home() {
                   <Text
                     style={[styles.nextMedText, { color: themeColors.primary }]}
                   >
-                    Génial ! Toutes les doses du moment sont prises.
+                    {t("home.all_taken_success")}
                   </Text>
                 </View>
               )}
@@ -815,12 +815,12 @@ export default function Home() {
           {/* ── 3b. RDV PROCHES ── */}
           <View style={styles.medicationsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitleLarge, { color: themeColors.text }]}>Prochain(s) RDV</Text>
+              <Text style={[styles.sectionTitleLarge, { color: themeColors.text }]}>{t("home.next_appointments")}</Text>
               <TouchableOpacity onPress={() => router.push("/rdv")}>
                 <Text
                   style={[styles.seeAllText, { color: themeColors.primary }]}
                 >
-                  Voir tout
+                  {t("home.see_all")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -871,7 +871,7 @@ export default function Home() {
                                 { backgroundColor: "#f59e0b" },
                               ]}
                             >
-                              <Text style={styles.missedBadgeText}>Passé</Text>
+                              <Text style={styles.missedBadgeText}>{t("home.passed")}</Text>
                             </View>
                           )}
                         </View>
@@ -893,8 +893,8 @@ export default function Home() {
                             ]}
                           >
                             {isToday
-                              ? `Aujourd'hui à ${appt.time}`
-                              : `${appt.date} à ${appt.time}`}
+                              ? `${t("home.today")} ${t("home.at")} ${appt.time}`
+                              : `${appt.date} ${t("home.at")} ${appt.time}`}
                           </Text>
                         </View>
                       </View>
@@ -935,7 +935,7 @@ export default function Home() {
                       { color: themeColors.primary },
                     ]}
                   >
-                    Aucun rendez-vous à venir.
+                    {t("home.no_upcoming_rdv")}
                   </Text>
                 </View>
               )}
@@ -957,9 +957,7 @@ export default function Home() {
             }}
             onPress={async () => {
               await testNotifications();
-              alert(
-                "3 notifications programmées !\n\n⏰ dans 5s\n⚠️ dans 10s\n💊 dans 15s (avec son)",
-              );
+              alert(t("home.test_notif_alert"));
             }}
           >
             <Ionicons
@@ -974,7 +972,7 @@ export default function Home() {
                 fontSize: 15,
               }}
             >
-              Tester les notifications
+              {t("home.test_notifications")}
             </Text>
           </TouchableOpacity>
 
