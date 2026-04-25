@@ -6,6 +6,7 @@ import { useAppTheme } from "@/hooks/use-app-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,6 +20,7 @@ import {
 } from "react-native";
 
 export default function AddProcheScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { theme, isDark } = useAppTheme();
   const themeColors = Colors[theme];
@@ -43,18 +45,18 @@ export default function AddProcheScreen() {
   const handleSave = async () => {
     // 1. Validate required fields
     if (!name.trim() || !email.trim()) {
-      showError("Champs requis", "Veuillez remplir le nom et l'email.");
+      showError(t("proche.alerts.required_fields"), t("proche.alerts.fill_name_email"));
       return;
     }
 
     // 2. Validate email format
     if (!validateEmail(email.trim())) {
-      showError("Email invalide", "Veuillez entrer une adresse email valide.");
+      showError(t("proche.alerts.invalid_email"), t("proche.alerts.invalid_email_desc"));
       return;
     }
 
     if (!userId) {
-      showError("Non connecté", "Vous devez être connecté pour ajouter un proche.");
+      showError(t("proche.alerts.not_logged_in"), t("proche.alerts.not_logged_in_desc"));
       return;
     }
 
@@ -68,7 +70,7 @@ export default function AddProcheScreen() {
           phone: phone.trim(),
           email: email.trim(),
         });
-        showSuccess("Contact modifié", "Le contact a été modifié avec succès.", () => {
+        showSuccess(t("proche.alerts.contact_modified"), t("proche.alerts.contact_modified_desc"), () => {
           router.back();
         });
       } else {
@@ -77,7 +79,7 @@ export default function AddProcheScreen() {
           phone: phone.trim(),
           email: email.trim(),
         });
-        showSuccess("Contact ajouté", "Le contact a été ajouté avec succès.", () => {
+        showSuccess(t("proche.alerts.contact_added"), t("proche.alerts.contact_added_desc"), () => {
           router.back();
         });
       }
@@ -88,7 +90,7 @@ export default function AddProcheScreen() {
       setEmail("");
     } catch (error) {
       console.error("Error saving proche:", error);
-      showError("Échec", "Impossible d'ajouter ce contact. Veuillez réessayer.");
+      showError(t("proche.alerts.save_error_title"), t("proche.alerts.save_error_desc"));
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +106,7 @@ export default function AddProcheScreen() {
           <Ionicons name="arrow-back" size={24} color={themeColors.icon} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-          {editingId ? "Modifier le proche" : "Nouveau proche"}
+          {editingId ? t("proche.edit_title") : t("proche.add_title")}
         </Text>
         <View style={{ width: 40 }} />{/* Spacer */}
       </View>
@@ -112,23 +114,23 @@ export default function AddProcheScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.card, { backgroundColor: themeColors.card }]}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: themeColors.text }]}>Nom complet *</Text>
+            <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("proche.form.name")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: isDark ? themeColors.background : themeColors.card, color: themeColors.text, borderColor: themeColors.tabIconDefault }]}
               value={name}
               onChangeText={setName}
-              placeholder="Ex: Marie Martin"
+              placeholder={t("proche.form.name_placeholder")}
               placeholderTextColor={themeColors.icon}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: themeColors.text }]}>Adresse email *</Text>
+            <Text style={[styles.inputLabel, { color: themeColors.text }]}>{t("proche.form.email")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: isDark ? themeColors.background : themeColors.card, color: themeColors.text, borderColor: themeColors.tabIconDefault }]}
               value={email}
               onChangeText={setEmail}
-              placeholder="Ex: marie@exemple.com"
+              placeholder={t("proche.form.email_placeholder")}
               keyboardType="email-address"
               autoCapitalize="none"
               placeholderTextColor={themeColors.icon}
@@ -144,7 +146,7 @@ export default function AddProcheScreen() {
               <ActivityIndicator color={themeColors.background} />
             ) : (
               <Text style={[styles.saveButtonText, { color: themeColors.background }]}>
-                {editingId ? "Enregistrer les modifications" : "Enregistrer le contact"}
+                {editingId ? t("proche.form.save_edit") : t("proche.form.save_new")}
               </Text>
             )}
           </TouchableOpacity>

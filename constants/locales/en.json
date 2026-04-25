@@ -126,5 +126,153 @@
     "instruction": "You must confirm taking your medication to continue.",
     "confirm": "✓ I've taken my medication",
     "snooze": "Snooze 5 minutes"
+  },
+  "appointments": {
+    "title": "Appointments",
+    "tabs": {
+      "todo": "To-do",
+      "history": "History"
+    },
+    "sections": {
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "past": "Completed or Past Appointments"
+    },
+    "empty": {
+      "up_to_date": "You're all caught up",
+      "no_today": "No appointments scheduled for today",
+      "no_history": "No history for {{date}}"
+    },
+    "badges": {
+      "waiting": "Waiting"
+    },
+    "modal": {
+      "new": "New Appointment",
+      "edit": "Edit",
+      "date_label": "Date: {{date}}",
+      "details": "Set details"
+    },
+    "form": {
+      "type": "Consultation Type",
+      "name": "Consultation Name",
+      "name_placeholder": "e.g. General Consultation",
+      "doctor": "Doctor Name",
+      "doctor_placeholder": "Dr. ...",
+      "location": "Location",
+      "location_placeholder": "Office address",
+      "notes": "Notes (optional)",
+      "notes_placeholder": "Special instructions...",
+      "date": "Date",
+      "time": "Time",
+      "select": "Select...",
+      "save_new": "Confirm Appointment",
+      "save_edit": "Update"
+    },
+    "alerts": {
+      "missing_date": "Please enter the appointment date.",
+      "missing_time": "Please enter the appointment time.",
+      "missing_doctor": "Please enter the doctor's name.",
+      "invalid_past": "You cannot create an appointment in the past.",
+      "save_error": "Unable to save the appointment.",
+      "delete_title": "Delete",
+      "delete_confirm": "Do you want to delete \"{{title}}\"?",
+      "delete_error": "Unable to delete this appointment.",
+      "complete_error": "Unable to mark as completed."
+    },
+    "types": {
+      "general": "General",
+      "specialist": "Specialist",
+      "dental": "Dental",
+      "ophtalmo": "Eye Doctor",
+      "cardio": "Cardiology",
+      "pharmacy": "Pharmacy",
+      "analysis": "Lab Analysis",
+      "other": "Other"
+    },
+    "completed_at": "Completed at {{time}}"
+  },
+  "medications": {
+    "title": "My Medications",
+    "tabs": {
+      "todo": "To-do",
+      "history": "History"
+    },
+    "empty": {
+      "no_pending": "No scheduled doses.",
+      "no_history": "No history for this day."
+    },
+    "modal": {
+      "new": "New Medication",
+      "edit": "Edit Medication",
+      "add_dose": "Add another dose (Noon, Evening...)",
+      "remove": "Remove"
+    },
+    "form": {
+      "name": "Medication Name",
+      "name_placeholder": "e.g. Doliprane 500",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "duration": "Treatment Duration: {{duration}}",
+      "posology": "Posology (Doses per day)",
+      "time_moment": "Time / Moment",
+      "select": "Select...",
+      "quantity": "Quantity",
+      "quantity_placeholder": "e.g. 2 pills",
+      "save": "Save"
+    },
+    "alerts": {
+      "name_required": "Please enter the medication name.",
+      "dose_required": "Please add at least one dose.",
+      "invalid_time": "The time \"{{time}}\" must be in HH:MM format (e.g. 08:30 or 14:00).",
+      "invalid_end_date": "The end date cannot be before the start date.",
+      "invalid_past": "You cannot create a medication with the first dose in the past.",
+      "save_error": "Unable to save the medication.",
+      "update_error": "Unable to update status.",
+      "delete_title": "Delete Medication",
+      "delete_confirm": "Are you sure you want to delete {{name}}?",
+      "delete_error": "Unable to delete this medication."
+    },
+    "duration": {
+      "invalid": "Invalid period",
+      "day": "{{count}} day",
+      "day_plural": "{{count}} days"
+    },
+    "status": {
+      "time_not_specified": "Time not specified",
+      "dose_not_specified": "Dose not specified",
+      "taken_at": "Taken at {{time}}"
+    }
+  },
+  "proche": {
+    "title": "My Contacts",
+    "subtitle": "Trusted Contacts",
+    "add_title": "New Contact",
+    "edit_title": "Edit Contact",
+    "empty_text": "You haven't added any contacts yet. Press the + button to add one.",
+    "form": {
+      "name": "Full Name *",
+      "name_placeholder": "e.g. Marie Martin",
+      "email": "Email Address *",
+      "email_placeholder": "e.g. marie@example.com",
+      "save_new": "Save Contact",
+      "save_edit": "Save Changes"
+    },
+    "alerts": {
+      "required_fields": "Required Fields",
+      "fill_name_email": "Please fill in the name and email.",
+      "invalid_email": "Invalid Email",
+      "invalid_email_desc": "Please enter a valid email address.",
+      "not_logged_in": "Not Logged In",
+      "not_logged_in_desc": "You must be logged in to add a contact.",
+      "contact_added": "Contact Added",
+      "contact_added_desc": "The contact has been added successfully.",
+      "contact_modified": "Contact Modified",
+      "contact_modified_desc": "The contact has been modified successfully.",
+      "delete_title": "Delete Contact",
+      "delete_confirm": "Are you sure you want to delete {{name}}?",
+      "delete_error": "Unable to delete this contact.",
+      "save_error_title": "Failed",
+      "save_error_desc": "Unable to add this contact. Please try again."
+    }
   }
 }

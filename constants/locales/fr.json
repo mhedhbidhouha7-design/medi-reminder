@@ -126,5 +126,153 @@
     "instruction": "Vous devez confirmer la prise de votre médicament pour continuer.",
     "confirm": "✓ J'ai pris mon médicament",
     "snooze": "Reporter de 5 minutes"
+  },
+  "appointments": {
+    "title": "Rendez-vous",
+    "tabs": {
+      "todo": "À faire",
+      "history": "Historique"
+    },
+    "sections": {
+      "today": "Aujourd'hui",
+      "upcoming": "À venir",
+      "past": "Rendez-vous terminés ou passés"
+    },
+    "empty": {
+      "up_to_date": "Vous êtes à jour",
+      "no_today": "Aucun rendez-vous prévu aujourd'hui",
+      "no_history": "Aucun historique le {{date}}"
+    },
+    "badges": {
+      "waiting": "En attente"
+    },
+    "modal": {
+      "new": "Nouveau rendez-vous",
+      "edit": "Modifier",
+      "date_label": "Date : {{date}}",
+      "details": "Définir les détails"
+    },
+    "form": {
+      "type": "Type de consultation",
+      "name": "Nom de la consultation",
+      "name_placeholder": "Ex : Consultation générale",
+      "doctor": "Nom du médecin",
+      "doctor_placeholder": "Dr. ...",
+      "location": "Lieu",
+      "location_placeholder": "Adresse du cabinet",
+      "notes": "Notes (optionnel)",
+      "notes_placeholder": "Instructions spéciales...",
+      "date": "Date",
+      "time": "Heure",
+      "select": "Sélectionner...",
+      "save_new": "Confirmer le rendez-vous",
+      "save_edit": "Mettre à jour"
+    },
+    "alerts": {
+      "missing_date": "Veuillez saisir la date du rendez-vous.",
+      "missing_time": "Veuillez saisir l'heure du rendez-vous.",
+      "missing_doctor": "Veuillez saisir le nom du médecin.",
+      "invalid_past": "Vous ne pouvez pas créer un rendez-vous dans le passé.",
+      "save_error": "Impossible d'enregistrer le rendez-vous.",
+      "delete_title": "Supprimer",
+      "delete_confirm": "Voulez-vous supprimer \"{{title}}\" ?",
+      "delete_error": "Impossible de supprimer ce rendez-vous.",
+      "complete_error": "Impossible de marquer comme terminé."
+    },
+    "types": {
+      "general": "Général",
+      "specialist": "Spécialiste",
+      "dental": "Dentaire",
+      "ophtalmo": "Ophtalmo",
+      "cardio": "Cardio",
+      "pharmacy": "Pharmacie",
+      "analysis": "Analyse",
+      "other": "Autre"
+    },
+    "completed_at": "Terminé à {{time}}"
+  },
+  "medications": {
+    "title": "Mes médicaments",
+    "tabs": {
+      "todo": "À faire",
+      "history": "Historique"
+    },
+    "empty": {
+      "no_pending": "Aucune dose programmée.",
+      "no_history": "Aucun historique pour ce jour."
+    },
+    "modal": {
+      "new": "Nouveau médicament",
+      "edit": "Modifier le médicament",
+      "add_dose": "Ajouter une autre dose (Midi, Soir...)",
+      "remove": "Retirer"
+    },
+    "form": {
+      "name": "Nom du médicament",
+      "name_placeholder": "Ex: Doliprane 500",
+      "start_date": "Date de début",
+      "end_date": "Date de fin",
+      "duration": "Durée du traitement : {{duration}}",
+      "posology": "Posologie (Doses par jour)",
+      "time_moment": "Heure / Moment",
+      "select": "Sélectionner...",
+      "quantity": "Quantité",
+      "quantity_placeholder": "Ex: 2 pilules",
+      "save": "Enregistrer"
+    },
+    "alerts": {
+      "name_required": "Veuillez entrer le nom du médicament.",
+      "dose_required": "Veuillez ajouter au moins une dose.",
+      "invalid_time": "L'heure \"{{time}}\" doit être au format HH:MM (ex: 08:30 ou 14:00).",
+      "invalid_end_date": "La date de fin ne peut pas être antérieure à la date de début.",
+      "invalid_past": "Vous ne pouvez pas créer un médicament dont la première prise est dans le passé.",
+      "save_error": "Impossible d'enregistrer le médicament.",
+      "update_error": "Impossible de mettre à jour le statut.",
+      "delete_title": "Supprimer le médicament",
+      "delete_confirm": "Êtes-vous sûr de vouloir supprimer {{name}} ?",
+      "delete_error": "Impossible de supprimer ce médicament."
+    },
+    "duration": {
+      "invalid": "Période invalide",
+      "day": "{{count}} jour",
+      "day_plural": "{{count}} jours"
+    },
+    "status": {
+      "time_not_specified": "Heure non spécifiée",
+      "dose_not_specified": "Dose non spécifiée",
+      "taken_at": "Pris à {{time}}"
+    }
+  },
+  "proche": {
+    "title": "Mes Proches",
+    "subtitle": "Contacts de confiance",
+    "add_title": "Nouveau proche",
+    "edit_title": "Modifier le proche",
+    "empty_text": "Vous n'avez pas encore ajouté de proche. Appuyez sur le bouton + pour en ajouter un.",
+    "form": {
+      "name": "Nom complet *",
+      "name_placeholder": "Ex: Marie Martin",
+      "email": "Adresse email *",
+      "email_placeholder": "Ex: marie@exemple.com",
+      "save_new": "Enregistrer le contact",
+      "save_edit": "Enregistrer les modifications"
+    },
+    "alerts": {
+      "required_fields": "Champs requis",
+      "fill_name_email": "Veuillez remplir le nom et l'email.",
+      "invalid_email": "Email invalide",
+      "invalid_email_desc": "Veuillez entrer une adresse email valide.",
+      "not_logged_in": "Non connecté",
+      "not_logged_in_desc": "Vous devez être connecté pour ajouter un proche.",
+      "contact_added": "Contact ajouté",
+      "contact_added_desc": "Le contact a été ajouté avec succès.",
+      "contact_modified": "Contact modifié",
+      "contact_modified_desc": "Le contact a été modifié avec succès.",
+      "delete_title": "Supprimer le contact",
+      "delete_confirm": "Êtes-vous sûr de vouloir supprimer {{name}} ?",
+      "delete_error": "Impossible de supprimer ce contact.",
+      "save_error_title": "Échec",
+      "save_error_desc": "Impossible d'ajouter ce contact. Veuillez réessayer."
+    }
   }
 }

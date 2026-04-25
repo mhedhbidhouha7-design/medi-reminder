@@ -14,6 +14,7 @@ import { combineDateAndTime, validateDateTime } from "@/utils/dateHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +29,7 @@ import {
 } from "react-native";
 
 export default function MedicationsScreen() {
+  const { t, i18n } = useTranslation();
   const { theme } = useAppTheme();
   const themeColors = Colors[theme];
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -94,18 +96,18 @@ export default function MedicationsScreen() {
       await toggleMedicationDose(userId, med, index, dateStr);
     } catch (error) {
       console.error("Error toggling taken status:", error);
-      Alert.alert("Erreur", "Impossible de mettre à jour le statut.");
+      Alert.alert(t("profile.messages.error"), t("medications.alerts.update_error"));
     }
   };
 
   const handleDeleteMedication = (id: string, name: string) => {
     Alert.alert(
-      "Supprimer le médicament",
-      `Êtes-vous sûr de vouloir supprimer ${name} ?`,
+      t("medications.alerts.delete_title"),
+      t("medications.alerts.delete_confirm", { name }),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: t("profile.logout_confirm_btn"),
           style: "destructive",
           onPress: async () => {
             if (!userId) return;
@@ -113,7 +115,7 @@ export default function MedicationsScreen() {
               await deleteMedication(userId, id);
             } catch (error) {
               console.error("Error deleting medication:", error);
-              Alert.alert("Erreur", "Impossible de supprimer ce médicament.");
+              Alert.alert(t("profile.messages.error"), t("medications.alerts.delete_error"));
             }
           },
         },
@@ -153,7 +155,7 @@ export default function MedicationsScreen() {
 
   const handleAddMedication = async () => {
     if (!newMedName.trim()) {
-      Alert.alert("Erreur", "Veuillez entrer le nom du médicament.");
+      Alert.alert(t("profile.messages.error"), t("medications.alerts.name_required"));
       return;
     }
 
@@ -166,7 +168,7 @@ export default function MedicationsScreen() {
     );
 
     if (validSchedules.length === 0) {
-      Alert.alert("Erreur", "Veuillez ajouter au moins une dose.");
+      Alert.alert(t("profile.messages.error"), t("medications.alerts.dose_required"));
       return;
     }
 
@@ -174,15 +176,15 @@ export default function MedicationsScreen() {
     for (const schedule of validSchedules) {
       if (!timeRegex.test(schedule.time.trim())) {
         Alert.alert(
-          "Format d'heure invalide",
-          `L'heure "${schedule.time}" doit être au format HH:MM (ex: 08:30 ou 14:00).`
+          t("profile.messages.error"),
+          t("medications.alerts.invalid_time", { time: schedule.time })
         );
         return;
       }
     }
 
     if (newMedEndDate < newMedStartDate) {
-      Alert.alert("Date invalide", "La date de fin ne peut pas être antérieure à la date de début.");
+      Alert.alert(t("profile.messages.error"), t("medications.alerts.invalid_end_date"));
       return;
     }
 
@@ -191,7 +193,7 @@ export default function MedicationsScreen() {
       for (const schedule of validSchedules) {
         const timestamp = combineDateAndTime(newMedStartDate.toISOString().split('T')[0], schedule.time);
         if (!validateDateTime(timestamp)) {
-          Alert.alert("Date Invalide", "Vous ne pouvez pas créer un médicament dont la première prise est dans le passé.");
+          Alert.alert(t("profile.messages.error"), t("medications.alerts.invalid_past"));
           return;
         }
       }
@@ -228,7 +230,7 @@ export default function MedicationsScreen() {
       setAddModalVisible(false);
     } catch (error) {
       console.error("Error saving medication:", error);
-      Alert.alert("Erreur", "Impossible d'enregistrer le médicament.");
+      Alert.alert(t("profile.messages.error"), t("medications.alerts.save_error"));
     }
   };
 
@@ -283,9 +285,9 @@ export default function MedicationsScreen() {
     const s = new Date(start);
     const e = new Date(end);
     const diffTime = e.getTime() - s.getTime();
-    if (diffTime < 0) return "Période invalide";
+    if (diffTime < 0) return t("medications.duration.invalid");
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return `${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+    return t("medications.duration.day", { count: diffDays });
   };
 
   const renderItem = ({ item }: { item: Medication }) => {
@@ -351,8 +353,8 @@ export default function MedicationsScreen() {
                       { color: themeColors.text + "80", fontSize: 14 },
                       isTaken && { textDecorationLine: "line-through", color: "#94a3b8" }
                     ]}>
-                      {schedule.time ? `${schedule.time}` : "Heure non spécifiée"}
-                      {isTaken && typeof logs[index] === "string" && ` • Pris à ${new Date(logs[index] as string).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
+                      {schedule.time ? `${schedule.time}` : t("medications.status.time_not_specified")}
+                      {isTaken && typeof logs[index] === "string" && ` • ${t("medications.status.taken_at", { time: new Date(logs[index] as string).toLocaleTimeString(i18n.language === "ar" ? "ar-EG" : i18n.language, { hour: '2-digit', minute: '2-digit' }) })}`}
                     </Text>
                     <Text
                       style={[
@@ -360,7 +362,7 @@ export default function MedicationsScreen() {
                         isTaken && { textDecorationLine: "line-through", color: "#94a3b8" }
                       ]}
                     >
-                      {schedule.dose ? schedule.dose : "Dose non spécifiée"}
+                      {schedule.dose ? schedule.dose : t("medications.status.dose_not_specified")}
                     </Text>
                   </View>
 
@@ -395,7 +397,7 @@ export default function MedicationsScreen() {
       <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
           <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-            Mes médicaments
+            {t("medications.title")}
           </Text>
         </View>
         <TouchableOpacity
@@ -412,7 +414,7 @@ export default function MedicationsScreen() {
           onPress={() => setActiveTab("pending")}
         >
           <Text style={[styles.tabText, { color: activeTab === "pending" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "pending" ? "700" : "600" }]}>
-            À faire
+            {t("medications.tabs.todo")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -420,7 +422,7 @@ export default function MedicationsScreen() {
           onPress={() => setActiveTab("history")}
         >
           <Text style={[styles.tabText, { color: activeTab === "history" ? themeColors.background : themeColors.text + "60", fontWeight: activeTab === "history" ? "700" : "600" }]}>
-            Historique
+            {t("medications.tabs.history")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -437,8 +439,8 @@ export default function MedicationsScreen() {
 
             <View style={styles.dateInfo}>
               <Text style={[styles.currentDateSubtitle, { color: themeColors.text }]}>
-                {isToday(selectedDate) ? "Aujourd'hui, " : ""}
-                {selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                {isToday(selectedDate) ? `${t("home.today")}, ` : ""}
+                {selectedDate.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : i18n.language, { day: 'numeric', month: 'long' })}
               </Text>
             </View>
 
@@ -480,8 +482,8 @@ export default function MedicationsScreen() {
                 }}
               >
                 {activeTab === "pending"
-                  ? "Aucune dose programmée."
-                  : "Aucun historique pour ce jour."}
+                  ? t("medications.empty.no_pending")
+                  : t("medications.empty.no_history")}
               </Text>
             </View>
           }
@@ -499,7 +501,7 @@ export default function MedicationsScreen() {
           <View style={[styles.modalContent, { backgroundColor: themeColors.background }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingMedId ? "Modifier le médicament" : "Nouveau médicament"}
+                {editingMedId ? t("medications.modal.edit") : t("medications.modal.new")}
               </Text>
               <TouchableOpacity onPress={() => {
                 setAddModalVisible(false);
@@ -518,26 +520,26 @@ export default function MedicationsScreen() {
               renderItem={() => (
                 <>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Nom du médicament</Text>
+                    <Text style={styles.inputLabel}>{t("medications.form.name")}</Text>
                     <TextInput
                       style={styles.input}
                       value={newMedName}
                       onChangeText={setNewMedName}
-                      placeholder="Ex: Doliprane 500"
+                      placeholder={t("medications.form.name_placeholder")}
                       placeholderTextColor={themeColors.text + "60"}
                     />
                   </View>
 
                   <View style={styles.dateRow}>
                     <View style={{ flex: 1, marginRight: 8 }}>
-                      <Text style={styles.inputLabel}>Date de début</Text>
+                      <Text style={styles.inputLabel}>{t("medications.form.start_date")}</Text>
                       <TouchableOpacity
                         style={[styles.datePickerButton, { backgroundColor: themeColors.background }]}
                         onPress={() => setShowStartPicker(true)}
                       >
                         <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
                         <Text style={[styles.dateInputText, { color: themeColors.text }]}>
-                          {newMedStartDate.toLocaleDateString('fr-FR')}
+                          {newMedStartDate.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : i18n.language)}
                         </Text>
                       </TouchableOpacity>
                       {showStartPicker && (
@@ -550,14 +552,14 @@ export default function MedicationsScreen() {
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.inputLabel}>Date de fin</Text>
+                      <Text style={styles.inputLabel}>{t("medications.form.end_date")}</Text>
                       <TouchableOpacity
                         style={[styles.datePickerButton, { backgroundColor: themeColors.background }]}
                         onPress={() => setShowEndPicker(true)}
                       >
                         <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
                         <Text style={[styles.dateInputText, { color: themeColors.text }]}>
-                          {newMedEndDate.toLocaleDateString('fr-FR')}
+                          {newMedEndDate.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : i18n.language)}
                         </Text>
                       </TouchableOpacity>
                       {showEndPicker && (
@@ -574,7 +576,7 @@ export default function MedicationsScreen() {
                   <View style={styles.durationBanner}>
                     <Ionicons name="time-outline" size={16} color={themeColors.primary} />
                     <Text style={styles.durationBannerText}>
-                      Durée du traitement : {calculateDuration(newMedStartDate, newMedEndDate)}
+                      {t("medications.form.duration", { duration: calculateDuration(newMedStartDate, newMedEndDate) })}
                     </Text>
                   </View>
 
@@ -582,7 +584,7 @@ export default function MedicationsScreen() {
 
                   <View style={styles.schedulesSectionLabel}>
                     <Text style={styles.inputLabel}>
-                      Posologie (Doses par jour)
+                      {t("medications.form.posology")}
                     </Text>
                   </View>
 
@@ -590,7 +592,7 @@ export default function MedicationsScreen() {
                     <View key={index} style={[styles.scheduleInputContainer, { backgroundColor: themeColors.background, borderColor: themeColors.tabIconDefault }]}>
                       <View style={styles.scheduleInputRow}>
                         <View style={{ flex: 1, marginRight: 8 }}>
-                          <Text style={styles.subLabel}>Heure / Moment</Text>
+                          <Text style={styles.subLabel}>{t("medications.form.time_moment")}</Text>
                           <TouchableOpacity
                             style={[
                               styles.input,
@@ -609,20 +611,20 @@ export default function MedicationsScreen() {
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                               <Ionicons name="time-outline" size={18} color={themeColors.text + "60"} />
                               <Text style={{ color: schedule.time ? themeColors.text : themeColors.text + "60", fontSize: 16 }}>
-                                {schedule.time || "Sélectionner..."}
+                                {schedule.time || t("medications.form.select")}
                               </Text>
                             </View>
                           </TouchableOpacity>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.subLabel}>Quantité</Text>
+                          <Text style={styles.subLabel}>{t("medications.form.quantity")}</Text>
                           <TextInput
                             style={styles.input}
                             value={schedule.dose}
                             onChangeText={(val) =>
                               updateScheduleField(index, "dose", val)
                             }
-                            placeholder="Ex: 2 pilules"
+                            placeholder={t("medications.form.quantity_placeholder")}
                             placeholderTextColor={themeColors.text + "60"}
                           />
                         </View>
@@ -637,7 +639,7 @@ export default function MedicationsScreen() {
                             size={20}
                             color="#ef4444"
                           />
-                          <Text style={styles.removeScheduleText}>Retirer</Text>
+                          <Text style={styles.removeScheduleText}>{t("medications.modal.remove")}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -658,7 +660,7 @@ export default function MedicationsScreen() {
                   >
                     <Ionicons name="add-circle-outline" size={20} color={themeColors.primary} />
                     <Text style={[styles.addDoseButtonText, { color: themeColors.primary }]}>
-                      Ajouter une autre dose (Midi, Soir...)
+                      {t("medications.modal.add_dose")}
                     </Text>
                   </TouchableOpacity>
 
@@ -666,7 +668,7 @@ export default function MedicationsScreen() {
                     style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
                     onPress={handleAddMedication}
                   >
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <Text style={styles.saveButtonText}>{t("medications.form.save")}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -798,31 +800,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
     backgroundColor: "transparent",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "transparent",
   },
   scheduleRowTaken: {
-    backgroundColor: "transparent",
-    borderColor: "transparent",
+    opacity: 0.6,
   },
   actionButton: {
     padding: 4,
   },
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "transparent",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     padding: 24,
-    paddingBottom: 40,
     maxHeight: "90%",
   },
   modalHeader: {
@@ -832,7 +825,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#1e293b",
   },
@@ -842,120 +835,106 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#475569",
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  dateRow: {
-    flexDirection: "row",
-    marginBottom: 10,
-  },
-  datePickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "transparent",
-    borderRadius: 10,
-    padding: 14,
-    height: 50,
-  },
-  dateInputText: {
-    marginLeft: 8,
-    fontSize: 15,
     color: "#1e293b",
-  },
-  durationBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "transparent",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  durationBannerText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: "#0f766e",
-    fontWeight: "600",
-  },
-  durationPreview: {
-    fontSize: 13,
-    color: "#00bfa5",
-    fontWeight: "600",
-    marginBottom: 20,
-    textAlign: "right",
-  },
-  schedulesSectionLabel: {
-    borderBottomWidth: 1,
-    borderBottomColor: "transparent",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   subLabel: {
     fontSize: 13,
-    fontWeight: "500",
     color: "#64748b",
     marginBottom: 6,
   },
   input: {
-    backgroundColor: "transparent",
-    borderRadius: 10,
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
     padding: 14,
-    fontSize: 15,
+    fontSize: 16,
     color: "#1e293b",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  dateRow: {
+    flexDirection: "row",
+    marginBottom: 20,
+  },
+  datePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  dateInputText: {
+    fontSize: 15,
+  },
+  durationBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#e0f2f1",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  durationBannerText: {
+    fontSize: 14,
+    color: "#00bfa5",
+    fontWeight: "600",
+  },
+  schedulesSectionLabel: {
+    marginBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+    paddingTop: 20,
   },
   scheduleInputContainer: {
-    backgroundColor: "transparent",
+    padding: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "transparent",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    borderColor: "#f1f5f9",
+    marginBottom: 16,
   },
   scheduleInputRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
   },
   removeScheduleBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
+    gap: 6,
     marginTop: 12,
-    gap: 4,
+    alignSelf: "flex-end",
   },
   removeScheduleText: {
-    color: "#ef4444",
     fontSize: 13,
-    fontWeight: "500",
+    color: "#ef4444",
+    fontWeight: "600",
   },
   addDoseButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    gap: 8,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "transparent",
-    borderRadius: 12,
-    padding: 12,
     marginBottom: 24,
-    marginTop: 8,
-    gap: 8,
   },
   addDoseButtonText: {
-    color: "#00bfa5",
+    fontSize: 15,
     fontWeight: "600",
-    fontSize: 14,
   },
   saveButton: {
-    backgroundColor: "transparent",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     alignItems: "center",
+    marginBottom: 40,
   },
   saveButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
 });

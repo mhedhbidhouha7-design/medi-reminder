@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Animated,
@@ -53,35 +54,37 @@ type FormData = {
   notes: string;
 };
 
-const CONSULTATION_TYPES: {
-  key: ConsultationType;
-  label: string;
-  icon: string;
-  color: string;
-}[] = [
-  { key: "general", label: "Général", icon: "medkit", color: "#00bfa5" },
-  { key: "specialist", label: "Spécialiste", icon: "fitness", color: "#8b5cf6" },
-  { key: "dental", label: "Dentaire", icon: "happy", color: "#3b82f6" },
-  { key: "ophtalmo", label: "Ophtalmo", icon: "eye", color: "#f59e0b" },
-  { key: "cardio", label: "Cardio", icon: "heart", color: "#ef4444" },
-  { key: "pharmacy", label: "Pharmacie", icon: "medical", color: "#10b981" },
-  { key: "analysis", label: "Analyse", icon: "flask", color: "#ec4899" },
-  { key: "other", label: "Autre", icon: "add-circle", color: "#64748b" },
-];
-
-const DEFAULT_FORM: FormData = {
-  type: "general",
-  typeName: "Consultation générale",
-  date: "",
-  time: "",
-  doctor: "",
-  location: "",
-  notes: "",
-};
-
 export default function AppointmentsScreen() {
+  const { t, i18n } = useTranslation();
   const { theme, isDark } = useAppTheme();
   const themeColors = Colors[theme];
+
+  const CONSULTATION_TYPES: {
+    key: ConsultationType;
+    label: string;
+    icon: string;
+    color: string;
+  }[] = [
+    { key: "general", label: t("appointments.types.general"), icon: "medkit", color: "#00bfa5" },
+    { key: "specialist", label: t("appointments.types.specialist"), icon: "fitness", color: "#8b5cf6" },
+    { key: "dental", label: t("appointments.types.dental"), icon: "happy", color: "#3b82f6" },
+    { key: "ophtalmo", label: t("appointments.types.ophtalmo"), icon: "eye", color: "#f59e0b" },
+    { key: "cardio", label: t("appointments.types.cardio"), icon: "heart", color: "#ef4444" },
+    { key: "pharmacy", label: t("appointments.types.pharmacy"), icon: "medical", color: "#10b981" },
+    { key: "analysis", label: t("appointments.types.analysis"), icon: "flask", color: "#ec4899" },
+    { key: "other", label: t("appointments.types.other"), icon: "add-circle", color: "#64748b" },
+  ];
+
+  const DEFAULT_FORM: FormData = {
+    type: "general",
+    typeName: t("appointments.types.general"),
+    date: "",
+    time: "",
+    doctor: "",
+    location: "",
+    notes: "",
+  };
+
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
@@ -229,15 +232,15 @@ export default function AppointmentsScreen() {
 
   const handleSave = async () => {
     if (!formData.date.trim()) {
-      Alert.alert("Erreur", "Veuillez saisir la date du rendez-vous.");
+      Alert.alert(t("profile.messages.error"), t("appointments.alerts.missing_date"));
       return;
     }
     if (!formData.time.trim()) {
-      Alert.alert("Erreur", "Veuillez saisir l'heure du rendez-vous.");
+      Alert.alert(t("profile.messages.error"), t("appointments.alerts.missing_time"));
       return;
     }
     if (!formData.doctor.trim()) {
-      Alert.alert("Erreur", "Veuillez saisir le nom du médecin.");
+      Alert.alert(t("profile.messages.error"), t("appointments.alerts.missing_doctor"));
       return;
     }
     if (!userId) return;
@@ -246,7 +249,7 @@ export default function AppointmentsScreen() {
     const generatedTimestamp = combineDateAndTime(isoDate, formData.time);
 
     if (!validateAppointmentDate(generatedTimestamp)) {
-      Alert.alert("Date Invalide", "Vous ne pouvez pas créer un rendez-vous dans le passé.");
+      Alert.alert(t("appointments.alerts.invalid_past"), t("appointments.alerts.invalid_past"));
       return;
     }
 
@@ -273,22 +276,22 @@ export default function AppointmentsScreen() {
       setModalVisible(false);
     } catch (error) {
       console.error(error);
-      Alert.alert("Erreur", "Impossible d'enregistrer le rendez-vous.");
+      Alert.alert(t("profile.messages.error"), t("appointments.alerts.save_error"));
     }
   };
 
   const handleDelete = (id: string, title: string) => {
-    Alert.alert("Supprimer", `Voulez-vous supprimer "${title}" ?`, [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t("appointments.alerts.delete_title"), t("appointments.alerts.delete_confirm", { title }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Supprimer",
+        text: t("appointments.alerts.delete_title"),
         style: "destructive",
         onPress: async () => {
           if (!userId) return;
           try {
             await deleteAppointment(userId, id);
           } catch {
-            Alert.alert("Erreur", "Impossible de supprimer ce rendez-vous.");
+            Alert.alert(t("profile.messages.error"), t("appointments.alerts.delete_error"));
           }
         },
       },
@@ -301,7 +304,7 @@ export default function AppointmentsScreen() {
       await completeAppointment(userId, appt);
     } catch (e) {
       console.error(e);
-      Alert.alert("Erreur", "Impossible de marquer comme terminé.");
+      Alert.alert(t("profile.messages.error"), t("appointments.alerts.complete_error"));
     }
   };
 
@@ -379,7 +382,7 @@ export default function AppointmentsScreen() {
             </Text>
             {isPast && (
               <View style={styles.pastBadge}>
-                <Text style={styles.pastBadgeText}>En attente</Text>
+                <Text style={styles.pastBadgeText}>{t("appointments.badges.waiting")}</Text>
               </View>
             )}
           </View>
@@ -406,7 +409,7 @@ export default function AppointmentsScreen() {
                 <>
                 <View style={styles.dot} />
                 <Text style={{ fontSize: 13, color: themeColors.primary, fontWeight: "600" }}>
-                  Terminé à {new Date(appt.doneAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  {t("appointments.completed_at", { time: new Date(appt.doneAt).toLocaleTimeString(i18n.language === "ar" ? "ar-EG" : i18n.language, { hour: '2-digit', minute: '2-digit' }) })}
                 </Text>
               </>
             )}
@@ -470,7 +473,7 @@ export default function AppointmentsScreen() {
       {/* ── Header ── */}
       <View style={[styles.header, { backgroundColor: isDark ? '#0f172a' : themeColors.background }] }>
         <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: themeColors.text }]}>Rendez-vous</Text>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>{t("appointments.title")}</Text>
         </View>
 
         <TouchableOpacity style={styles.addButtonHeader} onPress={openAddModal}>
@@ -497,7 +500,7 @@ export default function AppointmentsScreen() {
             activeTab === "pending" && styles.activeTabText,
             { color: activeTab === "pending" ? themeColors.background : themeColors.icon },
           ]}>
-            À faire
+            {t("appointments.tabs.todo")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -513,7 +516,7 @@ export default function AppointmentsScreen() {
             activeTab === "history" && styles.activeTabText,
             { color: activeTab === "history" ? themeColors.background : themeColors.icon },
           ]}>
-            Historique
+            {t("appointments.tabs.history")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -529,8 +532,8 @@ export default function AppointmentsScreen() {
             </TouchableOpacity>
             <View style={styles.dateInfo}>
               <Text style={styles.currentDateSubtitle}>
-                {isToday(selectedDate) ? "Aujourd'hui, " : ""}
-                {selectedDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+                {isToday(selectedDate) ? `${t("home.today")}, ` : ""}
+                {selectedDate.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : i18n.language, { day: "numeric", month: "long" })}
               </Text>
             </View>
             <TouchableOpacity onPress={() => changeDate(1)} style={styles.arrowButton}>
@@ -567,7 +570,7 @@ export default function AppointmentsScreen() {
                     <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
                       <Ionicons name="today" size={18} color={themeColors.primary} />
                     </View>
-                    <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>Aujourd'hui</Text>
+                    <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t("home.today")}</Text>
                     <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
                       <Text style={[styles.badgeText, { color: themeColors.primary }]}>{todayAppointments.length}</Text>
                     </View>
@@ -581,8 +584,8 @@ export default function AppointmentsScreen() {
                         <View style={[styles.emptyIconContainer, { backgroundColor: themeColors.card }] }>
                           <Ionicons name="calendar-outline" size={48} color={themeColors.tabIconDefault} />
                         </View>
-                        <Text style={[styles.emptyTitle, { color: themeColors.text }]}>Vous êtes à jour</Text>
-                        <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>Aucun rendez-vous prévu aujourd'hui</Text>
+                        <Text style={[styles.emptyTitle, { color: themeColors.text }]}>{t("appointments.empty.up_to_date")}</Text>
+                        <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>{t("appointments.empty.no_today")}</Text>
                       </View>
                     )}
                   </View>
@@ -594,7 +597,7 @@ export default function AppointmentsScreen() {
                         <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
                           <Ionicons name="calendar" size={18} color={themeColors.primary} />
                         </View>
-                        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>À venir</Text>
+                        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{t("home.upcoming_appointments")}</Text>
                         <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
                           <Text style={[styles.badgeText, { color: themeColors.text }]}>{upcomingAppointments.length}</Text>
                         </View>
@@ -614,14 +617,14 @@ export default function AppointmentsScreen() {
                 <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}> 
                   <Ionicons name="checkmark-circle" size={18} color={themeColors.tabIconDefault} />
                 </View>
-                <Text style={[styles.sectionTitle, { color: themeColors.tabIconDefault }]}>Rendez-vous terminés ou passés</Text>
+                <Text style={[styles.sectionTitle, { color: themeColors.tabIconDefault }]}>{t("appointments.sections.past")}</Text>
               </View>
               <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }] }>
                 {historyAppointments.length > 0 ? (
                   historyAppointments.map((appt) => renderAppointmentCard(appt, appt.done))
                 ) : (
                   <View style={styles.emptyState}>
-                    <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>Aucun historique le {displayDate(selectedDateStr)}</Text>
+                    <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>{t("appointments.empty.no_history", { date: displayDate(selectedDateStr) })}</Text>
                   </View>
                 )}
               </View>
@@ -648,12 +651,12 @@ export default function AppointmentsScreen() {
             <View style={[styles.modalHeader, { borderBottomColor: themeColors.tabIconDefault }]}>
               <View>
                 <Text style={styles.modalTitle}>
-                  {editingAppt ? "Modifier" : "Nouveau rendez-vous"}
+                  {editingAppt ? t("appointments.modal.edit") : t("appointments.modal.new")}
                 </Text>
                 <Text style={styles.modalSubtitle}>
                   {formData.date
-                    ? `Date : ${formData.date}`
-                    : "Définir les détails"}
+                    ? t("appointments.modal.date_label", { date: formData.date })
+                    : t("appointments.modal.details")}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -669,7 +672,7 @@ export default function AppointmentsScreen() {
               keyboardShouldPersistTaps="handled"
             >
               {/* Type de consultation */}
-              <Text style={styles.inputLabel}>Type de consultation</Text>
+              <Text style={styles.inputLabel}>{t("appointments.form.type")}</Text>
               <View style={styles.typeGrid}>
                 {CONSULTATION_TYPES.map((type) => (
                   <TouchableOpacity
@@ -716,7 +719,7 @@ export default function AppointmentsScreen() {
               </View>
 
               {/* Nom */}
-              <Text style={styles.inputLabel}>Nom de la consultation</Text>
+              <Text style={styles.inputLabel}>{t("appointments.form.name")}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons
                   name="document-text-outline"
@@ -728,7 +731,7 @@ export default function AppointmentsScreen() {
                   style={styles.input}
                   value={formData.typeName}
                   onChangeText={(text) => updateForm({ typeName: text })}
-                  placeholder="Ex : Consultation générale"
+                  placeholder={t("appointments.form.name_placeholder")}
                   placeholderTextColor={themeColors.icon}
                 />
               </View>
@@ -736,7 +739,7 @@ export default function AppointmentsScreen() {
               {/* Date + Heure */}
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Date</Text>
+                  <Text style={styles.inputLabel}>{t("appointments.form.date")}</Text>
                   <TouchableOpacity
                     style={styles.inputContainer}
                     onPress={() => setShowFormDatePicker(true)}
@@ -748,7 +751,7 @@ export default function AppointmentsScreen() {
                       style={styles.inputIcon}
                     />
                     <Text style={[styles.input, { color: formData.date ? themeColors.text : themeColors.icon }]}>
-                      {formData.date ? displayDate(formData.date) : "Sélectionner..."}
+                      {formData.date ? displayDate(formData.date) : t("appointments.form.select")}
                     </Text>
                   </TouchableOpacity>
                   {showFormDatePicker && (
@@ -761,7 +764,7 @@ export default function AppointmentsScreen() {
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Heure</Text>
+                  <Text style={styles.inputLabel}>{t("appointments.form.time")}</Text>
                   <TouchableOpacity
                     style={styles.inputContainer}
                     onPress={() => setShowFormTimePicker(true)}
@@ -773,7 +776,7 @@ export default function AppointmentsScreen() {
                       style={styles.inputIcon}
                     />
                     <Text style={[styles.input, { color: formData.time ? themeColors.text : themeColors.icon }]}>
-                      {formData.time ? formData.time : "Sélectionner..."}
+                      {formData.time ? formData.time : t("appointments.form.select")}
                     </Text>
                   </TouchableOpacity>
                   {showFormTimePicker && (
@@ -788,7 +791,7 @@ export default function AppointmentsScreen() {
               </View>
 
               {/* Médecin */}
-              <Text style={styles.inputLabel}>Nom du médecin</Text>
+              <Text style={styles.inputLabel}>{t("appointments.form.doctor")}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons
                   name="person-outline"
@@ -800,13 +803,13 @@ export default function AppointmentsScreen() {
                   style={styles.input}
                   value={formData.doctor}
                   onChangeText={(text) => updateForm({ doctor: text })}
-                  placeholder="Dr. ..."
+                  placeholder={t("appointments.form.doctor_placeholder")}
                   placeholderTextColor={themeColors.icon}
                 />
               </View>
 
               {/* Lieu */}
-              <Text style={styles.inputLabel}>Lieu</Text>
+              <Text style={styles.inputLabel}>{t("appointments.form.location")}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons
                   name="location-outline"
@@ -818,19 +821,19 @@ export default function AppointmentsScreen() {
                   style={styles.input}
                   value={formData.location}
                   onChangeText={(text) => updateForm({ location: text })}
-                  placeholder="Adresse du cabinet"
+                  placeholder={t("appointments.form.location_placeholder")}
                   placeholderTextColor={themeColors.icon}
                 />
               </View>
 
               {/* Notes */}
-              <Text style={styles.inputLabel}>Notes (optionnel)</Text>
+              <Text style={styles.inputLabel}>{t("appointments.form.notes")}</Text>
               <View style={[styles.inputContainer, styles.textAreaContainer]}>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={formData.notes}
                   onChangeText={(text) => updateForm({ notes: text })}
-                  placeholder="Instructions spéciales..."
+                  placeholder={t("appointments.form.notes_placeholder")}
                   placeholderTextColor={themeColors.icon}
                   multiline
                   numberOfLines={3}
@@ -840,13 +843,13 @@ export default function AppointmentsScreen() {
               {/* Bouton sauvegarder */}
               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                 <LinearGradient
-                  colors={["#8b5cf6", "#7c3aed"]}
+                  colors={[themeColors.primary, themeColors.tint]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.saveButtonGradient}
                 >
                   <Text style={styles.saveButtonText}>
-                    {editingAppt ? "Mettre à jour" : "Confirmer le rendez-vous"}
+                    {editingAppt ? t("appointments.form.save_edit") : t("appointments.form.save_new")}
                   </Text>
                   <Ionicons name="arrow-forward" size={20} color="#fff" />
                 </LinearGradient>

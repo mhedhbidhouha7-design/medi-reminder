@@ -7,6 +7,7 @@ import { Proche } from "@/models/interfaces";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,6 +18,7 @@ import {
 } from "react-native";
 
 export default function ProcheScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { theme, isDark } = useAppTheme();
   const themeColors = Colors[theme];
@@ -57,19 +59,19 @@ export default function ProcheScreen() {
 
   const handleDelete = (id: string, name: string) => {
     showConfirm(
-      "Supprimer le contact",
-      `Êtes-vous sûr de vouloir supprimer ${name} ?`,
+      t("proche.alerts.delete_title"),
+      t("proche.alerts.delete_confirm", { name }),
       async () => {
         if (!userId) return;
         try {
           await deleteProche(userId, id);
         } catch (error) {
           console.error("Error deleting proche:", error);
-          showError("Erreur", "Impossible de supprimer ce contact.");
+          showError(t("profile.messages.error"), t("proche.alerts.delete_error"));
         }
       },
-      "Supprimer",
-      "Annuler",
+      t("common.delete"),
+      t("common.cancel"),
     );
   };
 
@@ -116,10 +118,10 @@ export default function ProcheScreen() {
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={[styles.headerTitle, { color: themeColors.text }]}>
-            Mes Proches
+            {t("proche.title")}
           </Text>
           <Text style={[styles.headerSubtitle, { color: themeColors.icon }]}>
-            Contacts de confiance
+            {t("proche.subtitle")}
           </Text>
         </View>
         <TouchableOpacity style={[styles.addButton, { backgroundColor: themeColors.primary, shadowColor: themeColors.primary }]} onPress={openAddModal}>
@@ -141,7 +143,7 @@ export default function ProcheScreen() {
             <View style={styles.emptyContainer}>
               <Ionicons name="people-outline" size={48} color={themeColors.icon} />
               <Text style={[styles.emptyText, { color: themeColors.icon }]}>
-                Vous n'avez pas encore ajouté de proche. Appuyez sur le bouton + pour en ajouter un.
+                {t("proche.empty_text")}
               </Text>
             </View>
           }

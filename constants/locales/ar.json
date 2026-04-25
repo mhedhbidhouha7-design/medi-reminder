@@ -126,5 +126,153 @@
     "instruction": "يجب عليك تأكيد تناول الدواء للمتابعة.",
     "confirm": "✓ لقد تناولت دوائي",
     "snooze": "تأجيل لمدة 5 دقائق"
+  },
+  "appointments": {
+    "title": "المواعيد",
+    "tabs": {
+      "todo": "للقيام به",
+      "history": "السجل"
+    },
+    "sections": {
+      "today": "اليوم",
+      "upcoming": "قادم",
+      "past": "المواعيد المكتملة أو الفائتة"
+    },
+    "empty": {
+      "up_to_date": "أنت على اطلاع دائم",
+      "no_today": "لا توجد مواعيد مقررة اليوم",
+      "no_history": "لا يوجد سجل في {{date}}"
+    },
+    "badges": {
+      "waiting": "في الانتظار"
+    },
+    "modal": {
+      "new": "موعد جديد",
+      "edit": "تعديل",
+      "date_label": "التاريخ: {{date}}",
+      "details": "ضبط التفاصيل"
+    },
+    "form": {
+      "type": "نوع الاستشارة",
+      "name": "اسم الاستشارة",
+      "name_placeholder": "مثال: استشارة عامة",
+      "doctor": "اسم الطبيب",
+      "doctor_placeholder": "د. ...",
+      "location": "المكان",
+      "location_placeholder": "عنوان العيادة",
+      "notes": "ملاحظات (اختياري)",
+      "notes_placeholder": "تعليمات خاصة...",
+      "date": "التاريخ",
+      "time": "الوقت",
+      "select": "اختر...",
+      "save_new": "تأكيد الموعد",
+      "save_edit": "تحديث"
+    },
+    "alerts": {
+      "missing_date": "يرجى إدخال تاريخ الموعد.",
+      "missing_time": "يرجى إدخال وقت الموعد.",
+      "missing_doctor": "يرجى إدخال اسم الطبيب.",
+      "invalid_past": "لا يمكنك إنشاء موعد في الماضي.",
+      "save_error": "تعذر حفظ الموعد.",
+      "delete_title": "حذف",
+      "delete_confirm": "هل تريد حذف \"{{title}}\"؟",
+      "delete_error": "تعذر حذف هذا الموعد.",
+      "complete_error": "تعذر وضع علامة مكتمل."
+    },
+    "types": {
+      "general": "عام",
+      "specialist": "أخصائي",
+      "dental": "أسنان",
+      "ophtalmo": "عيون",
+      "cardio": "قلب",
+      "pharmacy": "صيدلية",
+      "analysis": "تحليل",
+      "other": "آخر"
+    },
+    "completed_at": "اكتمل في {{time}}"
+  },
+  "medications": {
+    "title": "أدويتي",
+    "tabs": {
+      "todo": "للقيام به",
+      "history": "السجل"
+    },
+    "empty": {
+      "no_pending": "لا توجد جرعات مقررة.",
+      "no_history": "لا يوجد سجل لهذا اليوم."
+    },
+    "modal": {
+      "new": "دواء جديد",
+      "edit": "تعديل الدواء",
+      "add_dose": "إضافة جرعة أخرى (ظهرًا، مساءً...)",
+      "remove": "إزالة"
+    },
+    "form": {
+      "name": "اسم الدواء",
+      "name_placeholder": "مثال: دوليبران 500",
+      "start_date": "تاريخ البدء",
+      "end_date": "تاريخ الانتهاء",
+      "duration": "مدة العلاج: {{duration}}",
+      "posology": "الجرعة (جرعات في اليوم)",
+      "time_moment": "الوقت / اللحظة",
+      "select": "اختر...",
+      "quantity": "الكمية",
+      "quantity_placeholder": "مثال: حبتان",
+      "save": "حفظ"
+    },
+    "alerts": {
+      "name_required": "يرجى إدخال اسم الدواء.",
+      "dose_required": "يرجى إضافة جرعة واحدة على الأقل.",
+      "invalid_time": "يجب أن يكون الوقت \"{{time}}\" بصيغة HH:MM (مثال: 08:30 أو 14:00).",
+      "invalid_end_date": "لا يمكن أن يكون تاريخ الانتهاء قبل تاريخ البدء.",
+      "invalid_past": "لا يمكنك إنشاء دواء تكون أول جرعة له في الماضي.",
+      "save_error": "تعذر حفظ الدواء.",
+      "update_error": "تعذر تحديث الحالة.",
+      "delete_title": "حذف الدواء",
+      "delete_confirm": "هل أنت متأكد أنك تريد حذف {{name}}؟",
+      "delete_error": "تعذر حذف هذا الدواء."
+    },
+    "duration": {
+      "invalid": "فترة غير صالحة",
+      "day": "يوم {{count}}",
+      "day_plural": "{{count}} أيام"
+    },
+    "status": {
+      "time_not_specified": "الوقت غير محدد",
+      "dose_not_specified": "الجرعة غير محددة",
+      "taken_at": "تم أخذها في {{time}}"
+    }
+  },
+  "proche": {
+    "title": "مقربيي",
+    "subtitle": "جهات اتصال موثوقة",
+    "add_title": "مقرّب جديد",
+    "edit_title": "تعديل المقرّب",
+    "empty_text": "لم تقم بإضافة أي مقرّب بعد. اضغط على الزر + لإضافة واحد.",
+    "form": {
+      "name": "الاسم الكامل *",
+      "name_placeholder": "مثال: مريم أحمد",
+      "email": "البريد الإلكتروني *",
+      "email_placeholder": "مثال: marie@example.com",
+      "save_new": "حفظ جهة الاتصال",
+      "save_edit": "حفظ التغييرات"
+    },
+    "alerts": {
+      "required_fields": "حقول مطلوبة",
+      "fill_name_email": "يرجى ملء الاسم والبريد الإلكتروني.",
+      "invalid_email": "بريد إلكتروني غير صالح",
+      "invalid_email_desc": "يرجى إدخال عنوان بريد إلكتروني صالح.",
+      "not_logged_in": "غير متصل",
+      "not_logged_in_desc": "يجب عليك تسجيل الدخول لإضافة مقرّب.",
+      "contact_added": "تم إضافة جهة الاتصال",
+      "contact_added_desc": "تم إضافة جهة الاتصال بنجاح.",
+      "contact_modified": "تم تعديل جهة الاتصال",
+      "contact_modified_desc": "تم تعديل جهة الاتصال بنجاح.",
+      "delete_title": "حذف جهة الاتصال",
+      "delete_confirm": "هل أنت متأكد أنك تريد حذف {{name}}؟",
+      "delete_error": "تعذر حذف جهة الاتصال هذه.",
+      "save_error_title": "فشل",
+      "save_error_desc": "تعذر إضافة جهة الاتصال هذه. يرجى المحاولة مرة أخرى."
+    }
   }
 }
