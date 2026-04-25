@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FlatList,
   Modal,
@@ -25,6 +26,7 @@ import {
 } from "react-native";
 
 export default function HealthJournalScreen() {
+  const { t, i18n } = useTranslation();
   const { theme, isDark } = useAppTheme();
   const themeColors = Colors[theme];
   
@@ -67,11 +69,11 @@ export default function HealthJournalScreen() {
 
   const handleSave = async () => {
     if (!mood.trim()) {
-      return Alert.alert("Attention", "L'humeur est obligatoire !");
+      return Alert.alert(t("profile.messages.attention"), t("journal.alerts.mood_required"));
     }
 
     if (!userId) {
-      return Alert.alert("Erreur", "Utilisateur non authentifié. Veuillez vous reconnecter.");
+      return Alert.alert(t("profile.messages.error"), t("journal.alerts.auth_error"));
     }
 
     const newEntry: HealthJournalEntry = {
@@ -83,18 +85,18 @@ export default function HealthJournalScreen() {
       illness: illness.trim() || undefined,
       symptoms: symptoms.trim() || undefined,
       notes: notes.trim() || undefined,
-      date: new Date().toLocaleDateString("fr-FR"),
+      date: new Date().toLocaleDateString(i18n.language === "ar" ? "ar-EG" : i18n.language === "en" ? "en-US" : "fr-FR"),
       createdAt: new Date().toISOString(),
     };
 
     try {
       await addJournalEntry(userId, newEntry);
       resetForm();
-      Alert.alert("Succès", "Votre entrée a été enregistrée avec succès.");
+      Alert.alert(t("profile.messages.success"), t("journal.alerts.save_success"));
       setModalVisible(false);
     } catch (error) {
       console.error("Erreur lors de l'enregistrement du journal :", error);
-      Alert.alert("Erreur", "Impossible d'enregistrer l'entrée. Vérifiez votre connexion.");
+      Alert.alert(t("profile.messages.error"), t("journal.alerts.save_error"));
     }
   };
 
@@ -149,12 +151,12 @@ export default function HealthJournalScreen() {
         <View style={styles.healthSection}>
           {item.illness && (
              <Text style={[styles.healthText, { color: themeColors.text }]}>
-               <Text style={{fontWeight: 'bold'}}>Maladie: </Text>{item.illness}
+               <Text style={{fontWeight: 'bold'}}>{t("journal.card.illness")} </Text>{item.illness}
              </Text>
           )}
           {item.symptoms && (
              <Text style={[styles.healthText, { color: themeColors.text }]}>
-               <Text style={{fontWeight: 'bold'}}>Symptômes: </Text>{item.symptoms}
+               <Text style={{fontWeight: 'bold'}}>{t("journal.card.symptoms")} </Text>{item.symptoms}
              </Text>
           )}
         </View>
@@ -174,8 +176,8 @@ export default function HealthJournalScreen() {
         colors={[themeColors.primary, themeColors.tint]}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Journal de Santé</Text>
-        <Text style={styles.headerSubtitle}>Suivez vos constantes au quotidien</Text>
+        <Text style={styles.headerTitle}>{t("journal.title")}</Text>
+        <Text style={styles.headerSubtitle}>{t("journal.subtitle")}</Text>
       </LinearGradient>
 
       <FlatList
@@ -187,13 +189,13 @@ export default function HealthJournalScreen() {
           <View style={styles.emptyContainer}>
             <Ionicons name="book-outline" size={64} color={themeColors.icon} />
             <Text style={[styles.emptyText, { color: themeColors.icon }]}>
-              Aucune entrée pour le moment.
+              {t("journal.empty.title")}
             </Text>
             <TouchableOpacity 
               style={[styles.emptyButton, { backgroundColor: themeColors.primary }]}
               onPress={() => setModalVisible(true)}
             >
-              <Text style={styles.emptyButtonText}>Ajouter ma première note</Text>
+              <Text style={styles.emptyButtonText}>{t("journal.empty.button")}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -216,7 +218,7 @@ export default function HealthJournalScreen() {
           style={[styles.modalContainer, { backgroundColor: themeColors.background }]}
         >
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: themeColors.text }]}>Nouvelle Entrée</Text>
+            <Text style={[styles.modalTitle, { color: themeColors.text }]}>{t("journal.modal.title")}</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={28} color={themeColors.icon} />
             </TouchableOpacity>
@@ -225,24 +227,24 @@ export default function HealthJournalScreen() {
           <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
             {/* Section: Humeur */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: themeColors.text }]}>Comment vous sentez-vous ? *</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>{t("journal.modal.mood_label")}</Text>
               <View style={[styles.inputWithIcon, { borderColor: themeColors.icon }]}>
                 <Ionicons name="happy-outline" size={20} color={themeColors.primary} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.inputNoBorder, { color: themeColors.text }]}
                   value={mood}
                   onChangeText={setMood}
-                  placeholder="Ex: Heureux, Fatigué..."
+                  placeholder={t("journal.modal.mood_placeholder")}
                   placeholderTextColor={themeColors.icon}
                 />
               </View>
             </View>
 
             {/* Section: Biométrie */}
-            <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>Biométrie</Text>
+            <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t("journal.modal.biometrics")}</Text>
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={[styles.label, { color: themeColors.text }]}>Tension</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>{t("journal.modal.blood_pressure")}</Text>
                 <TextInput
                   style={[styles.input, { color: themeColors.text, borderColor: themeColors.icon }]}
                   value={bloodPressure}
@@ -252,7 +254,7 @@ export default function HealthJournalScreen() {
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={[styles.label, { color: themeColors.text }]}>Glycémie</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>{t("journal.modal.blood_sugar")}</Text>
                 <TextInput
                   style={[styles.input, { color: themeColors.text, borderColor: themeColors.icon }]}
                   value={bloodSugar}
@@ -266,7 +268,7 @@ export default function HealthJournalScreen() {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={[styles.label, { color: themeColors.text }]}>Poids (kg)</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>{t("journal.modal.weight")}</Text>
                 <TextInput
                   style={[styles.input, { color: themeColors.text, borderColor: themeColors.icon }]}
                   value={weight}
@@ -277,7 +279,7 @@ export default function HealthJournalScreen() {
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={[styles.label, { color: themeColors.text }]}>Hauteur (cm)</Text>
+                <Text style={[styles.label, { color: themeColors.text }]}>{t("journal.modal.height")}</Text>
                 <TextInput
                   style={[styles.input, { color: themeColors.text, borderColor: themeColors.icon }]}
                   value={height}
@@ -290,38 +292,38 @@ export default function HealthJournalScreen() {
             </View>
 
             {/* Section: Santé */}
-            <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>État de Santé</Text>
+            <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t("journal.modal.health_state")}</Text>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: themeColors.text }]}>Maladie actuelle</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>{t("journal.modal.illness")}</Text>
               <TextInput
                 style={[styles.input, { color: themeColors.text, borderColor: themeColors.icon }]}
                 value={illness}
                 onChangeText={setIllness}
-                placeholder="Ex: Rhume, Grippe..."
+                placeholder={t("journal.modal.illness_placeholder")}
                 placeholderTextColor={themeColors.icon}
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: themeColors.text }]}>Symptômes</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>{t("journal.modal.symptoms")}</Text>
               <TextInput
                 style={[styles.input, { color: themeColors.text, borderColor: themeColors.icon }]}
                 value={symptoms}
                 onChangeText={setSymptoms}
-                placeholder="Ex: Toux, Fièvre..."
+                placeholder={t("journal.modal.symptoms_placeholder")}
                 placeholderTextColor={themeColors.icon}
                 multiline
               />
             </View>
 
             {/* Section: Notes */}
-            <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>Notes Additionnelles</Text>
+            <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t("journal.modal.notes")}</Text>
             <TextInput
               style={[styles.input, styles.textArea, { color: themeColors.text, borderColor: themeColors.icon }]}
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={4}
-              placeholder="Quelque chose d'autre à signaler ?"
+              placeholder={t("journal.modal.notes_placeholder")}
               placeholderTextColor={themeColors.icon}
             />
 
@@ -333,7 +335,7 @@ export default function HealthJournalScreen() {
               style={[styles.saveButton, { backgroundColor: themeColors.primary }]} 
               onPress={handleSave}
             >
-              <Text style={styles.saveButtonText}>Enregistrer l&apos;entrée</Text>
+              <Text style={styles.saveButtonText}>{t("journal.modal.save")}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

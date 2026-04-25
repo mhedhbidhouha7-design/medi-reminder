@@ -274,5 +274,41 @@
       "save_error_title": "Échec",
       "save_error_desc": "Impossible d'ajouter ce contact. Veuillez réessayer."
     }
+  },
+  "journal": {
+    "title": "Journal de Santé",
+    "subtitle": "Suivez vos constantes au quotidien",
+    "empty": {
+      "title": "Aucune entrée pour le moment.",
+      "button": "Ajouter ma première note"
+    },
+    "modal": {
+      "title": "Nouvelle Entrée",
+      "mood_label": "Comment vous sentez-vous ? *",
+      "mood_placeholder": "Ex: Heureux, Fatigué...",
+      "biometrics": "Biométrie",
+      "blood_pressure": "Tension",
+      "blood_sugar": "Glycémie",
+      "weight": "Poids (kg)",
+      "height": "Hauteur (cm)",
+      "health_state": "État de Santé",
+      "illness": "Maladie actuelle",
+      "illness_placeholder": "Ex: Rhume, Grippe...",
+      "symptoms": "Symptômes",
+      "symptoms_placeholder": "Ex: Toux, Fièvre...",
+      "notes": "Notes Additionnelles",
+      "notes_placeholder": "Quelque chose d'autre à signaler ?",
+      "save": "Enregistrer l'entrée"
+    },
+    "card": {
+      "illness": "Maladie:",
+      "symptoms": "Symptômes:"
+    },
+    "alerts": {
+      "mood_required": "L'humeur est obligatoire !",
+      "auth_error": "Utilisateur non authentifié. Veuillez vous reconnecter.",
+      "save_success": "Votre entrée a été enregistrée avec succès.",
+      "save_error": "Impossible d'enregistrer l'entrée. Vérifiez votre connexion."
+    }
   }
 }

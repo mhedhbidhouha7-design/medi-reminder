@@ -274,5 +274,41 @@
       "save_error_title": "فشل",
       "save_error_desc": "تعذر إضافة جهة الاتصال هذه. يرجى المحاولة مرة أخرى."
     }
+  },
+  "journal": {
+    "title": "سجل الصحة",
+    "subtitle": "تتبع علاماتك الحيوية يومياً",
+    "empty": {
+      "title": "لا توجد مدخلات بعد.",
+      "button": "أضف ملاحظتي الأولى"
+    },
+    "modal": {
+      "title": "مدخل جديد",
+      "mood_label": "كيف تشعر؟ *",
+      "mood_placeholder": "مثال: سعيد، متعب...",
+      "biometrics": "القياسات الحيوية",
+      "blood_pressure": "ضغط الدم",
+      "blood_sugar": "نسبة السكر في الدم",
+      "weight": "الوزن (كجم)",
+      "height": "الطول (سم)",
+      "health_state": "الحالة الصحية",
+      "illness": "المرض الحالي",
+      "illness_placeholder": "مثال: زكام، إنفلونزا...",
+      "symptoms": "الأعراض",
+      "symptoms_placeholder": "مثال: سعال، حمى...",
+      "notes": "ملاحظات إضافية",
+      "notes_placeholder": "أي شيء آخر تود ذكره؟",
+      "save": "حفظ المدخل"
+    },
+    "card": {
+      "illness": "المرض:",
+      "symptoms": "الأعراض:"
+    },
+    "alerts": {
+      "mood_required": "المزاج مطلوب!",
+      "auth_error": "المستخدم غير موثق. يرجى تسجيل الدخول مرة أخرى.",
+      "save_success": "تم حفظ المدخل بنجاح.",
+      "save_error": "تعذر حفظ المدخل. تحقق من اتصالك."
+    }
   }
 }

@@ -274,5 +274,41 @@
       "save_error_title": "Failed",
       "save_error_desc": "Unable to add this contact. Please try again."
     }
+  },
+  "journal": {
+    "title": "Health Journal",
+    "subtitle": "Track your vitals daily",
+    "empty": {
+      "title": "No entries yet.",
+      "button": "Add my first note"
+    },
+    "modal": {
+      "title": "New Entry",
+      "mood_label": "How are you feeling? *",
+      "mood_placeholder": "e.g. Happy, Tired...",
+      "biometrics": "Biometrics",
+      "blood_pressure": "Blood Pressure",
+      "blood_sugar": "Blood Sugar",
+      "weight": "Weight (kg)",
+      "height": "Height (cm)",
+      "health_state": "Health State",
+      "illness": "Current Illness",
+      "illness_placeholder": "e.g. Cold, Flu...",
+      "symptoms": "Symptoms",
+      "symptoms_placeholder": "e.g. Cough, Fever...",
+      "notes": "Additional Notes",
+      "notes_placeholder": "Anything else to report?",
+      "save": "Save Entry"
+    },
+    "card": {
+      "illness": "Illness:",
+      "symptoms": "Symptoms:"
+    },
+    "alerts": {
+      "mood_required": "Mood is required!",
+      "auth_error": "User not authenticated. Please log in again.",
+      "save_success": "Your entry has been saved successfully.",
+      "save_error": "Unable to save entry. Check your connection."
+    }
   }
 }
