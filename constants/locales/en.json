@@ -310,5 +310,58 @@
       "save_success": "Your entry has been saved successfully.",
       "save_error": "Unable to save entry. Check your connection."
     }
+  },
+  "doctors": {
+    "list": {
+      "title": "Find a Doctor",
+      "subtitle": "Book an appointment with the best specialists",
+      "search_placeholder": "Search by name or specialty...",
+      "specialties_title": "Specialties",
+      "available_title": "Available Doctors",
+      "loading": "Loading doctors...",
+      "empty": "No doctors found in this category.",
+      "hospital_not_specified": "Hospital not specified"
+    },
+    "profile": {
+      "title": "Doctor Profile",
+      "about": "About",
+      "contact": "Contact",
+      "schedule": "Opening Hours",
+      "experience": "Experience",
+      "patients": "Patients",
+      "reviews": "Reviews",
+      "license": "License: {{number}}",
+      "weekdays": "Monday - Friday",
+      "hours": "09:00 AM - 18:00 PM",
+      "sync_data": "Real-time synced data",
+      "bio_fallback": "Dedicated doctor providing quality care to patients.",
+      "loading": "Loading profile...",
+      "not_found": "Doctor not found.",
+      "back": "Back"
+    },
+    "buttons": {
+      "chat": "Chat",
+      "chat_start": "Starting conversation...",
+      "book_now": "Book Now",
+      "regular_followup": "Request regular follow-up"
+    },
+    "alerts": {
+      "login_required": "You must be logged in to perform this action.",
+      "request_sent": "Success",
+      "appointment_sent": "Your appointment request with {{name}} has been sent. You will receive a notification once it is confirmed.",
+      "followup_sent": "Your follow-up request with {{name}} has been sent.",
+      "send_error": "Unable to send request. Please try again."
+    },
+    "specialties": {
+      "all": "All",
+      "generalist": "Generalist",
+      "cardiologist": "Cardiology",
+      "dermatologist": "Dermatology",
+      "neurologist": "Neurologist",
+      "pediatrician": "Pediatrics",
+      "psychiatrist": "Psychiatry",
+      "ophthalmologist": "Ophthalmology",
+      "dentist": "Dentist"
+    }
   }
 }

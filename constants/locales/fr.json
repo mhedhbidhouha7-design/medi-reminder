@@ -310,5 +310,58 @@
       "save_success": "Votre entrée a été enregistrée avec succès.",
       "save_error": "Impossible d'enregistrer l'entrée. Vérifiez votre connexion."
     }
+  },
+  "doctors": {
+    "list": {
+      "title": "Trouver un médecin",
+      "subtitle": "Prenez rendez-vous avec les meilleurs spécialistes",
+      "search_placeholder": "Rechercher par nom ou spécialité...",
+      "specialties_title": "Spécialités",
+      "available_title": "Médecins disponibles",
+      "loading": "Chargement des médecins...",
+      "empty": "Aucun médecin trouvé dans cette catégorie.",
+      "hospital_not_specified": "Hôpital non spécifié"
+    },
+    "profile": {
+      "title": "Profil du Médecin",
+      "about": "À propos",
+      "contact": "Contact",
+      "schedule": "Horaires d'ouverture",
+      "experience": "Expérience",
+      "patients": "Patients",
+      "reviews": "Avis",
+      "license": "Licence: {{number}}",
+      "weekdays": "Lundi - Vendredi",
+      "hours": "09:00 AM - 18:00 PM",
+      "sync_data": "Données synchronisées en temps réel",
+      "bio_fallback": "Médecin dévoué offrant des soins de qualité à ses patients.",
+      "loading": "Chargement du profil...",
+      "not_found": "Médecin non trouvé.",
+      "back": "Retour"
+    },
+    "buttons": {
+      "chat": "Chat",
+      "chat_start": "Démarrage de la conversation...",
+      "book_now": "Réserver maintenant",
+      "regular_followup": "Demander un suivi régulier"
+    },
+    "alerts": {
+      "login_required": "Vous devez être connecté pour effectuer cette action.",
+      "request_sent": "Succès",
+      "appointment_sent": "Votre demande de rendez-vous avec {{name}} a été envoyée. Vous recevrez une notification dès qu'elle sera confirmée.",
+      "followup_sent": "Votre demande de suivi avec {{name}} a été envoyée.",
+      "send_error": "Impossible d'envoyer la demande. Veuillez réessayer."
+    },
+    "specialties": {
+      "all": "Tous",
+      "generalist": "Généraliste",
+      "cardiologist": "Cardiologie",
+      "dermatologist": "Dermatologie",
+      "neurologist": "Neurologue",
+      "pediatrician": "Pédiatrie",
+      "psychiatrist": "Psychiatrie",
+      "ophthalmologist": "Ophtalmologie",
+      "dentist": "Dentiste"
+    }
   }
 }

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { onValue, push, ref, serverTimestamp, set } from 'firebase/database';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -20,9 +21,8 @@ import { Demande, Doctor } from '../../../models/interfaces';
 
 const { width } = Dimensions.get('window');
 
-
-
 const DoctorProfileScreen = () => {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [doctor, setDoctor] = useState<Doctor | null>(null);
@@ -39,7 +39,7 @@ const DoctorProfileScreen = () => {
         setDoctor({
           ...data,
           // Fallback values for UI consistency
-          bio: data.bio || "Médecin dévoué offrant des soins de qualité à ses patients.",
+          bio: data.bio || t("doctors.profile.bio_fallback"),
           rating: data.rating || (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1),
         });
       }
@@ -57,7 +57,7 @@ const DoctorProfileScreen = () => {
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Erreur", "Vous devez être connecté pour effectuer cette action.");
+      Alert.alert(t("profile.messages.error"), t("doctors.alerts.login_required"));
       return;
     }
 
@@ -82,15 +82,15 @@ const DoctorProfileScreen = () => {
       await set(newDemandeRef, demandeData);
 
       Alert.alert(
-        "Succès",
+        t("doctors.alerts.request_sent"),
         type === 'appointment'
-          ? `Votre demande de rendez-vous avec ${doctorName} a été envoyée. Vous recevrez une notification dès qu'elle sera confirmée.`
-          : `Votre demande de suivi avec ${doctorName} a été envoyée.`,
-        [{ text: "OK", onPress: () => router.back() }]
+          ? t("doctors.alerts.appointment_sent", { name: doctorName })
+          : t("doctors.alerts.followup_sent", { name: doctorName }),
+        [{ text: t("common.ok"), onPress: () => router.back() }]
       );
     } catch (error) {
       console.error("Error sending request:", error);
-      Alert.alert("Erreur", "Impossible d'envoyer la demande. Veuillez réessayer.");
+      Alert.alert(t("profile.messages.error"), t("doctors.alerts.send_error"));
     } finally {
       setRequesting(false);
     }
@@ -100,7 +100,7 @@ const DoctorProfileScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1971C2" />
-        <Text style={styles.loadingText}>Chargement du profil...</Text>
+        <Text style={styles.loadingText}>{t("doctors.profile.loading")}</Text>
       </View>
     );
   }
@@ -108,9 +108,9 @@ const DoctorProfileScreen = () => {
   if (!doctor) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Médecin non trouvé.</Text>
+        <Text style={styles.errorText}>{t("doctors.profile.not_found")}</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButtonInline}>
-          <Text style={styles.backButtonText}>Retour</Text>
+          <Text style={styles.backButtonText}>{t("doctors.profile.back")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -127,7 +127,7 @@ const DoctorProfileScreen = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profil du Médecin</Text>
+        <Text style={styles.headerTitle}>{t("doctors.profile.title")}</Text>
         <TouchableOpacity style={styles.moreButton}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#333" />
         </TouchableOpacity>
@@ -152,35 +152,35 @@ const DoctorProfileScreen = () => {
 
             <View style={styles.locationBadge}>
               <Ionicons name="business" size={14} color="#1971C2" />
-              <Text style={styles.city}>{doctor.hospital || "Hôpital non spécifié"}</Text>
+              <Text style={styles.city}>{doctor.hospital || t("doctors.list.hospital_not_specified")}</Text>
             </View>
           </View>
 
           <View style={styles.statsContainer}>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>10+</Text>
-              <Text style={styles.statLabel}>Expérience</Text>
+              <Text style={styles.statLabel}>{t("doctors.profile.experience")}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>1.2k</Text>
-              <Text style={styles.statLabel}>Patients</Text>
+              <Text style={styles.statLabel}>{t("doctors.profile.patients")}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{doctor.rating}</Text>
-              <Text style={styles.statLabel}>Avis</Text>
+              <Text style={styles.statLabel}>{t("doctors.profile.reviews")}</Text>
             </View>
           </View>
 
           <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>À propos</Text>
+            <Text style={styles.sectionTitle}>{t("doctors.profile.about")}</Text>
             <Text style={styles.bio}>{doctor.bio}</Text>
             {doctor.licenseNumber && (
-              <Text style={styles.licenseText}>Licence: {doctor.licenseNumber}</Text>
+              <Text style={styles.licenseText}>{t("doctors.profile.license", { number: doctor.licenseNumber })}</Text>
             )}
           </View>
 
           <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>Contact</Text>
+            <Text style={styles.sectionTitle}>{t("doctors.profile.contact")}</Text>
             <View style={styles.contactItem}>
               <Ionicons name="call-outline" size={20} color="#1971C2" />
               <Text style={styles.contactText}>{doctor.phone}</Text>
@@ -194,21 +194,21 @@ const DoctorProfileScreen = () => {
           </View>
 
           <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>Horaires d'ouverture</Text>
+            <Text style={styles.sectionTitle}>{t("doctors.profile.schedule")}</Text>
             <View style={styles.scheduleItem}>
               <View style={styles.scheduleIcon}>
                 <Ionicons name="time-outline" size={20} color="#1971C2" />
               </View>
               <View>
-                <Text style={styles.scheduleDays}>Lundi - Vendredi</Text>
-                <Text style={styles.scheduleHours}>09:00 AM - 18:00 PM</Text>
+                <Text style={styles.scheduleDays}>{t("doctors.profile.weekdays")}</Text>
+                <Text style={styles.scheduleHours}>{t("doctors.profile.hours")}</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.dbFooter}>
             <Ionicons name="cloud-done-outline" size={14} color="#ADB5BD" />
-            <Text style={styles.dbFooterText}>Données synchronisées en temps réel</Text>
+            <Text style={styles.dbFooterText}>{t("doctors.profile.sync_data")}</Text>
           </View>
         </ScrollView>
       </View>
@@ -218,7 +218,7 @@ const DoctorProfileScreen = () => {
         <View style={styles.footerContent}>
           <TouchableOpacity
             style={styles.chatButton}
-            onPress={() => Alert.alert("Chat", "Démarrage de la conversation...")}
+            onPress={() => Alert.alert(t("doctors.buttons.chat"), t("doctors.buttons.chat_start"))}
           >
             <Ionicons name="chatbubble-ellipses" size={24} color="#1971C2" />
           </TouchableOpacity>
@@ -231,7 +231,7 @@ const DoctorProfileScreen = () => {
             {requesting ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.primaryButtonText}>Réserver maintenant</Text>
+              <Text style={styles.primaryButtonText}>{t("doctors.buttons.book_now")}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -241,7 +241,7 @@ const DoctorProfileScreen = () => {
           onPress={() => handleAction('follow-up')}
           disabled={requesting}
         >
-          <Text style={styles.secondaryButtonText}>Demander un suivi régulier</Text>
+          <Text style={styles.secondaryButtonText}>{t("doctors.buttons.regular_followup")}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

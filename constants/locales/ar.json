@@ -310,5 +310,58 @@
       "save_success": "تم حفظ المدخل بنجاح.",
       "save_error": "تعذر حفظ المدخل. تحقق من اتصالك."
     }
+  },
+  "doctors": {
+    "list": {
+      "title": "ابحث عن طبيب",
+      "subtitle": "احجز موعداً مع أفضل المتخصصين",
+      "search_placeholder": "البحث بالاسم أو التخصص...",
+      "specialties_title": "التخصصات",
+      "available_title": "الأطباء المتاحون",
+      "loading": "جارٍ تحميل الأطباء...",
+      "empty": "لم يتم العثور على أطباء في هذه الفئة.",
+      "hospital_not_specified": "المستشفى غير محدد"
+    },
+    "profile": {
+      "title": "ملف الطبيب",
+      "about": "حول",
+      "contact": "اتصال",
+      "schedule": "ساعات العمل",
+      "experience": "خبرة",
+      "patients": "المرضى",
+      "reviews": "التقييمات",
+      "license": "الترخيص: {{number}}",
+      "weekdays": "الاثنين - الجمعة",
+      "hours": "09:00 ص - 06:00 م",
+      "sync_data": "بيانات متزامنة في الوقت الفعلي",
+      "bio_fallback": "طبيب مخلص يقدم رعاية عالية الجودة لمرضاه.",
+      "loading": "جارٍ تحميل الملف الشخصي...",
+      "not_found": "الطبيب غير موجود.",
+      "back": "رجوع"
+    },
+    "buttons": {
+      "chat": "دردشة",
+      "chat_start": "بدء المحادثة...",
+      "book_now": "احجز الآن",
+      "regular_followup": "طلب متابعة منتظمة"
+    },
+    "alerts": {
+      "login_required": "يجب عليك تسجيل الدخول للقيام بهذا الإجراء.",
+      "request_sent": "نجاح",
+      "appointment_sent": "تم إرسال طلب الموعد مع {{name}}. ستتلقى إشعاراً بمجرد تأكيده.",
+      "followup_sent": "تم إرسال طلب المتابعة مع {{name}}.",
+      "send_error": "تعذر إرسال الطلب. يرجى المحاولة مرة أخرى."
+    },
+    "specialties": {
+      "all": "الكل",
+      "generalist": "عام",
+      "cardiologist": "أمراض القلب",
+      "dermatologist": "أمراض الجلد",
+      "neurologist": "أعصاب",
+      "pediatrician": "أطفال",
+      "psychiatrist": "طب نفسي",
+      "ophthalmologist": "عيون",
+      "dentist": "أسنان"
+    }
   }
 }
