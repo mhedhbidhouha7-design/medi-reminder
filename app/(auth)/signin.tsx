@@ -2,7 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
+import { get, ref } from "firebase/database";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Animated,
@@ -17,9 +19,10 @@ import {
   View,
 } from "react-native";
 import { signInUser } from "../../controllers/authController";
-import { auth } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 
 export default function Login() {
+  const { t } = useTranslation();
   console.log("Rendering Signin screen");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,29 +48,52 @@ export default function Login() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  const checkUserStatus = async (uid: string) => {
+    const snapshot = await get(ref(db, "patients/" + uid));
+
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+
+      if (data.active === false) {
+        alert("Compte désactivé");
+        // logout
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert(t("profile.messages.attention"), t("auth.signin.errors.fill_fields"));
       return;
     }
 
     setLoading(true);
     try {
-      console.log("Starting sign in...");
-      await signInUser(email, password);
-      console.log("Sign in success");
-      // Use setTimeout to ensure the navigation happens after React finishes state updates
-      setTimeout(() => {
-        console.log("Replacing route with /home");
-        router.replace("/home");
-      }, 0);
+      const userCredential = await signInUser(email, password);
+      const user = userCredential.user;
+
+      // ✅ AJOUT IMPORTANT
+      const isActive = await checkUserStatus(user.uid);
+
+      if (!isActive) {
+        await auth.signOut(); // 🔴 bloque accès
+        return;
+      }
+
+      // ✅ accès autorisé
+      router.replace("/home");
+
     } catch (error: any) {
-      console.error("Login Error:", error);
-      Alert.alert("Login failed", error.message);
+      Alert.alert(t("auth.signin.errors.login_failed"), error.message);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <LinearGradient colors={["#00bfa5", "#009688"]} style={{ flex: 1 }}>
@@ -80,16 +106,14 @@ export default function Login() {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-            <Text style={styles.title}>Bienvenue 👋</Text>
-            <Text style={styles.subtitle}>
-              Connectez-vous à votre compte MediReminder
-            </Text>
+            <Text style={styles.title}>{t("auth.signin.title")}</Text>
+            <Text style={styles.subtitle}>{t("auth.signin.subtitle")}</Text>
 
             {/* Email */}
             <View style={styles.inputContainer}>
               <Ionicons name="mail-outline" size={20} color="#94a3b8" />
               <TextInput
-                placeholder="exemple@email.com"
+                placeholder={t("auth.signin.email_placeholder")}
                 value={email}
                 onChangeText={setEmail}
                 style={styles.input}
@@ -103,7 +127,7 @@ export default function Login() {
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" />
               <TextInput
-                placeholder="Votre mot de passe"
+                placeholder={t("auth.signin.password_placeholder")}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -123,7 +147,7 @@ export default function Login() {
             <View style={{ alignItems: "flex-end", marginBottom: 20 }}>
               <Link href="/forgot-password" asChild>
                 <Pressable>
-                  <Text style={styles.link}>Mot de passe oublié ?</Text>
+                  <Text style={styles.link}>{t("auth.signin.forgot_password")}</Text>
                 </Pressable>
               </Link>
             </View>
@@ -136,16 +160,16 @@ export default function Login() {
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? "Connexion..." : "Se connecter"}
+                {loading ? t("auth.signin.logging_in") : t("auth.signin.login_button")}
               </Text>
             </TouchableOpacity>
 
             {/* Signup Link */}
             <View style={styles.signupRow}>
-              <Text style={{ color: "#64748b" }}>Pas encore de compte ?</Text>
+              <Text style={{ color: "#64748b" }}>{t("auth.signin.no_account")}</Text>
               <Link href="/signup" asChild>
                 <Pressable>
-                  <Text style={styles.link}> Créer un compte</Text>
+                  <Text style={styles.link}>{t("auth.signin.create_account")}</Text>
                 </Pressable>
               </Link>
             </View>

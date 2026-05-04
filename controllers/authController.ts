@@ -42,6 +42,8 @@ export const signUpUser = async (
     password,
     profileImageUrl, // Use directly - no upload needed!
     createdAt: new Date(),
+    active: true,
+
   };
 
   //stocke les infos essentielles du profil dans la base de données Firebase sous le "users/userId"
@@ -54,17 +56,31 @@ export const signUpUser = async (
     gender,
     address,
     profileImageUrl, // This will now have the Cloudinary URL!
+    active: true,
+    role: "patient"
   });
 
   return user;
-}; 
+};
 
 export const signInUser = async (email: string, password: string) => {
   return await signInWithEmailAndPassword(auth, email.trim(), password);
 };
 
 export const resetPassword = async (email: string) => {
-  return await sendPasswordResetEmail(auth, email.trim());
+  console.log("resetPassword called for email:", email);
+  if (!auth) {
+    console.error("Auth is not initialized!");
+    throw new Error("Auth system not ready");
+  }
+  try {
+    const result = await sendPasswordResetEmail(auth, email.trim());
+    console.log("sendPasswordResetEmail success");
+    return result;
+  } catch (error) {
+    console.error("sendPasswordResetEmail error:", error);
+    throw error;
+  }
 };
 
 export const logoutUser = async () => {

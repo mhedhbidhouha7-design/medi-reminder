@@ -12,6 +12,7 @@ export interface User {
   gender: string;
   address: string;
   profileImageUrl: string;
+  active: true
 }
 //DosageSchedule = represente une prise de medicament (heure+dose)
 export interface DosageSchedule {

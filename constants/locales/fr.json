@@ -363,5 +363,77 @@
       "ophthalmologist": "Ophtalmologie",
       "dentist": "Dentiste"
     }
+  },
+  "auth": {
+    "signin": {
+      "title": "Bienvenue 👋",
+      "subtitle": "Connectez-vous à votre compte MediReminder",
+      "email_placeholder": "exemple@email.com",
+      "password_placeholder": "Votre mot de passe",
+      "forgot_password": "Mot de passe oublié ?",
+      "login_button": "Se connecter",
+      "logging_in": "Connexion...",
+      "no_account": "Pas encore de compte ?",
+      "create_account": " Créer un compte",
+      "errors": {
+        "fill_fields": "Veuillez remplir tous les champs",
+        "login_failed": "Échec de la connexion"
+      }
+    },
+    "signup": {
+      "title": "Créer un compte",
+      "subtitle": "Rejoignez MediReminder aujourd'hui",
+      "name_label": "Nom complet",
+      "phone_label": "Numéro de téléphone",
+      "dob_label": "Date de naissance",
+      "gender_label": "Genre",
+      "address_label": "Adresse",
+      "password_label": "Mot de passe *",
+      "confirm_password_label": "Confirmer le mot de passe *",
+      "terms_text": "J'accepte les ",
+      "terms_link": "Conditions d'utilisation",
+      "signup_button": "S'inscrire",
+      "signing_up": "Création en cours...",
+      "uploading_image": "Upload en cours...",
+      "wait": "Patientez",
+      "photo_label": "Photo *",
+      "select_gender": "Sélectionner le genre",
+      "cancel": "Annuler",
+      "have_account": "Déjà un compte ?",
+      "login_now": " Se connecter",
+      "errors": {
+        "fill_fields": "Veuillez remplir tous les champs obligatoires",
+        "image_not_uploaded": "L'image n'a pas été uploadée correctement. Veuillez réessayer.",
+        "min_age": "Vous devez avoir au moins 18 ans pour créer un compte",
+        "password_mismatch": "Les mots de passe ne correspondent pas",
+        "password_too_short": "Le mot de passe doit contenir au moins 6 caractères",
+        "accept_terms": "Veuillez accepter les conditions d'utilisation",
+        "invalid_phone": "Le numéro doit contenir 8 chiffres et commencer par 2, 4, 5 ou 9",
+        "signup_failed": "Inscription échouée",
+        "email_in_use": "Cette adresse email est déjà utilisée",
+        "invalid_email": "Adresse email invalide",
+        "weak_password": "Le mot de passe est trop faible",
+        "permission_denied": "Permission refusée",
+        "gallery_permission": "Nous avons besoin d'accéder à votre galerie pour ajouter une photo.",
+        "upload_error": "Erreur d'upload"
+      },
+      "genders": {
+        "male": "Homme",
+        "female": "Femme"
+      }
+    },
+    "forgot_password": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Entrez votre email pour recevoir un lien de réinitialisation",
+      "email_placeholder": "exemple@email.com",
+      "send_button": "Envoyer le lien",
+      "sending": "Envoi...",
+      "back_to_login": "Retour à la connexion",
+      "email_sent_title": "Email envoyé ✅",
+      "email_sent_subtitle": "Vérifiez votre boîte mail (et spam).",
+      "errors": {
+        "enter_email": "Veuillez entrer votre email"
+      }
+    }
   }
 }

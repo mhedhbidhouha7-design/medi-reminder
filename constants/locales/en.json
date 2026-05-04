@@ -363,5 +363,77 @@
       "ophthalmologist": "Ophthalmology",
       "dentist": "Dentist"
     }
+  },
+  "auth": {
+    "signin": {
+      "title": "Welcome 👋",
+      "subtitle": "Sign in to your MediReminder account",
+      "email_placeholder": "example@email.com",
+      "password_placeholder": "Your password",
+      "forgot_password": "Forgot Password?",
+      "login_button": "Sign In",
+      "logging_in": "Signing in...",
+      "no_account": "Don't have an account?",
+      "create_account": " Create account",
+      "errors": {
+        "fill_fields": "Please fill in all fields",
+        "login_failed": "Login failed"
+      }
+    },
+    "signup": {
+      "title": "Create Account",
+      "subtitle": "Join MediReminder today",
+      "name_label": "Full Name",
+      "phone_label": "Phone Number",
+      "dob_label": "Date of Birth",
+      "gender_label": "Gender",
+      "address_label": "Address",
+      "password_label": "Password *",
+      "confirm_password_label": "Confirm Password *",
+      "terms_text": "I accept the ",
+      "terms_link": "Terms of Use",
+      "signup_button": "Sign Up",
+      "signing_up": "Creating account...",
+      "uploading_image": "Uploading image...",
+      "wait": "Wait",
+      "photo_label": "Photo *",
+      "select_gender": "Select Gender",
+      "cancel": "Cancel",
+      "have_account": "Already have an account?",
+      "login_now": " Sign In",
+      "errors": {
+        "fill_fields": "Please fill in all required fields",
+        "image_not_uploaded": "Image was not uploaded correctly. Please try again.",
+        "min_age": "You must be at least 18 years old to create an account",
+        "password_mismatch": "Passwords do not match",
+        "password_too_short": "Password must contain at least 6 characters",
+        "accept_terms": "Please accept the terms of use",
+        "invalid_phone": "The number must contain 8 digits and start with 2, 4, 5, or 9",
+        "signup_failed": "Signup failed",
+        "email_in_use": "This email address is already in use",
+        "invalid_email": "Invalid email address",
+        "weak_password": "The password is too weak",
+        "permission_denied": "Permission denied",
+        "gallery_permission": "We need access to your gallery to add a photo.",
+        "upload_error": "Upload error"
+      },
+      "genders": {
+        "male": "Male",
+        "female": "Female"
+      }
+    },
+    "forgot_password": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email to receive a reset link",
+      "email_placeholder": "example@email.com",
+      "send_button": "Send Link",
+      "sending": "Sending...",
+      "back_to_login": "Back to login",
+      "email_sent_title": "Email Sent ✅",
+      "email_sent_subtitle": "Check your inbox (and spam).",
+      "errors": {
+        "enter_email": "Please enter your email"
+      }
+    }
   }
 }

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -17,22 +18,27 @@ import {
 import { resetPassword } from "../../controllers/authController";
 
 export default function ForgotPassword() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleReset = async () => {
     if (!email) {
-      Alert.alert("Erreur", "Veuillez entrer votre email");
+      Alert.alert(t("profile.messages.attention"), t("auth.forgot_password.errors.enter_email"));
       return;
     }
 
+    console.log("handleReset triggered for:", email);
     setLoading(true);
     try {
+      console.log("Calling resetPassword controller...");
       await resetPassword(email);
+      console.log("resetPassword controller success");
       setSent(true);
     } catch (error: any) {
-      Alert.alert("Erreur", error.message);
+      console.error("handleReset caught error:", error);
+      Alert.alert(t("profile.messages.error"), error.message);
     } finally {
       setLoading(false);
     }
@@ -51,15 +57,15 @@ export default function ForgotPassword() {
           <View style={styles.card}>
             {!sent ? (
               <>
-                <Text style={styles.title}>Mot de passe oublié</Text>
+                <Text style={styles.title}>{t("auth.forgot_password.title")}</Text>
                 <Text style={styles.subtitle}>
-                  Entrez votre email pour recevoir un lien de réinitialisation
+                  {t("auth.forgot_password.subtitle")}
                 </Text>
 
                 <View style={styles.inputContainer}>
                   <Ionicons name="mail-outline" size={20} color="#94a3b8" />
                   <TextInput
-                    placeholder="exemple@email.com"
+                    placeholder={t("auth.forgot_password.email_placeholder")}
                     value={email}
                     onChangeText={setEmail}
                     style={styles.input}
@@ -76,14 +82,14 @@ export default function ForgotPassword() {
                   activeOpacity={0.85}
                 >
                   <Text style={styles.buttonText}>
-                    {loading ? "Envoi..." : "Envoyer le lien"}
+                    {loading ? t("auth.forgot_password.sending") : t("auth.forgot_password.send_button")}
                   </Text>
                 </TouchableOpacity>
 
                 <View style={styles.backRow}>
                   <Link href="./signin" asChild>
                     <Pressable>
-                      <Text style={styles.link}>Retour à la connexion</Text>
+                      <Text style={styles.link}>{t("auth.forgot_password.back_to_login")}</Text>
                     </Pressable>
                   </Link>
                 </View>
@@ -96,16 +102,16 @@ export default function ForgotPassword() {
                   color="#00bfa5"
                   style={{ alignSelf: "center", marginBottom: 20 }}
                 />
-                <Text style={styles.title}>Email envoyé ✅</Text>
+                <Text style={styles.title}>{t("auth.forgot_password.email_sent_title")}</Text>
                 <Text style={styles.subtitle}>
-                  Vérifiez votre boîte mail (et spam).
+                  {t("auth.forgot_password.email_sent_subtitle")}
                 </Text>
 
                 <TouchableOpacity style={styles.button} activeOpacity={0.85}>
                   <Link href="./signin" asChild>
                     <Pressable>
                       <Text style={styles.buttonText}>
-                        Retour à la connexion
+                        {t("auth.forgot_password.back_to_login")}
                       </Text>
                     </Pressable>
                   </Link>

@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +29,7 @@ const CLOUDINARY_UPLOAD_PRESET = "medireminder";
 const CLOUDINARY_FOLDER = "profile_images";
 
 export default function Signup() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -45,7 +47,10 @@ export default function Signup() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const genderOptions = ["Homme", "Femme"];
+  const genderOptions = [
+    { label: t("auth.signup.genders.male"), value: "Homme" },
+    { label: t("auth.signup.genders.female"), value: "Femme" }
+  ];
 
   // Upload image to Cloudinary
   const uploadToCloudinary = async (localUri: string): Promise<string> => {
@@ -92,7 +97,7 @@ export default function Signup() {
       return data.secure_url;
     } catch (error: any) {
       console.error("Cloudinary upload error:", error);
-      throw new Error(error.message || "Erreur lors de l'upload de l'image");
+      throw new Error(error.message || t("auth.signup.errors.upload_error"));
     }
   };
 
@@ -100,8 +105,8 @@ export default function Signup() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permission refusée",
-        "Nous avons besoin d'accéder à votre galerie pour ajouter une photo.",
+        t("auth.signup.errors.permission_denied"),
+        t("auth.signup.errors.gallery_permission"),
       );
       return;
     }
@@ -122,7 +127,7 @@ export default function Signup() {
         const cloudinaryUrl = await uploadToCloudinary(localUri);
         setProfileImage(cloudinaryUrl);
       } catch (error: any) {
-        Alert.alert("Erreur d'upload", error.message);
+        Alert.alert(t("auth.signup.errors.upload_error"), error.message);
         setProfileImage(null);
       } finally {
         setUploadingImage(false);
@@ -130,9 +135,6 @@ export default function Signup() {
     }
   };
 
-
-
-  //Age
   const calculateAge = (birthDate: Date): number => {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -153,7 +155,7 @@ export default function Signup() {
     if (selectedDate) {
       const age = calculateAge(selectedDate);
       if (age < 18) {
-        Alert.alert("Erreur", "Vous devez avoir au moins 18 ans");
+        Alert.alert(t("profile.messages.error"), t("auth.signup.errors.min_age"));
         return;
       }
       setDateOfBirth(selectedDate);
@@ -179,12 +181,12 @@ export default function Signup() {
       !confirmPassword ||
       !profileImage
     ) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires");
+      Alert.alert(t("profile.messages.error"), t("auth.signup.errors.fill_fields"));
       return;
     }
 
     if (uploadingImage) {
-      Alert.alert("Patientez", "L'image est en cours d'upload...");
+      Alert.alert(t("auth.signup.wait"), t("auth.signup.uploading_image"));
       return;
     }
 
@@ -193,8 +195,8 @@ export default function Signup() {
       profileImage.startsWith("content://")
     ) {
       Alert.alert(
-        "Erreur",
-        "L'image n'a pas été uploadée correctement. Veuillez réessayer.",
+        t("profile.messages.error"),
+        t("auth.signup.errors.image_not_uploaded"),
       );
       return;
     }
@@ -202,31 +204,31 @@ export default function Signup() {
     const age = calculateAge(dateOfBirth);
     if (age < 18) {
       Alert.alert(
-        "Erreur",
-        "Vous devez avoir au moins 18 ans pour créer un compte",
+        t("profile.messages.error"),
+        t("auth.signup.errors.min_age"),
       );
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
+      Alert.alert(t("profile.messages.error"), t("auth.signup.errors.password_mismatch"));
       return;
     }
     if (password.length < 6) {
       Alert.alert(
-        "Erreur",
-        "Le mot de passe doit contenir au moins 6 caractères",
+        t("profile.messages.error"),
+        t("auth.signup.errors.password_too_short"),
       );
       return;
     }
     if (!agreeToTerms) {
-      Alert.alert("Erreur", "Veuillez accepter les conditions d'utilisation");
+      Alert.alert(t("profile.messages.error"), t("auth.signup.errors.accept_terms"));
       return;
     }
     const phoneRegex = /^[2459][0-9]{7}$/;
     if (!phoneRegex.test(phone)) {
       Alert.alert(
-        "Erreur",
-        "Le numéro doit contenir 8 chiffres et commencer par 2, 4, 5 ou 9",
+        t("profile.messages.error"),
+        t("auth.signup.errors.invalid_phone"),
       );
       return;
     }
@@ -241,19 +243,20 @@ export default function Signup() {
         (dateOfBirth?.toISOString() || "") as string,
         gender,
         address,
-        profileImage, 
+        profileImage,
+      
       );
       router.replace("/home");
     } catch (error: any) {
-      let errorMessage = "Une erreur est survenue lors de l'inscription";
+      let errorMessage = t("auth.signup.errors.signup_failed");
       if (error.code === "auth/email-already-in-use") {
-        errorMessage = "Cette adresse email est déjà utilisée";
+        errorMessage = t("auth.signup.errors.email_in_use");
       } else if (error.code === "auth/invalid-email") {
-        errorMessage = "Adresse email invalide";
+        errorMessage = t("auth.signup.errors.invalid_email");
       } else if (error.code === "auth/weak-password") {
-        errorMessage = "Le mot de passe est trop faible";
+        errorMessage = t("auth.signup.errors.weak_password");
       }
-      Alert.alert("Inscription échouée", errorMessage);
+      Alert.alert(t("auth.signup.errors.signup_failed"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -271,9 +274,9 @@ export default function Signup() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.card}>
-            <Text style={styles.title}>Créer un compte</Text>
+            <Text style={styles.title}>{t("auth.signup.title")}</Text>
             <Text style={styles.subtitle}>
-              Inscrivez-vous pour accéder à votre espace personnel
+              {t("auth.signup.subtitle")}
             </Text>
 
             {/* Profile Image Picker */}
@@ -308,7 +311,7 @@ export default function Signup() {
                         size={32}
                         color="#94a3b8"
                       />
-                      <Text style={styles.imagePlaceholderText}>Photo *</Text>
+                      <Text style={styles.imagePlaceholderText}>{t("auth.signup.photo_label")}</Text>
                     </>
                   )}
                 </View>
@@ -319,7 +322,7 @@ export default function Signup() {
             <View style={styles.inputContainer}>
               <Ionicons name="person-outline" size={20} color="#94a3b8" />
               <TextInput
-                placeholder="Nom complet *"
+                placeholder={t("auth.signup.name_label") + " *"}
                 value={name}
                 onChangeText={setName}
                 style={styles.input}
@@ -345,7 +348,7 @@ export default function Signup() {
             <View style={styles.inputContainer}>
               <Ionicons name="call-outline" size={20} color="#94a3b8" />
               <TextInput
-                placeholder="Téléphone *"
+                placeholder={t("auth.signup.phone_label") + " *"}
                 value={phone}
                 onChangeText={(text) => {
                   const cleaned = text.replace(/[^0-9]/g, "");
@@ -367,7 +370,7 @@ export default function Signup() {
               <Text
                 style={[styles.input, !dateOfBirth && { color: "#94a3b8" }]}
               >
-                {dateOfBirth ? formatDate(dateOfBirth) : "Date de naissance *"}
+                {dateOfBirth ? formatDate(dateOfBirth) : t("auth.signup.dob_label") + " *"}
               </Text>
               <Ionicons name="chevron-down" size={20} color="#94a3b8" />
             </TouchableOpacity>
@@ -389,7 +392,7 @@ export default function Signup() {
             >
               <Ionicons name="male-female-outline" size={20} color="#94a3b8" />
               <Text style={[styles.input, !gender && { color: "#94a3b8" }]}>
-                {gender || "Genre *"}
+                {gender || t("auth.signup.gender_label") + " *"}
               </Text>
               <Ionicons name="chevron-down" size={20} color="#94a3b8" />
             </TouchableOpacity>
@@ -402,25 +405,25 @@ export default function Signup() {
             >
               <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Sélectionner le genre</Text>
+                  <Text style={styles.modalTitle}>{t("auth.signup.select_gender")}</Text>
                   {genderOptions.map((option) => (
                     <TouchableOpacity
-                      key={option}
+                      key={option.value}
                       style={styles.modalOption}
                       onPress={() => {
-                        setGender(option);
+                        setGender(option.value);
                         setShowGenderModal(false);
                       }}
                     >
                       <Text
                         style={[
                           styles.modalOptionText,
-                          gender === option && styles.modalOptionTextSelected,
+                          gender === option.value && styles.modalOptionTextSelected,
                         ]}
                       >
-                        {option}
+                        {option.label}
                       </Text>
-                      {gender === option && (
+                      {gender === option.value && (
                         <Ionicons name="checkmark" size={20} color="#00bfa5" />
                       )}
                     </TouchableOpacity>
@@ -429,7 +432,7 @@ export default function Signup() {
                     style={styles.modalCancel}
                     onPress={() => setShowGenderModal(false)}
                   >
-                    <Text style={styles.modalCancelText}>Annuler</Text>
+                    <Text style={styles.modalCancelText}>{t("auth.signup.cancel")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -444,7 +447,7 @@ export default function Signup() {
                 style={styles.addressIcon}
               />
               <TextInput
-                placeholder="Adresse"
+                placeholder={t("auth.signup.address_label")}
                 value={address}
                 onChangeText={setAddress}
                 style={[styles.input, styles.addressTextInput]}
@@ -458,7 +461,7 @@ export default function Signup() {
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" />
               <TextInput
-                placeholder="Mot de passe *"
+                placeholder={t("auth.signup.password_label")}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -478,7 +481,7 @@ export default function Signup() {
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" />
               <TextInput
-                placeholder="Confirmer le mot de passe *"
+                placeholder={t("auth.signup.confirm_password_label")}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
@@ -512,8 +515,8 @@ export default function Signup() {
                 )}
               </View>
               <Text style={styles.termsText}>
-                Jaccepte les{" "}
-                <Text style={styles.termsLink}>Conditions dutilisation</Text>
+                {t("auth.signup.terms_text")}
+                <Text style={styles.termsLink}>{t("auth.signup.terms_link")}</Text>
               </Text>
             </TouchableOpacity>
 
@@ -529,19 +532,19 @@ export default function Signup() {
             >
               <Text style={styles.buttonText}>
                 {loading
-                  ? "Création en cours..."
+                  ? t("auth.signup.signing_up")
                   : uploadingImage
-                    ? "Upload en cours..."
-                    : "S'inscrire"}
+                    ? t("auth.signup.uploading_image")
+                    : t("auth.signup.signup_button")}
               </Text>
             </TouchableOpacity>
 
             {/* Login Link */}
             <View style={styles.signinRow}>
-              <Text style={styles.signinText}>Déjà un compte ?</Text>
+              <Text style={styles.signinText}>{t("auth.signup.have_account")}</Text>
               <Link href="/signin" asChild>
                 <Pressable>
-                  <Text style={styles.link}> Se connecter</Text>
+                  <Text style={styles.link}>{t("auth.signup.login_now")}</Text>
                 </Pressable>
               </Link>
             </View>

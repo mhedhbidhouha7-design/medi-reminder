@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { equalTo, onValue, orderByChild, query, ref } from 'firebase/database';
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
@@ -17,38 +16,53 @@ import {
   View,
 } from 'react-native';
 import { db } from '../../../firebaseConfig';
-import { Doctor } from '../../../models/interfaces';
+
+const SPECIALTIES = [
+  'Tous',
+  'Généraliste',
+  'Cardiologie',
+  'Dermatologie',
+  'Neurologue', // Updated from Neurologie to match user example
+  'Pédiatrie',
+  'Psychiatrie',
+  'Ophtalmologie',
+  'Dentiste',
+];
+
+interface Doctor {
+  id: string;
+  firstName?: string;
+  lastName: string;
+  specialty: string;
+  hospital: string;
+  phone: string;
+  email?: string;
+  role: string;
+  uid: string;
+  licenseNumber?: string;
+  rating?: number | string;
+}
 
 const DoctorListScreen = () => {
-  const { t } = useTranslation();
   const router = useRouter();
-
-  const SPECIALTIES = [
-    { id: 'Tous', label: t("doctors.specialties.all") },
-    { id: 'Généraliste', label: t("doctors.specialties.generalist") },
-    { id: 'Cardiologie', label: t("doctors.specialties.cardiologist") },
-    { id: 'Dermatologie', label: t("doctors.specialties.dermatologist") },
-    { id: 'Neurologue', label: t("doctors.specialties.neurologist") },
-    { id: 'Pédiatrie', label: t("doctors.specialties.pediatrician") },
-    { id: 'Psychiatrie', label: t("doctors.specialties.psychiatrist") },
-    { id: 'Ophtalmologie', label: t("doctors.specialties.ophthalmologist") },
-    { id: 'Dentiste', label: t("doctors.specialties.dentist") },
-  ];
-
   const [selectedSpecialty, setSelectedSpecialty] = useState('Tous');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const medecinsRef = ref(db, 'medecins');
-    const medecinsQuery = query(medecinsRef, orderByChild('role'), equalTo('medecin'));
+    const medecinsRef = ref(db, 'medecins');//pointe vers le dossier principal medecins
+    //  dans la base de données Firebase.
+    const medecinsQuery = query(medecinsRef, orderByChild('role'), equalTo('medecin'));//filtre les résultats
+    //  pour récupérer uniquement les utilisateurs ayant le rôle "medecin".
 
-    const unsubscribe = onValue(medecinsQuery, (snapshot) => {
+    const unsubscribe = onValue(medecinsQuery, (snapshot) => {//c’est un écouteur en temps réel. À chaque changement dans Firebase, 
+      // ce code s’exécute automatiquement pour mettre à jour l’écran.
       const data = snapshot.val();
       if (data) {
         const doctorsList: Doctor[] = Object.keys(data).map((key) => ({
           id: key,
           ...data[key],
+          // Add a default rating for UI if not present
           rating: data[key].rating || (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1),
         }));
         setDoctors(doctorsList);
@@ -68,26 +82,26 @@ const DoctorListScreen = () => {
     ? doctors
     : doctors.filter(doc => doc.specialty === selectedSpecialty);
 
-  const renderSpecialty = ({ item }: { item: { id: string, label: string } }) => (
+  const renderSpecialty = ({ item }: { item: string }) => (
     <TouchableOpacity
       style={[
         styles.specialtyChip,
-        selectedSpecialty === item.id && styles.specialtyChipActive
+        selectedSpecialty === item && styles.specialtyChipActive
       ]}
-      onPress={() => setSelectedSpecialty(item.id)}
+      onPress={() => setSelectedSpecialty(item)}
     >
       <Text style={[
         styles.specialtyText,
-        selectedSpecialty === item.id && styles.specialtyTextActive
-      ]}>{item.label}</Text>
+        selectedSpecialty === item && styles.specialtyTextActive
+      ]}>{item}</Text>
     </TouchableOpacity>
   );
 
   const renderDoctor = ({ item }: { item: Doctor }) => {
-    const displayName = item.firstName 
+    const displayName = item.firstName
       ? `Dr. ${item.firstName} ${item.lastName}`
       : `Dr. ${item.lastName}`;
-      
+
     return (
       <TouchableOpacity
         style={styles.doctorCard}
@@ -108,7 +122,7 @@ const DoctorListScreen = () => {
           <Text style={styles.doctorSpecialty}>{item.specialty}</Text>
           <View style={styles.locationContainer}>
             <Ionicons name="business-outline" size={14} color="#999" />
-            <Text style={styles.doctorCity}>{item.hospital || t("doctors.list.hospital_not_specified")}</Text>
+            <Text style={styles.doctorCity}>{item.hospital || "Hôpital non spécifié"}</Text>
           </View>
         </View>
         <View style={styles.chevronContainer}>
@@ -120,24 +134,24 @@ const DoctorListScreen = () => {
 
   const ListHeader = () => (
     <View style={styles.headerContent}>
-      <Text style={styles.title}>{t("doctors.list.title")}</Text>
-      <Text style={styles.subtitle}>{t("doctors.list.subtitle")}</Text>
+      <Text style={styles.title}>Trouver un médecin</Text>
+      <Text style={styles.subtitle}>Prenez rendez-vous avec les meilleurs spécialistes</Text>
 
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
-          placeholder={t("doctors.list.search_placeholder")}
+          placeholder="Rechercher par nom ou spécialité..."
           placeholderTextColor="#999"
           style={styles.searchInput}
         />
       </View>
 
       <View style={styles.specialtyContainer}>
-        <Text style={styles.sectionTitle}>{t("doctors.list.specialties_title")}</Text>
+        <Text style={styles.sectionTitle}>Spécialités</Text>
         <FlatList
           data={SPECIALTIES}
           renderItem={renderSpecialty}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.specialtyList}
@@ -145,7 +159,7 @@ const DoctorListScreen = () => {
         />
       </View>
 
-      <Text style={styles.sectionTitle}>{t("doctors.list.available_title")}</Text>
+      <Text style={styles.sectionTitle}>Médecins disponibles</Text>
     </View>
   );
 
@@ -165,7 +179,7 @@ const DoctorListScreen = () => {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1971C2" />
-            <Text style={styles.loadingText}>{t("doctors.list.loading")}</Text>
+            <Text style={styles.loadingText}>Chargement des médecins...</Text>
           </View>
         ) : (
           <FlatList
@@ -178,7 +192,7 @@ const DoctorListScreen = () => {
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Ionicons name="search-outline" size={50} color="#DEE2E6" />
-                <Text style={styles.emptyText}>{t("doctors.list.empty")}</Text>
+                <Text style={styles.emptyText}>Aucun médecin trouvé dans cette catégorie.</Text>
               </View>
             }
           />

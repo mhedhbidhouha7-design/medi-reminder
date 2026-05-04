@@ -363,5 +363,77 @@
       "ophthalmologist": "عيون",
       "dentist": "أسنان"
     }
+  },
+  "auth": {
+    "signin": {
+      "title": "مرحباً بك 👋",
+      "subtitle": "سجل الدخول إلى حساب MediReminder الخاص بك",
+      "email_placeholder": "exemple@email.com",
+      "password_placeholder": "كلمة المرور الخاصة بك",
+      "forgot_password": "هل نسيت كلمة المرور؟",
+      "login_button": "تسجيل الدخول",
+      "logging_in": "جاري تسجيل الدخول...",
+      "no_account": "ليس لديك حساب بعد؟",
+      "create_account": " إنشاء حساب",
+      "errors": {
+        "fill_fields": "يرجى ملء جميع الحقول",
+        "login_failed": "فشل تسجيل الدخول"
+      }
+    },
+    "signup": {
+      "title": "إنشاء حساب",
+      "subtitle": "انضم إلى MediReminder اليوم",
+      "name_label": "الاسم الكامل",
+      "phone_label": "رقم الهاتف",
+      "dob_label": "تاريخ الميلاد",
+      "gender_label": "الجنس",
+      "address_label": "العنوان",
+      "password_label": "كلمة المرور *",
+      "confirm_password_label": "تأكيد كلمة المرور *",
+      "terms_text": "أوافق على ",
+      "terms_link": "شروط الاستخدام",
+      "signup_button": "إنشاء حساب",
+      "signing_up": "جاري إنشاء الحساب...",
+      "uploading_image": "جاري رفع الصورة...",
+      "wait": "انتظر",
+      "photo_label": "الصورة *",
+      "select_gender": "اختر الجنس",
+      "cancel": "إلغاء",
+      "have_account": "لديك حساب بالفعل؟",
+      "login_now": " تسجيل الدخول",
+      "errors": {
+        "fill_fields": "يرجى ملء جميع الحقول المطلوبة",
+        "image_not_uploaded": "لم يتم رفع الصورة بشكل صحيح. يرجى المحاولة مرة أخرى.",
+        "min_age": "يجب أن يكون عمرك 18 عاماً على الأقل لإنشاء حساب",
+        "password_mismatch": "كلمات المرور غير متطابقة",
+        "password_too_short": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل",
+        "accept_terms": "يرجى قبول شروط الاستخدام",
+        "invalid_phone": "يجب أن يتكون الرقم من 8 أرقام ويبدأ بـ 2 أو 4 أو 5 أو 9",
+        "signup_failed": "فشل التسجيل",
+        "email_in_use": "هذا البريد الإلكتروني مستخدم بالفعل",
+        "invalid_email": "بريد إلكتروني غير صالح",
+        "weak_password": "كلمة المرور ضعيفة جداً",
+        "permission_denied": "تم رفض الإذن",
+        "gallery_permission": "نحتاج إلى الوصول إلى المعرض لإضافة صورة.",
+        "upload_error": "خطأ في الرفع"
+      },
+      "genders": {
+        "male": "ذكر",
+        "female": "أنثى"
+      }
+    },
+    "forgot_password": {
+      "title": "نسيت كلمة المرور",
+      "subtitle": "أدخل بريدك الإلكتروني لتلقي رابط إعادة التعيين",
+      "email_placeholder": "exemple@email.com",
+      "send_button": "إرسال الرابط",
+      "sending": "جاري الإرسال...",
+      "back_to_login": "العودة لتسجيل الدخول",
+      "email_sent_title": "تم إرسال البريد الإلكتروني ✅",
+      "email_sent_subtitle": "تحقق من صندوق الوارد (والبريد العشوائي).",
+      "errors": {
+        "enter_email": "يرجى إدخال بريدك الإلكتروني"
+      }
+    }
   }
 }

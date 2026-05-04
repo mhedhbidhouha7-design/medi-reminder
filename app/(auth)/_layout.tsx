@@ -21,7 +21,7 @@ export default function AuthLayout() {
     </Stack>
   );
 }
-//layout pour toutes les pages d’authentification. 
+//layout pour toutes les pages d’authentification.
 // Il centralise la pile d’écrans,
 // définit l’animation et le style,
 // et permet de réagir aux changements de page via useEffect.
