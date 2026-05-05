@@ -50,14 +50,12 @@ export default function Login() {
   }, []);
 
   const checkUserStatus = async (uid: string) => {
-    const snapshot = await get(ref(db, "patients/" + uid));
+    const snapshot = await get(ref(db, "users/" + uid));
 
     if (snapshot.exists()) {
       const data = snapshot.val();
 
-      if (data.active === false) {
-        alert("Compte désactivé");
-        // logout
+      if (data.active === false || data.activate === false) {
         return false;
       }
     }
@@ -80,7 +78,7 @@ export default function Login() {
       const isActive = await checkUserStatus(user.uid);
 
       if (!isActive) {
-        await auth.signOut(); // 🔴 bloque accès
+        router.replace("/disabled");
         return;
       }
 

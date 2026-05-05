@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import { Tabs, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
+import { get, ref } from "firebase/database";
 import { useEffect, useRef, useState } from "react";
 import {
     Animated,
@@ -20,7 +21,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { auth } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 
 // Configure notification handler for LOCAL notifications only
 Notifications.setNotificationHandler({
@@ -300,8 +301,25 @@ export default function ProtectedLayout() {
       );
       setIsInitializing(false);
       if (user) {
-        // Run check on login
-        checkAndNotifyMissedDoses(user.uid);
+        // Check if user is active (attribute 'active')
+        const checkUserStatus = async () => {
+          try {
+            const snapshot = await get(ref(db, `users/${user.uid}`));
+            if (snapshot.exists()) {
+              const userData = snapshot.val();
+              if (userData.active === false || userData.activate === false) {
+                router.replace("/disabled");
+                return;
+              }
+            }
+            // Run check on login
+            checkAndNotifyMissedDoses(user.uid);
+          } catch (error) {
+            console.error("Error checking user status:", error);
+            checkAndNotifyMissedDoses(user.uid);
+          }
+        };
+        checkUserStatus();
       } else {
         console.log("No user in ProtectedLayout, replacing with /signin");
         router.replace("/signin");

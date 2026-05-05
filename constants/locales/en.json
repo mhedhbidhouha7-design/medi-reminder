@@ -434,6 +434,10 @@
       "errors": {
         "enter_email": "Please enter your email"
       }
+    },
+    "disabled": {
+      "title": "Account Disabled",
+      "description": "Your account has been disabled. You will be redirected to the login page."
     }
   }
 }

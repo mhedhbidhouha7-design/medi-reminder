@@ -434,6 +434,10 @@
       "errors": {
         "enter_email": "Veuillez entrer votre email"
       }
+    },
+    "disabled": {
+      "title": "Compte Désactivé",
+      "description": "Votre compte a été désactivé. Vous allez être redirigé vers la page de connexion."
     }
   }
 }

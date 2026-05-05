@@ -4,9 +4,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
+import { get, ref } from "firebase/database";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
-import { auth } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
 
 export default function SplashScreen() {
   const { theme } = useAppTheme();
@@ -115,10 +116,24 @@ export default function SplashScreen() {
         clearTimeout((global as any).authRedirectTimeout);
       }
 
-      (global as any).authRedirectTimeout = setTimeout(() => {
+      (global as any).authRedirectTimeout = setTimeout(async () => {
         if (user) {
-          console.log("SplashScreen: Redirecting to /home");
-          router.replace("/home");
+          try {
+            const snapshot = await get(ref(db, `users/${user.uid}`));
+            if (snapshot.exists()) {
+              const userData = snapshot.val();
+              if (userData.active === false || userData.activate === false) {
+                console.log("SplashScreen: User is disabled, redirecting to /disabled");
+                router.replace("/disabled");
+                return;
+              }
+            }
+            console.log("SplashScreen: Redirecting to /home");
+            router.replace("/home");
+          } catch (error) {
+            console.error("SplashScreen: Error checking status:", error);
+            router.replace("/home");
+          }
         } else {
           console.log("SplashScreen: Redirecting to /signin");
           router.replace("/signin");
