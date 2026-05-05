@@ -11,8 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../firebaseConfig";
 import { Colors } from "../constants/theme";
+import { auth } from "../firebaseConfig";
 import { useAppTheme } from "../hooks/use-app-theme";
 
 /**
@@ -25,7 +25,7 @@ export default function DisabledAccountScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const themeColors = Colors[theme];
-  
+
   // --- Variables pour les animations (opacité et mouvement) ---
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
