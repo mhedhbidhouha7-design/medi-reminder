@@ -75,3 +75,22 @@ export const useAppTheme = () => {
   }
   return context;
 };
+
+/**
+ * Helper hook to get a color based on the current theme.
+ */
+export function useThemeColor<K extends keyof typeof Colors.light & keyof typeof Colors.dark>(
+  props: { light?: string; dark?: string },
+  colorName: K
+): typeof Colors.light[K] {
+  const { theme } = useAppTheme();
+  const themeName = theme as keyof typeof Colors;
+
+  // If a component passed explicit light/dark overrides, prefer them
+  if (themeName === 'dark' || themeName === 'light') {
+    const colorFromProps = props[themeName];
+    if (colorFromProps) return colorFromProps as any;
+  }
+
+  return Colors[themeName][colorName];
+}
