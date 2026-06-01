@@ -1,3 +1,4 @@
+import { useAlert } from "@/components/ThemedAlert";
 import { Colors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import {
@@ -7,14 +8,13 @@ import {
 import * as Vibration from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Animated,
   Dimensions,
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -36,6 +36,7 @@ export const FullScreenMedicationOverlay: React.FC<
 > = ({ visible, medicationAlert }) => {
   const { theme } = useAppTheme();
   const themeColors = Colors[theme];
+  const { showError, showSuccess, showAlert, showConfirm } = useAlert();
   const [pulseAnim] = useState(new Animated.Value(0));
 
   // Pulse animation for the medication info box
@@ -90,15 +91,13 @@ export const FullScreenMedicationOverlay: React.FC<
       );
 
       // Show success feedback
-      Alert.alert(
+      showSuccess(
         "✅ Succès",
-        `${medicationAlert.medicationName} marqué comme pris.`,
-        [{ text: "OK" }],
-        { cancelable: false },
+        `${medicationAlert.medicationName} marqué comme pris.`
       );
     } catch (error) {
       console.error("Error confirming medication:", error);
-      Alert.alert("Erreur", "Erreur lors de la confirmation du médicament.");
+      showError("Erreur", "Erreur lors de la confirmation du médicament.");
     }
   };
 
@@ -110,10 +109,11 @@ export const FullScreenMedicationOverlay: React.FC<
       hardwareAccelerated={true}
       onRequestClose={() => {
         // Prevent back button from closing the modal
-        Alert.alert(
+        showAlert(
           "⚠️ Requis",
           "Vous devez confirmer que vous avez pris votre médicament pour continuer.",
-          [{ text: "OK" }],
+          undefined,
+          "warning"
         );
       }}
     >
@@ -239,21 +239,16 @@ export const FullScreenMedicationOverlay: React.FC<
                 { borderColor: themeColors.notification.accent },
               ]}
               onPress={() => {
-                Alert.alert(
+                showConfirm(
                   "⚠️ Sauter le rappel",
                   "Êtes-vous sûr de vouloir sauter ce médicament ? Cette action sera enregistrée.",
-                  [
-                    { text: "Annuler", onPress: () => {} },
-                    {
-                      text: "Confirmer",
-                      onPress: async () => {
-                        // Mark as skipped instead of taken
-                        // await skipMedicationReminder(medicationAlert.medicationId);
-                        // For now, just close
-                      },
-                      style: "destructive",
-                    },
-                  ],
+                  async () => {
+                    // Mark as skipped instead of taken
+                    // await skipMedicationReminder(medicationAlert.medicationId);
+                    // For now, just close
+                  },
+                  "Confirmer",
+                  "Annuler"
                 );
               }}
               activeOpacity={0.7}
@@ -291,10 +286,11 @@ export const FullScreenMedicationOverlay: React.FC<
               { borderColor: themeColors.notification.subtext },
             ]}
             onPress={() => {
-              Alert.alert(
+              showAlert(
                 "🚨 En cas d'urgence",
                 "Contactez votre médecin ou le service d'urgence.",
-                [{ text: "OK" }],
+                undefined,
+                "warning"
               );
             }}
           >

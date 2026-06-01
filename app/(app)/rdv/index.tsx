@@ -1,4 +1,5 @@
 // app/(app)/rdv/index.tsx
+import { useAlert } from "@/components/ThemedAlert";
 import { Colors } from "@/constants/theme";
 import {
   addAppointment,
@@ -18,7 +19,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
   Animated,
   Dimensions,
   Modal,
@@ -57,6 +57,7 @@ type FormData = {
 export default function AppointmentsScreen() {
   const { t, i18n } = useTranslation();
   const { theme, isDark } = useAppTheme();
+  const { showError, showConfirm } = useAlert();
   const themeColors = Colors[theme];
 
   const CONSULTATION_TYPES: {
@@ -65,15 +66,15 @@ export default function AppointmentsScreen() {
     icon: string;
     color: string;
   }[] = [
-    { key: "general", label: t("appointments.types.general"), icon: "medkit", color: "#00bfa5" },
-    { key: "specialist", label: t("appointments.types.specialist"), icon: "fitness", color: "#8b5cf6" },
-    { key: "dental", label: t("appointments.types.dental"), icon: "happy", color: "#3b82f6" },
-    { key: "ophtalmo", label: t("appointments.types.ophtalmo"), icon: "eye", color: "#f59e0b" },
-    { key: "cardio", label: t("appointments.types.cardio"), icon: "heart", color: "#ef4444" },
-    { key: "pharmacy", label: t("appointments.types.pharmacy"), icon: "medical", color: "#10b981" },
-    { key: "analysis", label: t("appointments.types.analysis"), icon: "flask", color: "#ec4899" },
-    { key: "other", label: t("appointments.types.other"), icon: "add-circle", color: "#64748b" },
-  ];
+      { key: "general", label: t("appointments.types.general"), icon: "medkit", color: "#00bfa5" },
+      { key: "specialist", label: t("appointments.types.specialist"), icon: "fitness", color: "#8b5cf6" },
+      { key: "dental", label: t("appointments.types.dental"), icon: "happy", color: "#3b82f6" },
+      { key: "ophtalmo", label: t("appointments.types.ophtalmo"), icon: "eye", color: "#f59e0b" },
+      { key: "cardio", label: t("appointments.types.cardio"), icon: "heart", color: "#ef4444" },
+      { key: "pharmacy", label: t("appointments.types.pharmacy"), icon: "medical", color: "#10b981" },
+      { key: "analysis", label: t("appointments.types.analysis"), icon: "flask", color: "#ec4899" },
+      { key: "other", label: t("appointments.types.other"), icon: "add-circle", color: "#64748b" },
+    ];
 
   const DEFAULT_FORM: FormData = {
     type: "general",
@@ -202,7 +203,7 @@ export default function AppointmentsScreen() {
   const todayStr = toDateStr(now);
   const todayAppointments = pendingAppointments.filter(a => a.date === todayStr);
   const upcomingAppointments = pendingAppointments.filter(a => a.date > todayStr);
-  
+
   // HISTORY: filter further by the UI datepicker
   const historyAppointments = combinedHistory.filter((a) => a.date === selectedDateStr);
 
@@ -232,15 +233,15 @@ export default function AppointmentsScreen() {
 
   const handleSave = async () => {
     if (!formData.date.trim()) {
-      Alert.alert(t("profile.messages.error"), t("appointments.alerts.missing_date"));
+      showError(t("profile.messages.error"), t("appointments.alerts.missing_date"));
       return;
     }
     if (!formData.time.trim()) {
-      Alert.alert(t("profile.messages.error"), t("appointments.alerts.missing_time"));
+      showError(t("profile.messages.error"), t("appointments.alerts.missing_time"));
       return;
     }
     if (!formData.doctor.trim()) {
-      Alert.alert(t("profile.messages.error"), t("appointments.alerts.missing_doctor"));
+      showError(t("profile.messages.error"), t("appointments.alerts.missing_doctor"));
       return;
     }
     if (!userId) return;
@@ -249,7 +250,7 @@ export default function AppointmentsScreen() {
     const generatedTimestamp = combineDateAndTime(isoDate, formData.time);
 
     if (!validateAppointmentDate(generatedTimestamp)) {
-      Alert.alert(t("appointments.alerts.invalid_past"), t("appointments.alerts.invalid_past"));
+      showError(t("appointments.alerts.invalid_past"), t("appointments.alerts.invalid_past"));
       return;
     }
 
@@ -276,26 +277,25 @@ export default function AppointmentsScreen() {
       setModalVisible(false);
     } catch (error) {
       console.error(error);
-      Alert.alert(t("profile.messages.error"), t("appointments.alerts.save_error"));
+      showError(t("profile.messages.error"), t("appointments.alerts.save_error"));
     }
   };
 
   const handleDelete = (id: string, title: string) => {
-    Alert.alert(t("appointments.alerts.delete_title"), t("appointments.alerts.delete_confirm", { title }), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("appointments.alerts.delete_title"),
-        style: "destructive",
-        onPress: async () => {
-          if (!userId) return;
-          try {
-            await deleteAppointment(userId, id);
-          } catch {
-            Alert.alert(t("profile.messages.error"), t("appointments.alerts.delete_error"));
-          }
-        },
+    showConfirm(
+      t("appointments.alerts.delete_title"),
+      t("appointments.alerts.delete_confirm", { title }),
+      async () => {
+        if (!userId) return;
+        try {
+          await deleteAppointment(userId, id);
+        } catch {
+          showError(t("profile.messages.error"), t("appointments.alerts.delete_error"));
+        }
       },
-    ]);
+      t("appointments.alerts.delete_title"),
+      t("common.cancel")
+    );
   };
 
   const toggleCompleted = async (appt: Appointment) => {
@@ -304,7 +304,7 @@ export default function AppointmentsScreen() {
       await completeAppointment(userId, appt);
     } catch (e) {
       console.error(e);
-      Alert.alert(t("profile.messages.error"), t("appointments.alerts.complete_error"));
+      showError(t("profile.messages.error"), t("appointments.alerts.complete_error"));
     }
   };
 
@@ -393,7 +393,7 @@ export default function AppointmentsScreen() {
               size={14}
               color={isPast ? themeColors.tint : themeColors.icon}
             />
-            <Text style={[styles.metaText, isPast && { color: themeColors.tint }]}> 
+            <Text style={[styles.metaText, isPast && { color: themeColors.tint }]}>
               {displayDate(appt.date)}
             </Text>
             <View style={styles.dot} />
@@ -402,11 +402,11 @@ export default function AppointmentsScreen() {
               size={14}
               color={isPast ? themeColors.tint : themeColors.icon}
             />
-            <Text style={[styles.metaText, isPast && { color: themeColors.tint }]}> 
+            <Text style={[styles.metaText, isPast && { color: themeColors.tint }]}>
               {appt.time}
             </Text>
             {completed && appt.doneAt && (
-                <>
+              <>
                 <View style={styles.dot} />
                 <Text style={{ fontSize: 13, color: themeColors.primary, fontWeight: "600" }}>
                   {t("appointments.completed_at", { time: new Date(appt.doneAt).toLocaleTimeString(i18n.language === "ar" ? "ar-EG" : i18n.language, { hour: '2-digit', minute: '2-digit' }) })}
@@ -469,9 +469,9 @@ export default function AppointmentsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}> 
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* ── Header ── */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#0f172a' : themeColors.background }] }>
+      <View style={[styles.header, { backgroundColor: isDark ? '#0f172a' : themeColors.background }]}>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: themeColors.text }]}>{t("appointments.title")}</Text>
         </View>
@@ -567,44 +567,44 @@ export default function AppointmentsScreen() {
             <>
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                    <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
-                      <Ionicons name="today" size={18} color={themeColors.primary} />
-                    </View>
-                    <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t("home.today")}</Text>
-                    <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
-                      <Text style={[styles.badgeText, { color: themeColors.primary }]}>{todayAppointments.length}</Text>
-                    </View>
+                  <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
+                    <Ionicons name="today" size={18} color={themeColors.primary} />
                   </View>
+                  <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t("home.today")}</Text>
+                  <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
+                    <Text style={[styles.badgeText, { color: themeColors.primary }]}>{todayAppointments.length}</Text>
+                  </View>
+                </View>
 
-                  <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }]}> 
-                    {todayAppointments.length > 0 ? (
-                      todayAppointments.map((appt) => renderAppointmentCard(appt))
-                    ) : (
-                      <View style={styles.emptyState}>
-                        <View style={[styles.emptyIconContainer, { backgroundColor: themeColors.card }] }>
-                          <Ionicons name="calendar-outline" size={48} color={themeColors.tabIconDefault} />
-                        </View>
-                        <Text style={[styles.emptyTitle, { color: themeColors.text }]}>{t("appointments.empty.up_to_date")}</Text>
-                        <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>{t("appointments.empty.no_today")}</Text>
+                <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }]}>
+                  {todayAppointments.length > 0 ? (
+                    todayAppointments.map((appt) => renderAppointmentCard(appt))
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <View style={[styles.emptyIconContainer, { backgroundColor: themeColors.card }]}>
+                        <Ionicons name="calendar-outline" size={48} color={themeColors.tabIconDefault} />
                       </View>
-                    )}
-                  </View>
+                      <Text style={[styles.emptyTitle, { color: themeColors.text }]}>{t("appointments.empty.up_to_date")}</Text>
+                      <Text style={[styles.emptySubtitle, { color: themeColors.icon }]}>{t("appointments.empty.no_today")}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
               {upcomingAppointments.length > 0 && (
                 <View style={styles.section}>
-                      <View style={styles.sectionHeader}>
-                        <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
-                          <Ionicons name="calendar" size={18} color={themeColors.primary} />
-                        </View>
-                        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{t("home.upcoming_appointments")}</Text>
-                        <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
-                          <Text style={[styles.badgeText, { color: themeColors.text }]}>{upcomingAppointments.length}</Text>
-                        </View>
-                      </View>
-                      <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }]}>
-                        {upcomingAppointments.map((appt) => renderAppointmentCard(appt))}
-                      </View>
+                  <View style={styles.sectionHeader}>
+                    <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
+                      <Ionicons name="calendar" size={18} color={themeColors.primary} />
+                    </View>
+                    <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{t("home.upcoming_appointments")}</Text>
+                    <View style={[styles.badge, { backgroundColor: themeColors.card }]}>
+                      <Text style={[styles.badgeText, { color: themeColors.text }]}>{upcomingAppointments.length}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }]}>
+                    {upcomingAppointments.map((appt) => renderAppointmentCard(appt))}
+                  </View>
                 </View>
               )}
             </>
@@ -614,12 +614,12 @@ export default function AppointmentsScreen() {
           {activeTab === "history" && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}> 
+                <View style={[styles.sectionIconContainer, { backgroundColor: themeColors.card }]}>
                   <Ionicons name="checkmark-circle" size={18} color={themeColors.tabIconDefault} />
                 </View>
                 <Text style={[styles.sectionTitle, { color: themeColors.tabIconDefault }]}>{t("appointments.sections.past")}</Text>
               </View>
-              <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }] }>
+              <View style={[styles.appointmentsList, { backgroundColor: themeColors.card }]}>
                 {historyAppointments.length > 0 ? (
                   historyAppointments.map((appt) => renderAppointmentCard(appt, appt.done))
                 ) : (
@@ -660,7 +660,7 @@ export default function AppointmentsScreen() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <View style={[styles.closeButton, { backgroundColor: themeColors.card }] }>
+                <View style={[styles.closeButton, { backgroundColor: themeColors.card }]}>
                   <Ionicons name="close" size={24} color={themeColors.icon} />
                 </View>
               </TouchableOpacity>

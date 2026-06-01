@@ -6,7 +6,6 @@ import { get, ref } from "firebase/database";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -16,13 +15,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import { useAlert } from "../../components/ThemedAlert";
 import { signInUser } from "../../controllers/authController";
 import { auth, db } from "../../firebaseConfig";
 
 export default function Login() {
   const { t } = useTranslation();
+  const { showError, showAlert } = useAlert();
   console.log("Rendering Signin screen");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +66,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert(t("profile.messages.attention"), t("auth.signin.errors.fill_fields"));
+      showError(t("profile.messages.attention"), t("auth.signin.errors.fill_fields"));
       return;
     }
 
@@ -86,7 +87,7 @@ export default function Login() {
       router.replace("/home");
 
     } catch (error: any) {
-      Alert.alert(t("auth.signin.errors.login_failed"), error.message);
+      showError(t("auth.signin.errors.login_failed"), error.message);
     } finally {
       setLoading(false);
     }

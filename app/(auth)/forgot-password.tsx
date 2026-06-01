@@ -4,7 +4,6 @@ import { Link } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,19 +12,21 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import { useAlert } from "../../components/ThemedAlert";
 import { resetPassword } from "../../controllers/authController";
 
 export default function ForgotPassword() {
   const { t } = useTranslation();
+  const { showError, showAlert } = useAlert();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleReset = async () => {
     if (!email) {
-      Alert.alert(t("profile.messages.attention"), t("auth.forgot_password.errors.enter_email"));
+      showError(t("profile.messages.attention"), t("auth.forgot_password.errors.enter_email"));
       return;
     }
 
@@ -38,7 +39,7 @@ export default function ForgotPassword() {
       setSent(true);
     } catch (error: any) {
       console.error("handleReset caught error:", error);
-      Alert.alert(t("profile.messages.error"), error.message);
+      showError(t("profile.messages.error"), error.message);
     } finally {
       setLoading(false);
     }

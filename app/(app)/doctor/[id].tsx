@@ -5,17 +5,16 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
-  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import { useAlert } from '../../../components/ThemedAlert';
 import { auth, db } from '../../../firebaseConfig';
 import { Demande, Doctor } from '../../../models/interfaces';
 
@@ -25,6 +24,7 @@ const DoctorProfileScreen = () => {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { showError, showSuccess, showAlert } = useAlert();
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
@@ -57,7 +57,7 @@ const DoctorProfileScreen = () => {
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert(t("profile.messages.error"), t("doctors.alerts.login_required"));
+      showError(t("profile.messages.error"), t("doctors.alerts.login_required"));
       return;
     }
 
@@ -70,7 +70,7 @@ const DoctorProfileScreen = () => {
 
       const demandeData: Demande = {
         type: type,
-        doctorId: id,
+        doctorId: Array.isArray(id) ? id[0] : id,
         doctorName: doctorName,
         patientId: user.uid,
         patientEmail: user.email,
@@ -81,16 +81,16 @@ const DoctorProfileScreen = () => {
 
       await set(newDemandeRef, demandeData);
 
-      Alert.alert(
+      showSuccess(
         t("doctors.alerts.request_sent"),
         type === 'appointment'
           ? t("doctors.alerts.appointment_sent", { name: doctorName })
           : t("doctors.alerts.followup_sent", { name: doctorName }),
-        [{ text: t("common.ok"), onPress: () => router.back() }]
+        () => router.back()
       );
     } catch (error) {
       console.error("Error sending request:", error);
-      Alert.alert(t("profile.messages.error"), t("doctors.alerts.send_error"));
+      showError(t("profile.messages.error"), t("doctors.alerts.send_error"));
     } finally {
       setRequesting(false);
     }
@@ -218,7 +218,7 @@ const DoctorProfileScreen = () => {
         <View style={styles.footerContent}>
           <TouchableOpacity
             style={styles.chatButton}
-            onPress={() => Alert.alert(t("doctors.buttons.chat"), t("doctors.buttons.chat_start"))}
+            onPress={() => showAlert(t("doctors.buttons.chat"), t("doctors.buttons.chat_start"))}
           >
             <Ionicons name="chatbubble-ellipses" size={24} color="#1971C2" />
           </TouchableOpacity>

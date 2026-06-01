@@ -1,10 +1,11 @@
+import { useAlert } from "@/components/ThemedAlert";
+import { Colors } from "@/constants/theme";
 import {
   addJournalEntry,
   listenToJournal,
 } from "@/controllers/journalController";
 import { auth } from "@/firebaseConfig";
 import { useAppTheme } from "@/hooks/use-app-theme";
-import { Colors } from "@/constants/theme";
 import { HealthJournalEntry } from "@/models/interfaces";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,26 +14,38 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
 } from "react-native";
+
+const getMoodEmoji = (mood: string) => {
+  if (!mood) return "😐";
+  const lowerMood = mood.toLowerCase();
+  if (lowerMood.match(/(heureu|bien|super|bon|joyeu|souri|happy|good|great|excellent|formidable|top|génial|genial)/)) return "😊";
+  if (lowerMood.match(/(triste|mal |mauvais|pleur|sad|bad|déprim|deprim|bof|moyen)/)) return "😔";
+  if (lowerMood.match(/(fatigu|tired|épuis|epuis|sommeil|dort|dormir|ko|k\.o)/)) return "😴";
+  if (lowerMood.match(/(stress|anxieu|angoisse|peur|panique)/)) return "😰";
+  if (lowerMood.match(/(colère|colere|fâch|fach|énerv|enerv|angry)/)) return "😠";
+  if (lowerMood.match(/(malade|douleur|mal au|sick|pain|fièvre|fievre|nausée)/)) return "🤒";
+  return "🙂"; // neutre par défaut
+};
 
 export default function HealthJournalScreen() {
   const { t, i18n } = useTranslation();
   const { theme, isDark } = useAppTheme();
+  const { showError, showSuccess, showAlert } = useAlert();
   const themeColors = Colors[theme];
-  
+
   const [entries, setEntries] = useState<HealthJournalEntry[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  
+
   // Form fields
   const [mood, setMood] = useState("");
   const [bloodSugar, setBloodSugar] = useState("");
@@ -42,7 +55,7 @@ export default function HealthJournalScreen() {
   const [illness, setIllness] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [notes, setNotes] = useState("");
-  
+
   const [userId, setUserId] = useState<string | null>(
     auth.currentUser?.uid ?? null,
   );
@@ -68,12 +81,20 @@ export default function HealthJournalScreen() {
   }, [userId]);
 
   const handleSave = async () => {
-    if (!mood.trim()) {
-      return Alert.alert(t("profile.messages.attention"), t("journal.alerts.mood_required"));
+    const missingFields = [];
+    if (!mood.trim()) missingFields.push(t("journal.modal.mood_label"));
+    if (!illness.trim()) missingFields.push(t("journal.modal.illness"));
+    if (!symptoms.trim()) missingFields.push(t("journal.modal.symptoms"));
+
+    if (missingFields.length > 0) {
+      const message = `Veuillez remplir les champs obligatoires suivants :\n\n- ${missingFields.join("\n- ")}`;
+      showAlert(t("Attention"), message, undefined, "warning");
+      return;
     }
 
     if (!userId) {
-      return Alert.alert(t("profile.messages.error"), t("journal.alerts.auth_error"));
+      showError(t("Error"), t("journal.alerts.auth_error"));
+      return;
     }
 
     const newEntry: HealthJournalEntry = {
@@ -92,11 +113,11 @@ export default function HealthJournalScreen() {
     try {
       await addJournalEntry(userId, newEntry);
       resetForm();
-      Alert.alert(t("profile.messages.success"), t("journal.alerts.save_success"));
+      showSuccess(t("Bien"), t("journal.alerts.save_success"));
       setModalVisible(false);
     } catch (error) {
       console.error("Erreur lors de l'enregistrement du journal :", error);
-      Alert.alert(t("profile.messages.error"), t("journal.alerts.save_error"));
+      showError(t("Error"), t("journal.alerts.save_error"));
     }
   };
 
@@ -116,10 +137,10 @@ export default function HealthJournalScreen() {
       <View style={styles.cardHeader}>
         <Text style={[styles.dateText, { color: themeColors.icon }]}>{item.date}</Text>
         <View style={styles.moodBadge}>
-           <Text style={styles.moodText}>😊 {item.mood}</Text>
+          <Text style={styles.moodText}>{getMoodEmoji(item.mood)} {item.mood}</Text>
         </View>
       </View>
-      
+
       <View style={styles.cardGrid}>
         {item.bloodPressure && (
           <View style={styles.gridItem}>
@@ -150,14 +171,14 @@ export default function HealthJournalScreen() {
       {(item.illness || item.symptoms) && (
         <View style={styles.healthSection}>
           {item.illness && (
-             <Text style={[styles.healthText, { color: themeColors.text }]}>
-               <Text style={{fontWeight: 'bold'}}>{t("journal.card.illness")} </Text>{item.illness}
-             </Text>
+            <Text style={[styles.healthText, { color: themeColors.text }]}>
+              <Text style={{ fontWeight: 'bold' }}>{t("journal.card.illness")} </Text>{item.illness}
+            </Text>
           )}
           {item.symptoms && (
-             <Text style={[styles.healthText, { color: themeColors.text }]}>
-               <Text style={{fontWeight: 'bold'}}>{t("journal.card.symptoms")} </Text>{item.symptoms}
-             </Text>
+            <Text style={[styles.healthText, { color: themeColors.text }]}>
+              <Text style={{ fontWeight: 'bold' }}>{t("journal.card.symptoms")} </Text>{item.symptoms}
+            </Text>
           )}
         </View>
       )}
@@ -191,7 +212,7 @@ export default function HealthJournalScreen() {
             <Text style={[styles.emptyText, { color: themeColors.icon }]}>
               {t("journal.empty.title")}
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.emptyButton, { backgroundColor: themeColors.primary }]}
               onPress={() => setModalVisible(true)}
             >
@@ -208,12 +229,12 @@ export default function HealthJournalScreen() {
         <Ionicons name="add" size={32} color="white" />
       </TouchableOpacity>
 
-      <Modal 
-        visible={modalVisible} 
+      <Modal
+        visible={modalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={[styles.modalContainer, { backgroundColor: themeColors.background }]}
         >
@@ -331,8 +352,8 @@ export default function HealthJournalScreen() {
           </ScrollView>
 
           <View style={[styles.modalFooter, { borderTopColor: isDark ? "#334155" : "#e2e8f0" }]}>
-            <TouchableOpacity 
-              style={[styles.saveButton, { backgroundColor: themeColors.primary }]} 
+            <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
               onPress={handleSave}
             >
               <Text style={styles.saveButtonText}>{t("journal.modal.save")}</Text>

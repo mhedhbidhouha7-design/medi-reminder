@@ -9,7 +9,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -20,8 +19,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import { useAlert } from "../../components/ThemedAlert";
 import { signUpUser } from "../../controllers/authController";
 
 const CLOUDINARY_CLOUD_NAME = "dlz1lih1j";
@@ -30,6 +30,7 @@ const CLOUDINARY_FOLDER = "profile_images";
 
 export default function Signup() {
   const { t } = useTranslation();
+  const { showError, showSuccess, showAlert } = useAlert();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -104,7 +105,7 @@ export default function Signup() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
+      showError(
         t("auth.signup.errors.permission_denied"),
         t("auth.signup.errors.gallery_permission"),
       );
@@ -127,7 +128,7 @@ export default function Signup() {
         const cloudinaryUrl = await uploadToCloudinary(localUri);
         setProfileImage(cloudinaryUrl);
       } catch (error: any) {
-        Alert.alert(t("auth.signup.errors.upload_error"), error.message);
+        showError(t("auth.signup.errors.upload_error"), error.message);
         setProfileImage(null);
       } finally {
         setUploadingImage(false);
@@ -155,7 +156,7 @@ export default function Signup() {
     if (selectedDate) {
       const age = calculateAge(selectedDate);
       if (age < 18) {
-        Alert.alert(t("profile.messages.error"), t("auth.signup.errors.min_age"));
+        showError(t("profile.messages.error"), t("auth.signup.errors.min_age"));
         return;
       }
       setDateOfBirth(selectedDate);
@@ -181,12 +182,12 @@ export default function Signup() {
       !confirmPassword ||
       !profileImage
     ) {
-      Alert.alert(t("profile.messages.error"), t("auth.signup.errors.fill_fields"));
+      showError(t("profile.messages.error"), t("auth.signup.errors.fill_fields"));
       return;
     }
 
     if (uploadingImage) {
-      Alert.alert(t("auth.signup.wait"), t("auth.signup.uploading_image"));
+      showAlert(t("auth.signup.wait"), t("auth.signup.uploading_image"));
       return;
     }
 
@@ -194,7 +195,7 @@ export default function Signup() {
       profileImage.startsWith("file://") ||
       profileImage.startsWith("content://")
     ) {
-      Alert.alert(
+      showError(
         t("profile.messages.error"),
         t("auth.signup.errors.image_not_uploaded"),
       );
@@ -203,30 +204,30 @@ export default function Signup() {
 
     const age = calculateAge(dateOfBirth);
     if (age < 18) {
-      Alert.alert(
+      showError(
         t("profile.messages.error"),
         t("auth.signup.errors.min_age"),
       );
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert(t("profile.messages.error"), t("auth.signup.errors.password_mismatch"));
+      showError(t("profile.messages.error"), t("auth.signup.errors.password_mismatch"));
       return;
     }
     if (password.length < 6) {
-      Alert.alert(
+      showError(
         t("profile.messages.error"),
         t("auth.signup.errors.password_too_short"),
       );
       return;
     }
     if (!agreeToTerms) {
-      Alert.alert(t("profile.messages.error"), t("auth.signup.errors.accept_terms"));
+      showError(t("profile.messages.error"), t("auth.signup.errors.accept_terms"));
       return;
     }
     const phoneRegex = /^[2459][0-9]{7}$/;
     if (!phoneRegex.test(phone)) {
-      Alert.alert(
+      showError(
         t("profile.messages.error"),
         t("auth.signup.errors.invalid_phone"),
       );
@@ -244,7 +245,7 @@ export default function Signup() {
         gender,
         address,
         profileImage,
-      
+
       );
       router.replace("/home");
     } catch (error: any) {
@@ -256,7 +257,7 @@ export default function Signup() {
       } else if (error.code === "auth/weak-password") {
         errorMessage = t("auth.signup.errors.weak_password");
       }
-      Alert.alert(t("auth.signup.errors.signup_failed"), errorMessage);
+      showError(t("auth.signup.errors.signup_failed"), errorMessage);
     } finally {
       setLoading(false);
     }

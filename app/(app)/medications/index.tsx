@@ -1,3 +1,4 @@
+import { useAlert } from "@/components/ThemedAlert";
 import { Colors } from "@/constants/theme";
 import {
   addMedication,
@@ -17,7 +18,6 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -31,6 +31,7 @@ import {
 export default function MedicationsScreen() {
   const { t, i18n } = useTranslation();
   const { theme } = useAppTheme();
+  const { showError, showConfirm } = useAlert();
   const themeColors = Colors[theme];
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,30 +97,25 @@ export default function MedicationsScreen() {
       await toggleMedicationDose(userId, med, index, dateStr);
     } catch (error) {
       console.error("Error toggling taken status:", error);
-      Alert.alert(t("profile.messages.error"), t("medications.alerts.update_error"));
+      showError(t("profile.messages.error"), t("medications.alerts.update_error"));
     }
   };
 
   const handleDeleteMedication = (id: string, name: string) => {
-    Alert.alert(
+    showConfirm(
       t("medications.alerts.delete_title"),
       t("medications.alerts.delete_confirm", { name }),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("profile.logout_confirm_btn"),
-          style: "destructive",
-          onPress: async () => {
-            if (!userId) return;
-            try {
-              await deleteMedication(userId, id);
-            } catch (error) {
-              console.error("Error deleting medication:", error);
-              Alert.alert(t("profile.messages.error"), t("medications.alerts.delete_error"));
-            }
-          },
-        },
-      ]
+      async () => {
+        if (!userId) return;
+        try {
+          await deleteMedication(userId, id);
+        } catch (error) {
+          console.error("Error deleting medication:", error);
+          showError(t("profile.messages.error"), t("medications.alerts.delete_error"));
+        }
+      },
+      t("profile.logout_confirm_btn"),
+      t("common.cancel")
     );
   };
 
@@ -155,7 +151,7 @@ export default function MedicationsScreen() {
 
   const handleAddMedication = async () => {
     if (!newMedName.trim()) {
-      Alert.alert(t("profile.messages.error"), t("medications.alerts.name_required"));
+      showError(t("profile.messages.error"), t("medications.alerts.name_required"));
       return;
     }
 
@@ -168,14 +164,14 @@ export default function MedicationsScreen() {
     );
 
     if (validSchedules.length === 0) {
-      Alert.alert(t("profile.messages.error"), t("medications.alerts.dose_required"));
+      showError(t("profile.messages.error"), t("medications.alerts.dose_required"));
       return;
     }
 
     // Validate each schedule's time format
     for (const schedule of validSchedules) {
       if (!timeRegex.test(schedule.time.trim())) {
-        Alert.alert(
+        showError(
           t("profile.messages.error"),
           t("medications.alerts.invalid_time", { time: schedule.time })
         );
@@ -184,7 +180,7 @@ export default function MedicationsScreen() {
     }
 
     if (newMedEndDate < newMedStartDate) {
-      Alert.alert(t("profile.messages.error"), t("medications.alerts.invalid_end_date"));
+      showError(t("profile.messages.error"), t("medications.alerts.invalid_end_date"));
       return;
     }
 
@@ -193,7 +189,7 @@ export default function MedicationsScreen() {
       for (const schedule of validSchedules) {
         const timestamp = combineDateAndTime(newMedStartDate.toISOString().split('T')[0], schedule.time);
         if (!validateDateTime(timestamp)) {
-          Alert.alert(t("profile.messages.error"), t("medications.alerts.invalid_past"));
+          showError(t("profile.messages.error"), t("medications.alerts.invalid_past"));
           return;
         }
       }
@@ -230,7 +226,7 @@ export default function MedicationsScreen() {
       setAddModalVisible(false);
     } catch (error) {
       console.error("Error saving medication:", error);
-      Alert.alert(t("profile.messages.error"), t("medications.alerts.save_error"));
+      showError(t("profile.messages.error"), t("medications.alerts.save_error"));
     }
   };
 
