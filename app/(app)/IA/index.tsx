@@ -428,7 +428,7 @@ export default function IAScreen() {
                     </View>
                 )}
 
-                <View style={{ height: 120 }} />
+                <View style={{ height: 180 }} />
             </ScrollView>
 
             {/* Input with dynamic positioning based on keyboard */}

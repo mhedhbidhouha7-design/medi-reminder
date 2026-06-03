@@ -1,5 +1,5 @@
-import { Colors } from "@/constants/theme";
 import { useAlert } from "@/components/ThemedAlert";
+import { Colors } from "@/constants/theme";
 import { deleteProche, listenToProches } from "@/controllers/procheController";
 import { auth } from "@/firebaseConfig";
 import { useAppTheme } from "@/hooks/use-app-theme";
@@ -9,12 +9,13 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function ProcheScreen() {
@@ -25,6 +26,7 @@ export default function ProcheScreen() {
   const { showConfirm, showError } = useAlert();
   const [proches, setProches] = useState<Proche[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const userId = auth.currentUser?.uid;
 
@@ -107,6 +109,18 @@ export default function ProcheScreen() {
     </View>
   );
 
+  // Filter proches based on search query
+  const filteredProches = proches.filter(proche => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      proche.name.toLowerCase().includes(query) ||
+      proche.phone.toLowerCase().includes(query) ||
+      proche.email.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <View style={{ flex: 1, backgroundColor: themeColors.background }}>
       <View style={[styles.header, { backgroundColor: isDark ? "#0f172a" : themeColors.background }]}>
@@ -129,13 +143,37 @@ export default function ProcheScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Search Bar */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+        <View style={[styles.searchContainer, { backgroundColor: themeColors.card, borderColor: themeColors.tabIconDefault }]}>
+          <Ionicons name="search-outline" size={20} color={themeColors.icon} />
+          <TextInput
+            style={[styles.searchInput, { color: themeColors.text }]}
+            placeholder="Rechercher un proche..."
+            placeholderTextColor={themeColors.icon + "60"}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={20} color={themeColors.icon} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {searchQuery.length > 0 && (
+          <Text style={[styles.searchResultsText, { color: themeColors.icon }]}>
+            {filteredProches.length} {filteredProches.length === 1 ? "résultat" : "résultats"}
+          </Text>
+        )}
+      </View>
+
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={themeColors.primary} />
         </View>
       ) : (
         <FlatList
-          data={proches}
+          data={filteredProches}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
@@ -143,7 +181,7 @@ export default function ProcheScreen() {
             <View style={styles.emptyContainer}>
               <Ionicons name="people-outline" size={48} color={themeColors.icon} />
               <Text style={[styles.emptyText, { color: themeColors.icon }]}>
-                {t("proche.empty_text")}
+                {searchQuery.trim() ? t("proche.no_results") || "Aucun résultat trouvé" : t("proche.empty_text")}
               </Text>
             </View>
           }
@@ -253,5 +291,25 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: 8,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  searchResultsText: {
+    fontSize: 13,
+    marginTop: 8,
+    marginLeft: 4,
+    fontWeight: "500",
   },
 });

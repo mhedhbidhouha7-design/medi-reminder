@@ -8,17 +8,16 @@ import { onValue, ref, update } from "firebase/database";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  DevSettings,
-  I18nManager,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    DevSettings,
+    I18nManager,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 // Cloudinary configuration - same as signup
@@ -55,14 +54,7 @@ export default function Profile() {
   const [editedName, setEditedName] = useState("");
   const [personalInfo, setPersonalInfo] = useState<Partial<UserData>>({});
 
-  // Notification settings
-  const [notifications, setNotifications] = useState({
-    medications: true,
-    appointments: true,
-    healthAlerts: true,
-    email: true,
-    sms: false,
-  });
+
 
   // Fetch user data from Firebase
   useEffect(() => {
@@ -268,9 +260,7 @@ export default function Profile() {
     }
   };
 
-  const toggleNotification = (key: keyof typeof notifications) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+
 
   const formatCreationDate = (isoString: string): string => {
     if (!isoString) return t("profile.messages.unknown_date");
@@ -671,86 +661,6 @@ export default function Profile() {
             </View>
           </View>
         </View>
-
-        {/* Notification Settings */}
-        <View style={[styles.section, { backgroundColor: themeColors.card }]}>
-          <View style={styles.sectionTitleContainer}>
-            <Ionicons name="notifications-outline" size={22} color={themeColors.tint} />
-            <Text style={[styles.sectionTitle, { color: themeColors.tint }]} numberOfLines={1}>{t("profile.notifications")}</Text>
-          </View>
-          <Text style={[styles.sectionSubtitle, { color: themeColors.icon }]}>
-            {t("profile.notifications_subtitle")}
-          </Text>
-
-          <View style={styles.notificationsGrid}>
-            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
-              <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.medications")}</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.medications_desc")}</Text>
-              </View>
-              <Switch
-                value={notifications.medications}
-                onValueChange={() => toggleNotification("medications")}
-                trackColor={{ false: themeColors.card, true: themeColors.primary }}
-                thumbColor={themeColors.background}
-              />
-            </View>
-
-            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
-              <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.email")}</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.email_desc")}</Text>
-              </View>
-              <Switch
-                value={notifications.email}
-                onValueChange={() => toggleNotification("email")}
-                trackColor={{ false: themeColors.card, true: themeColors.primary }}
-                thumbColor={themeColors.background}
-              />
-            </View>
-
-            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
-              <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.appointments")}</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.appointments_desc")}</Text>
-              </View>
-              <Switch
-                value={notifications.appointments}
-                onValueChange={() => toggleNotification("appointments")}
-                trackColor={{ false: themeColors.card, true: themeColors.primary }}
-                thumbColor={themeColors.background}
-              />
-            </View>
-
-            <View style={[styles.notificationCard, { backgroundColor: themeColors.card }]}>
-              <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.sms")}</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.sms_desc")}</Text>
-              </View>
-              <Switch
-                value={notifications.sms}
-                onValueChange={() => toggleNotification("sms")}
-                trackColor={{ false: themeColors.card, true: themeColors.primary }}
-                thumbColor={themeColors.background}
-              />
-            </View>
-
-            <View style={[styles.notificationCard, styles.fullWidth, { backgroundColor: themeColors.card }]}>
-              <View style={styles.notificationInfo}>
-                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>{t("profile.notification_items.health_alerts")}</Text>
-                <Text style={[styles.notificationDesc, { color: themeColors.icon }]}>{t("profile.notification_items.health_alerts_desc")}</Text>
-              </View>
-              <Switch
-                value={notifications.healthAlerts}
-                onValueChange={() => toggleNotification("healthAlerts")}
-                trackColor={{ false: themeColors.card, true: themeColors.primary }}
-                thumbColor={themeColors.background}
-              />
-            </View>
-          </View>
-        </View>
-
-
 
         {/* Bottom spacing for floating tab bar */}
         <View style={{ height: 100 }} />

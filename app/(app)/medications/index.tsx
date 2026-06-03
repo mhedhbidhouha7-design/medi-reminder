@@ -35,6 +35,7 @@ export default function MedicationsScreen() {
   const themeColors = Colors[theme];
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Add Modal State
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -385,7 +386,20 @@ export default function MedicationsScreen() {
 
   const filteredMedications = medications.filter(med => {
     if (!med.startDate || !med.endDate) return true;
-    return compareDateStr >= med.startDate && compareDateStr <= med.endDate;
+    const isInDateRange = compareDateStr >= med.startDate && compareDateStr <= med.endDate;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = med.name.toLowerCase().includes(query);
+      const matchesDose = med.schedules?.some(schedule => 
+        schedule.dose.toLowerCase().includes(query) || 
+        schedule.time.toLowerCase().includes(query)
+      );
+      return isInDateRange && (matchesName || matchesDose);
+    }
+    
+    return isInDateRange;
   });
 
   return (
@@ -421,6 +435,30 @@ export default function MedicationsScreen() {
             {t("medications.tabs.history")}
           </Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 10 }}>
+        <View style={[styles.searchContainer, { backgroundColor: themeColors.card, borderColor: themeColors.tabIconDefault }]}>
+          <Ionicons name="search-outline" size={20} color={themeColors.icon} />
+          <TextInput
+            style={[styles.searchInput, { color: themeColors.text }]}
+            placeholder="Rechercher un médicament..."
+            placeholderTextColor={themeColors.icon + "60"}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={20} color={themeColors.icon} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {searchQuery.length > 0 && (
+          <Text style={[styles.searchResultsText, { color: themeColors.icon }]}>
+            {filteredMedications.length} {filteredMedications.length === 1 ? "résultat" : "résultats"}
+          </Text>
+        )}
       </View>
 
       {activeTab === "history" && (
@@ -847,6 +885,26 @@ const styles = StyleSheet.create({
     color: "#1e293b",
     borderWidth: 1,
     borderColor: "#e2e8f0",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  searchResultsText: {
+    fontSize: 13,
+    marginTop: 8,
+    marginLeft: 4,
+    fontWeight: "500",
   },
   dateRow: {
     flexDirection: "row",
