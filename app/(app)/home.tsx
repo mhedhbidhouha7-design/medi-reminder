@@ -1,14 +1,13 @@
 import {
-  completeAppointment,
-  listenToAppointments,
+    completeAppointment,
+    listenToAppointments,
 } from "@/controllers/appointmentController";
 import {
-  listenToMedications,
-  toggleMedicationDose,
+    listenToMedications,
+    toggleMedicationDose,
 } from "@/controllers/medicationController";
 import { auth, db } from "@/firebaseConfig";
 import { Appointment, Medication } from "@/models/interfaces";
-import { testNotifications } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -19,15 +18,15 @@ import { useTranslation } from "react-i18next";
 import { Colors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -943,6 +942,7 @@ export default function Home() {
           </View>
 
           {/* ── Test Notifications Button (dev only) ── */}
+          {/* COMMENTÉ - Bouton de test des notifications
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.tint,
@@ -975,6 +975,7 @@ export default function Home() {
               {t("home.test_notifications")}
             </Text>
           </TouchableOpacity>
+          */}
 
           <View style={{ height: 100 }} />
         </Animated.View>

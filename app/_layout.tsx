@@ -1,14 +1,14 @@
-import "../services/i18n";
-import React, { useEffect, useState } from "react";
-import { Modal, LogBox } from "react-native";
 import { Slot } from "expo-router";
-import { ThemeProvider } from "../hooks/use-app-theme";
+import React, { useEffect, useState } from "react";
+import { LogBox } from "react-native";
+import { FullScreenMedicationOverlay } from "../components/FullScreenMedicationOverlay";
 import { AlertProvider } from "../components/ThemedAlert";
-import { MedicationAlertScreen } from "../components/MedicationAlertScreen";
+import { ThemeProvider } from "../hooks/use-app-theme";
+import "../services/i18n";
 
 import {
-  PendingMedicationAlert,
-  subscribeToPendingMedicationAlert,
+    PendingMedicationAlert,
+    subscribeToPendingMedicationAlert,
 } from "../services/medicationNotificationHandler";
 
 // Suppress expo-notifications warnings (yellow box)
@@ -53,14 +53,10 @@ export default function App() {
         <Slot />
 
         {/* Modal plein écran — s'affiche par-dessus tout, non fermable */}
-        <Modal
+        <FullScreenMedicationOverlay
           visible={!!medicationAlert}
-          animationType="slide"
-          statusBarTranslucent
-          onRequestClose={() => {}} // bloque la fermeture native Android
-        >
-          {medicationAlert && <MedicationAlertScreen alert={medicationAlert} />}
-        </Modal>
+          medicationAlert={medicationAlert}
+        />
       </AlertProvider>
     </ThemeProvider>
   );

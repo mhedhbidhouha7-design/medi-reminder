@@ -1,20 +1,18 @@
 import { useAlert } from "@/components/ThemedAlert";
-import { Colors } from "@/constants/theme";
-import { useAppTheme } from "@/hooks/use-app-theme";
 import {
-  confirmMedicationTaken,
-  PendingMedicationAlert,
+    confirmMedicationTaken,
+    PendingMedicationAlert,
 } from "@/services/medicationNotificationHandler";
 import * as Vibration from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -34,10 +32,8 @@ interface FullScreenMedicationOverlayProps {
 export const FullScreenMedicationOverlay: React.FC<
   FullScreenMedicationOverlayProps
 > = ({ visible, medicationAlert }) => {
-  const { theme } = useAppTheme();
-  const themeColors = Colors[theme];
-  const { showError, showSuccess, showAlert, showConfirm } = useAlert();
-  const [pulseAnim] = useState(new Animated.Value(0));
+  const { showError, showSuccess, showAlert } = useAlert();
+  const [pulseAnim] = useState(new Animated.Value(1));
 
   // Pulse animation for the medication info box
   useEffect(() => {
@@ -53,14 +49,14 @@ export const FullScreenMedicationOverlay: React.FC<
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: false,
+            toValue: 1.15,
+            duration: 600,
+            useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: false,
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
           }),
         ]),
       ).start();
@@ -70,16 +66,6 @@ export const FullScreenMedicationOverlay: React.FC<
   if (!visible || !medicationAlert) {
     return null;
   }
-
-  const scaleAnim = pulseAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.05],
-  });
-
-  const opacityAnim = pulseAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.8, 1],
-  });
 
   const handleConfirmMedication = async () => {
     try {
@@ -117,190 +103,66 @@ export const FullScreenMedicationOverlay: React.FC<
         );
       }}
     >
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: themeColors.notification.background },
-        ]}
-      >
-        {/* Animated background pulse */}
-        <Animated.View
-          style={[
-            styles.pulseBackground,
-            {
-              backgroundColor: themeColors.notification.pulse,
-              transform: [{ scale: scaleAnim }],
-              opacity: opacityAnim,
-            },
-          ]}
-        />
-
-        {/* Main content */}
-        <View style={styles.contentContainer}>
-          {/* Clock icon and "Time to take medication" */}
-          <View style={styles.headerSection}>
-            <Text style={styles.urgentEmoji}>⏰</Text>
-            <Text
-              style={[
-                styles.urgentTitle,
-                { color: themeColors.notification.text },
-              ]}
-            >
-              C&apos;EST L&apos;HEURE DU MÉDICAMENT !
-            </Text>
-          </View>
-
-          {/* Medication details card */}
+      <View style={styles.container}>
+        {/* En-tête avec animation */}
+        <View style={styles.header}>
           <Animated.View
             style={[
-              styles.medicationCard,
-              {
-                borderColor: themeColors.notification.accent,
-                backgroundColor: themeColors.notification.cardBackground,
-                transform: [{ scale: scaleAnim }],
-              },
+              styles.iconContainer,
+              { transform: [{ scale: pulseAnim }] },
             ]}
           >
-            <Text
-              style={[
-                styles.medicationName,
-                { color: themeColors.notification.text },
-              ]}
-            >
-              💊 {medicationAlert.medicationName}
-            </Text>
+            <Text style={styles.icon}>💊</Text>
+          </Animated.View>
+          <Text style={styles.headerTitle}>C'EST L'HEURE DU MÉDICAMENT !</Text>
+          <Text style={styles.headerTime}>
+            {new Date(medicationAlert.timestamp).toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+        </View>
+
+        {/* Carte d'information du médicament */}
+        <View style={styles.body}>
+          <Animated.View
+            style={[styles.infoCard, { transform: [{ scale: pulseAnim }] }]}
+          >
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Médicament</Text>
+              <Text style={styles.medicationName}>
+                {medicationAlert.medicationName}
+              </Text>
+            </View>
 
             <View style={styles.divider} />
 
-            <View style={styles.detailRow}>
-              <Text
-                style={[
-                  styles.detailLabel,
-                  { color: themeColors.notification.subtext },
-                ]}
-              >
-                Dose:
-              </Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  { color: themeColors.notification.text },
-                ]}
-              >
-                {medicationAlert.dose}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text
-                style={[
-                  styles.detailLabel,
-                  { color: themeColors.notification.subtext },
-                ]}
-              >
-                Heure:
-              </Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  { color: themeColors.notification.text },
-                ]}
-              >
-                {new Date(medicationAlert.timestamp).toLocaleTimeString(
-                  "fr-FR",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  },
-                )}
-              </Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Dose</Text>
+              <Text style={styles.dose}>{medicationAlert.dose}</Text>
             </View>
           </Animated.View>
 
-          {/* Action buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                { backgroundColor: themeColors.notification.accent },
-              ]}
-              onPress={handleConfirmMedication}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.confirmButtonText}>
-                ✅ J&apos;AI PRIS MON MÉDICAMENT
-              </Text>
-            </TouchableOpacity>
-
-            {/* Emergency option - requires confirmation */}
-            <TouchableOpacity
-              style={[
-                styles.skipButton,
-                { borderColor: themeColors.notification.accent },
-              ]}
-              onPress={() => {
-                showConfirm(
-                  "⚠️ Sauter le rappel",
-                  "Êtes-vous sûr de vouloir sauter ce médicament ? Cette action sera enregistrée.",
-                  async () => {
-                    // Mark as skipped instead of taken
-                    // await skipMedicationReminder(medicationAlert.medicationId);
-                    // For now, just close
-                  },
-                  "Confirmer",
-                  "Annuler"
-                );
-              }}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.skipButtonText,
-                  { color: themeColors.notification.accent },
-                ]}
-              >
-                ⏭️ Rappeler plus tard
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Info text */}
-          <View style={styles.infoSection}>
-            <Text
-              style={[
-                styles.infoText,
-                { color: themeColors.notification.subtext },
-              ]}
-            >
-              Vous ne pouvez pas accéder à l&apos;application jusqu&apos;à
-              confirmation de la prise du médicament.
+          <View style={styles.warningBox}>
+            <View style={styles.warningIconContainer}>
+              <Text style={styles.warningIcon}>⚠️</Text>
+            </View>
+            <Text style={styles.warningText}>
+              Veuillez prendre votre médicament maintenant pour maintenir
+              l'efficacité de votre traitement.
             </Text>
           </View>
         </View>
 
-        {/* Optional: Emergency contact button */}
-        <View style={styles.emergencySection}>
+        {/* Bouton de confirmation unique */}
+        <View style={styles.footer}>
           <TouchableOpacity
-            style={[
-              styles.emergencyButton,
-              { borderColor: themeColors.notification.subtext },
-            ]}
-            onPress={() => {
-              showAlert(
-                "🚨 En cas d'urgence",
-                "Contactez votre médecin ou le service d'urgence.",
-                undefined,
-                "warning"
-              );
-            }}
+            style={styles.confirmButton}
+            onPress={handleConfirmMedication}
+            activeOpacity={0.85}
           >
-            <Text
-              style={[
-                styles.emergencyButtonText,
-                { color: themeColors.notification.subtext },
-              ]}
-            >
-              🚨 Besoin d&apos;aide?
+            <Text style={styles.confirmButtonText}>
+              ✓ J'AI PRIS MON MÉDICAMENT
             </Text>
           </TouchableOpacity>
         </View>
@@ -312,136 +174,132 @@ export const FullScreenMedicationOverlay: React.FC<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  header: {
+    backgroundColor: "#1971C2",
+    alignItems: "center",
     justifyContent: "center",
+    paddingTop: 80,
+    paddingBottom: 50,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    shadowColor: "#1971C2",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
-    padding: 20,
+    justifyContent: "center",
+    marginBottom: 20,
   },
-  pulseBackground: {
-    position: "absolute",
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: (width * 0.8) / 2,
-    top: height / 2 - width * 0.4,
-    left: width / 2 - width * 0.4,
-    zIndex: 0,
+  icon: {
+    fontSize: 56,
   },
-  contentContainer: {
-    zIndex: 1,
-    alignItems: "center",
-    width: "100%",
-  },
-  headerSection: {
-    alignItems: "center",
-    marginBottom: 30,
-  },
-  urgentEmoji: {
-    fontSize: 60,
-    marginBottom: 10,
-  },
-  urgentTitle: {
+  headerTitle: {
+    color: "#fff",
     fontSize: 28,
     fontWeight: "bold",
     textAlign: "center",
-    letterSpacing: 0.5,
+    marginBottom: 8,
   },
-  medicationCard: {
-    width: "100%",
-    borderRadius: 16,
-    borderWidth: 3,
-    padding: 20,
-    marginBottom: 30,
+  headerTime: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 20,
+  },
+  infoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+    marginBottom: 24,
+  },
+  infoRow: {
+    paddingVertical: 8,
+  },
+  label: {
+    color: "#868E96",
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   medicationName: {
-    fontSize: 22,
+    color: "#212529",
+    fontSize: 26,
     fontWeight: "bold",
-    marginBottom: 12,
-    textAlign: "center",
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    marginVertical: 12,
+    backgroundColor: "#E9ECEF",
+    marginVertical: 16,
   },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 8,
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  detailValue: {
-    fontSize: 16,
+  dose: {
+    color: "#1971C2",
+    fontSize: 24,
     fontWeight: "700",
   },
-  buttonContainer: {
-    width: "100%",
-    gap: 12,
+  warningBox: {
+    backgroundColor: "#FFF9DB",
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderWidth: 1,
+    borderColor: "#FFE066",
+  },
+  warningIconContainer: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  warningIcon: {
+    fontSize: 24,
+  },
+  warningText: {
+    flex: 1,
+    color: "#495057",
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "500",
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingBottom: 30,
+    paddingTop: 12,
   },
   confirmButton: {
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    backgroundColor: "#27AE60",
+    borderRadius: 20,
+    paddingVertical: 16,
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: "#27AE60",
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 8,
   },
   confirmButtonText: {
+    color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-  },
-  skipButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  infoSection: {
-    marginTop: 25,
-    paddingHorizontal: 10,
-  },
-  infoText: {
-    fontSize: 13,
-    textAlign: "center",
-    fontStyle: "italic",
-    lineHeight: 18,
-  },
-  emergencySection: {
-    position: "absolute",
-    bottom: 30,
-    width: "100%",
-    paddingHorizontal: 20,
-  },
-  emergencyButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  emergencyButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
   },
 });
 
