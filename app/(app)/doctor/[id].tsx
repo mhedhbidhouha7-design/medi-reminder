@@ -4,15 +4,15 @@ import { onValue, push, ref, serverTimestamp, set } from 'firebase/database';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Dimensions,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Dimensions,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useAlert } from '../../../components/ThemedAlert';
 import { auth, db } from '../../../firebaseConfig';
@@ -205,43 +205,21 @@ const DoctorProfileScreen = () => {
               </View>
             </View>
           </View>
-
-          <View style={styles.dbFooter}>
-            <Ionicons name="cloud-done-outline" size={14} color="#ADB5BD" />
-            <Text style={styles.dbFooterText}>{t("doctors.profile.sync_data")}</Text>
-          </View>
         </ScrollView>
       </View>
 
       {/* Floating Action Footer - Adjusted to be above the tab bar */}
       <View style={styles.footer}>
-        <View style={styles.footerContent}>
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() => showAlert(t("doctors.buttons.chat"), t("doctors.buttons.chat_start"))}
-          >
-            <Ionicons name="chatbubble-ellipses" size={24} color="#1971C2" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.primaryButton, requesting && styles.disabledButton]}
-            onPress={() => handleAction('appointment')}
-            disabled={requesting}
-          >
-            {requesting ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={styles.primaryButtonText}>{t("doctors.buttons.book_now")}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
         <TouchableOpacity
-          style={[styles.secondaryButton, requesting && styles.disabledButton]}
-          onPress={() => handleAction('follow-up')}
+          style={[styles.primaryButton, requesting && styles.disabledButton]}
+          onPress={() => handleAction('appointment')}
           disabled={requesting}
         >
-          <Text style={styles.secondaryButtonText}>{t("doctors.buttons.regular_followup")}</Text>
+          {requesting ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.primaryButtonText}>{t("doctors.buttons.book_now")}</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -286,19 +264,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
-  },
-  dbFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-    gap: 6,
-  },
-  dbFooterText: {
-    fontSize: 12,
-    color: '#ADB5BD',
-    fontStyle: 'italic',
+    paddingBottom: 220,
   },
   profileHeader: {
     alignItems: 'center',
@@ -443,7 +409,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 110, // Increased to be above the floating tab bar (bottom: 24 + height: ~70)
+    bottom: 110, // Increased to be above the floating tab bar
     left: 20,
     right: 20,
     padding: 20,
@@ -457,22 +423,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F3F5',
   },
-  footerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  chatButton: {
-    width: 55,
-    height: 55,
-    borderRadius: 18,
-    backgroundColor: '#E7F5FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
   primaryButton: {
-    flex: 1,
+    width: '100%',
     backgroundColor: '#1971C2',
     height: 55,
     borderRadius: 18,
@@ -491,16 +443,6 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
-  },
-  secondaryButton: {
-    alignItems: 'center',
-    paddingVertical: 5,
-  },
-  secondaryButtonText: {
-    color: '#1971C2',
-    fontSize: 14,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
   },
   loadingContainer: {
     flex: 1,

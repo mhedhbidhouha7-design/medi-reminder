@@ -3,29 +3,29 @@ import { useRouter } from 'expo-router';
 import { equalTo, onValue, orderByChild, query, ref } from 'firebase/database';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { db } from '../../../firebaseConfig';
 
 const SPECIALTIES = [
   'Tous',
-  'Généraliste',
-  'Cardiologie',
-  'Dermatologie',
-  'Neurologue', // Updated from Neurologie to match user example
-  'Pédiatrie',
-  'Psychiatrie',
-  'Ophtalmologie',
+  'Médecin généraliste',
+  'Cardiologue',
+  'Dermatologue',
+  'Neurologue',
+  'Pédiatre',
+  'Psychiatre',
+  'Ophtalmologue',
   'Dentiste',
 ];
 
@@ -46,6 +46,7 @@ interface Doctor {
 const DoctorListScreen = () => {
   const router = useRouter();
   const [selectedSpecialty, setSelectedSpecialty] = useState('Tous');
+  const [searchQuery, setSearchQuery] = useState('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +66,12 @@ const DoctorListScreen = () => {
           // Add a default rating for UI if not present
           rating: data[key].rating || (Math.random() * (5.0 - 4.5) + 4.5).toFixed(1),
         }));
+        
+        // Log unique specialties for debugging
+        const uniqueSpecialties = [...new Set(doctorsList.map(doc => doc.specialty))];
+        console.log('🔍 DOCTOR FILTER DEBUG - Spécialités trouvées dans Firebase:', uniqueSpecialties);
+        console.log('🔍 DOCTOR FILTER DEBUG - Nombre total de médecins:', doctorsList.length);
+        
         setDoctors(doctorsList);
       } else {
         setDoctors([]);
@@ -78,9 +85,69 @@ const DoctorListScreen = () => {
     return () => unsubscribe();
   }, []);
 
-  const filteredDoctors = selectedSpecialty === 'Tous'
+  // Fonction de normalisation pour comparaison flexible
+  const normalizeSpecialty = (specialty: string): string => {
+    return specialty.toLowerCase().trim();
+  };
+
+  // Fonction de correspondance flexible
+  const specialtyMatches = (doctorSpecialty: string, filterSpecialty: string): boolean => {
+    const normalized = normalizeSpecialty(doctorSpecialty);
+    const filter = normalizeSpecialty(filterSpecialty);
+    
+    // Correspondance exacte
+    if (normalized === filter) return true;
+    
+    // Correspondance partielle (contient)
+    if (normalized.includes(filter) || filter.includes(normalized)) return true;
+    
+    // Correspondances spécifiques pour gérer les variations
+    const specialtyMap: { [key: string]: string[] } = {
+      'cardiologue': ['cardiologie', 'cardio'],
+      'dermatologue': ['dermatologie', 'dermato', 'dermatologist'],
+      'neurologue': ['neurologie', 'neuro', 'neurologist'],
+      'pédiatre': ['pédiatrie', 'pediatre', 'pediatrie', 'pediatrician'],
+      'psychiatre': ['psychiatrie', 'psy', 'psychiatrist'],
+      'ophtalmologue': ['ophtalmologie', 'ophtalmo', 'ophthalmologist'],
+      'médecin généraliste': ['généraliste', 'general', 'medecin generaliste', 'general practitioner'],
+      'dentiste': ['dentistry', 'dental', 'dentist'],
+    };
+    
+    // Vérifier les correspondances dans le map
+    for (const [key, variations] of Object.entries(specialtyMap)) {
+      if (normalized === key || variations.includes(normalized)) {
+        if (filter === key || variations.includes(filter)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
+  // Filtre par spécialité
+  let filteredBySpecialty = selectedSpecialty === 'Tous'
     ? doctors
-    : doctors.filter(doc => doc.specialty === selectedSpecialty);
+    : doctors.filter(doc => {
+        const matches = specialtyMatches(doc.specialty, selectedSpecialty);
+        console.log(`🔍 Comparaison spécialité: "${doc.specialty}" vs "${selectedSpecialty}" = ${matches}`);
+        return matches;
+      });
+  
+  // Filtre par nom de recherche
+  const filteredDoctors = searchQuery.trim() === ''
+    ? filteredBySpecialty
+    : filteredBySpecialty.filter(doc => {
+        const fullName = doc.firstName 
+          ? `${doc.firstName} ${doc.lastName}`.toLowerCase()
+          : doc.lastName.toLowerCase();
+        const search = searchQuery.toLowerCase().trim();
+        const matches = fullName.includes(search);
+        console.log(`🔎 Recherche nom: "${fullName}" contient "${search}" = ${matches}`);
+        return matches;
+      });
+  
+  console.log(`📊 Médecins filtrés: ${filteredDoctors.length}/${doctors.length} (Spécialité: "${selectedSpecialty}", Recherche: "${searchQuery}")`);
 
   const renderSpecialty = ({ item }: { item: string }) => (
     <TouchableOpacity
@@ -88,7 +155,10 @@ const DoctorListScreen = () => {
         styles.specialtyChip,
         selectedSpecialty === item && styles.specialtyChipActive
       ]}
-      onPress={() => setSelectedSpecialty(item)}
+      onPress={() => {
+        console.log('🏥 Spécialité sélectionnée:', item);
+        setSelectedSpecialty(item);
+      }}
     >
       <Text style={[
         styles.specialtyText,
@@ -140,10 +210,26 @@ const DoctorListScreen = () => {
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
-          placeholder="Rechercher par nom ou spécialité..."
+          placeholder="Rechercher par nom..."
           placeholderTextColor="#999"
           style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={(text) => {
+            console.log('🔎 Recherche modifiée:', text);
+            setSearchQuery(text);
+          }}
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            onPress={() => {
+              console.log('🔎 Recherche effacée');
+              setSearchQuery('');
+            }}
+            style={styles.clearButton}
+          >
+            <Ionicons name="close-circle" size={20} color="#999" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.specialtyContainer}>
@@ -159,7 +245,14 @@ const DoctorListScreen = () => {
         />
       </View>
 
-      <Text style={styles.sectionTitle}>Médecins disponibles</Text>
+      <View style={styles.resultsHeader}>
+        <Text style={styles.sectionTitle}>Médecins disponibles</Text>
+        {(searchQuery.trim() !== '' || selectedSpecialty !== 'Tous') && (
+          <Text style={styles.resultsCount}>
+            {filteredDoctors.length} résultat{filteredDoctors.length !== 1 ? 's' : ''}
+          </Text>
+        )}
+      </View>
     </View>
   );
 
@@ -192,7 +285,13 @@ const DoctorListScreen = () => {
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Ionicons name="search-outline" size={50} color="#DEE2E6" />
-                <Text style={styles.emptyText}>Aucun médecin trouvé dans cette catégorie.</Text>
+                <Text style={styles.emptyText}>
+                  {searchQuery.trim() !== '' 
+                    ? `Aucun médecin trouvé pour "${searchQuery}"`
+                    : selectedSpecialty !== 'Tous'
+                    ? `Aucun médecin trouvé dans cette spécialité`
+                    : 'Aucun médecin disponible'}
+                </Text>
               </View>
             }
           />
@@ -266,6 +365,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  clearButton: {
+    padding: 5,
+    marginLeft: 5,
+  },
   specialtyContainer: {
     marginBottom: 25,
   },
@@ -274,6 +377,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 15,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  resultsCount: {
+    fontSize: 14,
+    color: '#1971C2',
+    fontWeight: '600',
+    backgroundColor: '#E7F5FF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   specialtyFlatList: {
     marginLeft: -20,
